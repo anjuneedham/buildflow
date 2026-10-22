@@ -19,6 +19,12 @@
       linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
     background-size: 28px 28px;
   }
+  .select-chevron {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2359626d' stroke-width='2.5'><path d='m6 9 6 6 6-6'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center;
+    background-size: 12px;
+  }
   .pb-safe-nav { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
 }
 

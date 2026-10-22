@@ -15,7 +15,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
 type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & { options: readonly { value: string; label: string }[]; placeholder?: string };
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select({ className, options, placeholder, ...props }, ref) {
   return (
-    <select ref={ref} className={cn(control, "min-h-11 appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2359626d%22 stroke-width=%222.5%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[length:12px] bg-[right_0.9rem_center] bg-no-repeat py-2 pr-9", className)} {...props}>
+    <select ref={ref} className={cn(control, "select-chevron min-h-11 appearance-none py-2 pr-9", className)} {...props}>
       {placeholder !== undefined && <option value="">{placeholder}</option>}
       {options.map((o) => (
         <option key={o.value} value={o.value}>{o.label}</option>

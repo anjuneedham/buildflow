@@ -16,7 +16,7 @@ export function ProfileHeader({ business, primaryService, actions, meta }: { bus
         {business.is_demo && <span className="absolute left-3 top-3 rounded bg-amber-400 px-2 py-0.5 text-xs font-bold text-ink">DEMO PROFILE</span>}
       </div>
       <div className="mx-auto max-w-5xl px-4 pb-5">
-        <div className="-mt-12 flex items-end gap-4 sm:-mt-14">
+        <div className="relative z-10 -mt-12 flex items-end gap-4 sm:-mt-14">
           <Avatar src={business.logo_url} name={business.name} size="xl" square className="ring-4 ring-white shadow" />
         </div>
         <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">

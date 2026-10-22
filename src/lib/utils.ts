@@ -1,7 +1,10 @@
 import clsx, { type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
+// twMerge lets a caller's className override a component's defaults
+// (e.g. <Card className="bg-ink"> beats Card's bg-white).
 export function cn(...inputs: ClassValue[]) {
-  return clsx(inputs);
+  return twMerge(clsx(inputs));
 }
 
 export function slugify(input: string) {
