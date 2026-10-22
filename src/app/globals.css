@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-tap-highlight-color: transparent; }
+  body { @apply bg-concrete-50 text-ink antialiased; }
+  ::selection { @apply bg-safety-100; }
+  dialog::backdrop { background: rgba(20, 24, 28, 0.5); }
+}
+
+@layer utilities {
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  /* Subtle blueprint grid used on marketing hero sections. */
+  .bg-blueprint {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .pb-safe-nav { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+}
+
+.prose-legal h2 { @apply mt-8 text-xl font-bold text-ink; }
+.prose-legal h3 { @apply mt-5 font-bold text-ink; }
+.prose-legal p, .prose-legal li { @apply mt-3 leading-relaxed text-ink-600; }
+.prose-legal ul { @apply list-disc pl-6; }
