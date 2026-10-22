@@ -1,15 +1,14 @@
 "use client";
 
-import { useActionState } from "react";
+import { useFormAction } from "@/components/ui/use-form-action";
 import { updateAccount } from "@/app/actions/business";
 import { Avatar } from "@/components/ui/avatar";
 import { Field, Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { useActionToast } from "@/components/ui/toast";
-import type { ActionState } from "@/lib/validation";
 
 export function AccountForm({ name, avatar, email }: { name: string; avatar: string | null; email: string }) {
-  const [state, action] = useActionState(updateAccount, {} as ActionState);
+  const [state, action] = useFormAction(updateAccount);
   useActionToast(state);
   return (
     <form action={action} className="space-y-4">

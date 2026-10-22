@@ -6,31 +6,38 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types tests/*.test.ts"
+    "test": "node --test --experimental-strip-types tests/*.test.ts",
+    "emulators": "firebase emulators:start --project demo-buildflow",
+    "seed": "node --env-file=.env.local --import tsx scripts/seed.mts",
+    "make-admin": "node --env-file=.env.local --import tsx scripts/make-admin.mts",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-rules-test \"node --test --experimental-strip-types tests/rules/*.test.ts\"",
+    "test:integration": "node --test --experimental-strip-types tests/integration/*.test.ts"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.12.7",
-    "@supabase/supabase-js": "^2.118.0",
     "clsx": "^2.1.1",
+    "firebase": "^11.10.0",
+    "firebase-admin": "^13.10.0",
     "lucide-react": "^1.61.0",
-    "next": "^15.5.28",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
+    "next": "16.4.2",
+    "react": "19.2",
+    "react-dom": "19.2",
     "server-only": "^0.0.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.6.1",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^15.5.28",
+    "eslint-config-next": "16.4.2",
+    "firebase-tools": "^14.27.0",
     "postcss": "^8.5.31",
-    "supabase": "^2.121.0",
     "tailwindcss": "^3.4.19",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3"
   }
 }

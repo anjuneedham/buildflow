@@ -1,21 +1,22 @@
 "use client";
 
+import { useFormAction } from "@/components/ui/use-form-action";
 import Link from "next/link";
-import { useActionState, useEffect, useRef, useTransition } from "react";
+import { useEffect, useRef } from "react";
 import { Trash2 } from "lucide-react";
 import { addComment, deleteComment } from "@/app/actions/social";
 import { Avatar } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { useActionToast } from "@/components/ui/toast";
+import { useServerAction } from "@/components/ui/use-form-action";
 import { ReportButton } from "@/components/forms/report-button";
 import { timeAgo } from "@/lib/utils";
-import type { ActionState } from "@/lib/validation";
 
 export type CommentRow = { id: string; body: string; created_at: string; user_id: string; author: { full_name: string; avatar_url: string | null } | null };
 
 export function CommentForm({ postId, signedIn }: { postId: string; signedIn: boolean }) {
-  const [state, action] = useActionState(addComment, {} as ActionState);
+  const [state, action] = useFormAction(addComment);
   const ref = useRef<HTMLFormElement>(null);
   useActionToast(state);
   useEffect(() => { if (state.ok) ref.current?.reset(); }, [state]);
@@ -30,7 +31,7 @@ export function CommentForm({ postId, signedIn }: { postId: string; signedIn: bo
 }
 
 export function CommentList({ comments, postId, viewerId, canModerate }: { comments: CommentRow[]; postId: string; viewerId?: string; canModerate: boolean }) {
-  const [pending, start] = useTransition();
+  const [pending, run] = useServerAction();
   if (comments.length === 0) return <p className="text-sm text-ink-500">No comments yet. Be the first.</p>;
   return (
     <ul className="space-y-4">
@@ -42,9 +43,9 @@ export function CommentList({ comments, postId, viewerId, canModerate }: { comme
             <p className="whitespace-pre-line break-words text-sm text-ink-700">{c.body}</p>
             <div className="-ml-2 flex">
               {(viewerId === c.user_id || canModerate) && (
-                <button disabled={pending} onClick={() => start(async () => { await deleteComment(c.id, postId); })} className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-ink-500 hover:text-site-red"><Trash2 className="h-3.5 w-3.5" />Delete</button>
+                <button disabled={pending} onClick={() => run(() => deleteComment(c.id, postId))} className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-ink-500 hover:text-site-red"><Trash2 className="h-3.5 w-3.5" />Delete</button>
               )}
-              {viewerId && viewerId !== c.user_id && <ReportButton targetType="comment" targetId={c.id} />}
+              {viewerId && viewerId !== c.user_id && <ReportButton targetType="comment" targetId={c.id} targetPath={`posts/${postId}/comments/${c.id}`} />}
             </div>
           </div>
         </li>

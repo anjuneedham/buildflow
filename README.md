@@ -24,9 +24,10 @@ Every feature exists to acquire, convert, manage, deliver for, or retain custome
 
 | Layer | Choice |
 |---|---|
-| Frontend | Next.js 15 (App Router, Server Components, Server Actions), React 19, TypeScript |
+| Frontend | Next.js 16 (App Router, Server Components, Server Actions), React 19, TypeScript |
 | Styling | Tailwind CSS 3, custom design system in `src/components/ui` |
-| Backend | Supabase: Postgres, Auth, Storage, Row Level Security |
+| Backend | Google Firebase: Firestore, Firebase Auth, Cloud Storage for Firebase, security rules |
+| Server data access | Firebase Admin SDK, server-side only, tenant-scoped (`src/lib/data/tenant.ts`) |
 | Validation | Zod (server-side, every action) |
 | Hosting | Vercel |
 | Payments | Stripe-ready seam (`src/lib/billing.ts`); V1 runs in "manual" billing mode |
@@ -48,11 +49,15 @@ src/
     cards/         PostCard, ContractorCard, LeadCard, ProjectCard, ProfileHeader
     nav/           TopNavigation, BottomNavigation, SideNavigation, footer
     crm/ forms/ social/
-  lib/             supabase clients, session, queries, validation, plans, constants, storage, rate-limit
-supabase/
-  migrations/      schema + RLS + triggers + RPCs + storage policies
-  seed.sql         DEMO data only
-  tests/           SQL tests for the core loop & tenant isolation
+    media/[...path] authenticated route for private project photos
+  lib/
+    firebase/      admin (server-only) and client (Auth only) SDK setup
+    data/          tenant boundary, Firestore helpers, business denormalisation
+                   session, queries, validation, plans, constants, storage, rate-limit
+  proxy.ts         route guard (Next 16 "proxy", formerly middleware)
+firestore.rules, storage.rules, firestore.indexes.json, firebase.json
+scripts/           seed (reference + DEMO data), make-admin
+tests/             unit, security-rules and HTTP isolation tests
 ```
 
 Details: [`docs/architecture.md`](docs/architecture.md). Schema: [`docs/database-schema.md`](docs/database-schema.md).
@@ -81,21 +86,22 @@ Copy `.env.example` to `.env.local`.
 
 | Variable | Required | Notes |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | yes | Project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | Anon/publishable key (safe in browser; RLS protects data) |
-| `SUPABASE_SERVICE_ROLE_KEY` | no | **Server only.** Reserved for billing webhooks / tooling. Never prefix with `NEXT_PUBLIC_`. |
-| `NEXT_PUBLIC_SITE_URL` | yes | Used for email links, canonical URLs, sitemap |
+| `NEXT_PUBLIC_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_PROJECT_ID`, `_STORAGE_BUCKET`, `_APP_ID` | yes | Firebase web app config (safe in the browser; the browser SDK is used for sign-in only) |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | prod | **Server only.** Service-account JSON (raw or base64) for the Admin SDK. Never prefix with `NEXT_PUBLIC_`. Not needed with emulators. |
+| `NEXT_PUBLIC_USE_FIREBASE_EMULATORS`, `FIREBASE_AUTH_EMULATOR_HOST`, `FIRESTORE_EMULATOR_HOST`, `FIREBASE_STORAGE_EMULATOR_HOST` | dev | Point both SDKs at the local emulators |
+| `NEXT_PUBLIC_SITE_URL` | yes | Canonical URLs, sitemap, invite links |
 | `NEXT_PUBLIC_SUPPORT_EMAIL` | no | Shown on contact/legal pages |
 | `STRIPE_*` | no | Enables Stripe mode in `lib/billing.ts` once implemented |
-| `RESEND_API_KEY`, `EMAIL_FROM` | no | For future email notifications |
 
 ## Local development
 
+Requires Node 20+ and Java 11+ (for the Firestore emulator).
+
 ```bash
 npm install
-npx supabase start               # local Postgres/Auth/Storage (Docker)
-npx supabase db reset            # applies migrations + seed.sql
-cp .env.example .env.local       # paste the URL + anon key printed by `supabase start`
+cp .env.example .env.local       # uncomment the emulator block; any demo-* project id works
+npm run emulators                # Auth :9099, Firestore :8080, Storage :9199, UI :4000
+npm run seed                     # reference data + DEMO data (emulators only)
 npm run dev                      # http://localhost:3000
 ```
 
@@ -112,74 +118,77 @@ Demo accounts (password `demo-password-123`, all **demo data**):
 ### Checks
 
 ```bash
-npm run typecheck
-npm run lint
-npm test                                                         # unit tests (pricing, search parsing)
-psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/core_loop.sql # 30 DB checks: full loop + tenant isolation
+npm run typecheck && npm run lint
+npm test                 # unit tests (pricing math, search parsing)
+npm run test:rules       # Firestore security-rules tests (starts its own emulator)
+npm run test:integration # HTTP tenant-isolation tests (needs emulators + seed + app on :3000)
 ```
 
-## Supabase setup (hosted)
+## Firebase setup (production)
 
-1. Create a project at supabase.com.
-2. `npx supabase link --project-ref <ref>` then `npx supabase db push` (applies `supabase/migrations`). **Do not** run `seed.sql` in production.
-3. Make yourself admin: `update profiles set is_platform_admin = true where id = '<your-user-id>';`
+1. Create a Firebase project. Enable **Authentication → Email/Password**, **Firestore** (production mode) and **Storage**.
+2. Add a Web app; copy its config into the `NEXT_PUBLIC_FIREBASE_*` variables.
+3. Project settings → Service accounts → generate a key; store the JSON (or base64 of it) as `FIREBASE_SERVICE_ACCOUNT_KEY` in your host's secret store.
+4. Deploy rules and indexes: `npx firebase deploy --only firestore:rules,firestore:indexes,storage --project <id>`.
+5. Load reference data (services, locations, plans): `npm run seed -- --reference` with production env vars. Demo data refuses to load outside the emulators.
+6. Make yourself admin: `npm run make-admin -- you@example.com`.
 
 ### Authentication setup
-- Auth → URL configuration: Site URL = your domain; add `https://your-domain/auth/callback` to redirect URLs.
-- Email confirmations: on for production. The callback route handles `code` and `token_hash` links, including password recovery.
-- Customise email templates and SMTP sender before launch.
+- Authentication → Templates → set the **action URL** to `https://your-domain/auth/action` (handles email verification and password reset).
+- Authentication → Settings → Authorized domains: add your production domain.
+- Sign-in happens in the browser with the Firebase SDK; the ID token is exchanged for a 14-day **httpOnly session cookie** (`__session`) verified with revocation checks on every server request. Sign-out revokes refresh tokens.
 
 ### Storage setup
-The migration creates two buckets with policies:
-- `public-media` (public read): logos, covers, post images. Writes only under `{business_id}/…` by members, or `users/{uid}/…`.
-- `project-files` (private): site photos, served via short-lived signed URLs.
-Both limit files to 10 MB and JPEG/PNG/WEBP/HEIC; the app validates the same on the server.
+- `storage.rules` denies all direct client access. Uploads go through server actions that check type (JPEG/PNG/WEBP/HEIC) and size (10 MB).
+- `public-media/{businessId|users/uid}/…`: logos, covers, post images, served by tokenised download URLs.
+- `project-files/{businessId}/…`: private site photos, streamed only to members via `/media/...`.
 
 ## Deployment (Vercel)
 
 1. Import the repo in Vercel (framework: Next.js).
-2. Set the environment variables above for Production/Preview.
-3. Deploy. Update Supabase Auth redirect URLs with the Vercel domain.
+2. Add the environment variables above (Production/Preview). Do **not** set the emulator variables.
+3. Deploy, then add the Vercel domain to Firebase Auth's authorized domains.
 
 ## Subscription architecture
 
-- Plans live in `subscription_plans` (`base_price_cents`, `included_seats`, `additional_seat_price_cents`, Stripe price IDs). Admins edit them at `/admin/plans`.
-- Each business gets a `subscriptions` row (14-day trial on Basic) when created; `seats` tracks team size automatically.
+- Plans live in the `plans` collection (`base_price_cents`, `included_seats`, `additional_seat_price_cents`, Stripe price ids). Admins edit them at `/admin/plans`.
+- Each business gets a `subscriptions/{businessId}` doc (14-day trial on Basic) at creation; `seats` follows team size automatically.
 - Price math lives in **one** function: `seatPriceBreakdown()` in `src/lib/plans.ts` (Basic: 1 user $50, 2 → $70, 3 → $90, 4 → $110).
-- Adding Pro/Business/Enterprise = insert rows (+ optional entries in `PLANS` for marketing defaults). No code restructuring.
-- Stripe: implement `createCheckoutSession` + a webhook route in `src/lib/billing.ts` that updates `subscriptions` using the service-role key.
+- Adding Pro/Business/Enterprise = new documents (+ optional `PLANS` entries for marketing defaults). No restructuring.
+- Stripe: implement `createCheckoutSession` + a webhook route in `src/lib/billing.ts` that updates `subscriptions`.
 
 ## Security
 
-- **Multi-tenancy:** every CRM/project row carries `business_id`; RLS allows access only to members (`is_business_member()`). Triggers reject cross-tenant references (e.g. a task pointing at another business's project) and non-member assignees.
-- Public data (profiles, posts, comments) is readable without auth only when the business is public and not suspended.
-- Anonymous writes go only through `submit_quote_request()` and `track_view()` RPCs (with DB-side throttling).
-- Users can't self-promote to admin, self-verify, un-suspend, or change ownership/counters (protection triggers).
-- Owners vs members: only owners delete records, edit the profile, manage team/billing.
-- Server-side Zod validation on every action; file type/size checks; honeypot on quote form; rate limits on auth, quotes, comments and reports (`src/lib/rate-limit.ts`, in-memory — swap to Redis for multi-instance).
-- Service-role key is server-only (`import "server-only"`). Security headers in `next.config.ts`.
+- **Multi-tenancy:** all CRM/project data lives under `businesses/{businessId}/…`. Server code reaches it only through `tenant(businessId)`, and `businessId` always comes from the verified session (`requireBusiness`), never from request input. A document id sent by a browser can therefore only address a document inside the caller's own business. Membership is re-checked against `businesses/{id}/members/{uid}` on every request.
+- **Firestore rules** are a second line of defence: clients can never write, can read only public profiles/posts/reference data and their own user docs, and only members can read a business's subcollections (`tests/rules`).
+- Assignees and project members are validated against the member list; owners vs members: only owners delete records, edit the profile, manage team/billing.
+- Side effects (counters, notifications, analytics, quote → lead) are written in the same atomic batch/transaction as the main write.
+- Server-side Zod validation on every action; honeypot + per-IP rate limit + persistent per-contact limit on quote requests; rate limits on sign-in, comments, reports and view tracking.
+- Users can't make themselves admin or verify their business: those fields are only written by admin actions or `scripts/make-admin`.
+- Admin SDK credentials are server-only (`import "server-only"`). Security headers in `next.config.ts`.
 
 ## Roadmap
 See [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Known limitations
 
+- **Search** is filter-based (service + parish) with in-memory name matching over at most 500 candidates. Add Algolia/Typesense when the directory grows.
+- Lists load up to a few hundred records (no pagination yet).
 - Stripe checkout/webhooks are not implemented (manual billing mode; trials don't auto-expire access).
-- Invite and notification **emails** are not sent; owners share invite links manually; notifications are in-app.
-- Rate limiting is per server instance (in-memory).
-- Profile display names are publicly readable (needed for comments).
-- One owned business per user account.
-- Lead/project lists load up to a few hundred rows (no pagination yet).
-- Reviews, messaging, estimates/invoices, calendar and native apps are not built (marked "coming soon" where they appear).
+- Invite and notification **emails** are not sent (Firebase sends verification/reset emails only).
+- Rate limiting is per server instance (in-memory), except the persistent quote-request limit.
+- One business per user account.
+- Posts store a copy of the business name/logo; it is re-synced on profile changes (up to a few thousand posts per business).
+- Pages under `/app` that are not found render the not-found page with HTTP 200 (streaming behind `loading.tsx`); no data is returned.
+- Reviews, messaging, estimates/invoices, calendar and native apps are not built (marked "coming soon").
 - Legal pages are drafts and **must be reviewed by counsel** before launch.
-- During development the full Supabase Docker stack could not be pulled in the CI sandbox; the app was verified against Postgres 16 + PostgREST 12 with an auth stub (see `docs/architecture.md#testing`). Run against real Supabase before release.
 
 ## Contributing
 
 1. Branch from `main`; keep PRs focused.
-2. Schema changes go in a **new** migration file; update `docs/database-schema.md` and add a check to `supabase/tests/core_loop.sql`.
-3. Run typecheck, lint, unit tests and the SQL tests before opening a PR.
-4. Reuse `src/components/ui` instead of one-off styling. Keep forms mobile-first (44px targets, minimal typing).
+2. New tenant data goes under `businesses/{id}/…` and is accessed via `tenant()`. Add indexes to `firestore.indexes.json`, update `docs/database-schema.md`, and extend `tests/rules` / `tests/integration`.
+3. Actions return `{ ok, redirectTo? }` and clients use `useFormAction`/`useServerAction`; don't call `revalidatePath`/`redirect` for `/app` routes (see `src/components/ui/use-form-action.ts`).
+4. Run typecheck, lint, unit, rules and integration tests before opening a PR.
 
 ## License
 

@@ -7,7 +7,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { QuoteForm } from "./quote-form";
 import type { Service } from "@/lib/types";
 
-type Props = { businessId: string; businessName: string; services: Service[]; defaults?: { name?: string; email?: string } };
+type Props = { businessId: string; businessName: string; services: Pick<Service, "id" | "name">[]; defaults?: { name?: string; email?: string } };
 
 /** Primary (Request a quote) + secondary (Contact) CTAs, each opening a sheet. */
 export function ContactActions({ variant = "header", ...props }: Props & { variant?: "header" | "sticky" }) {

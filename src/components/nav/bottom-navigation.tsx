@@ -22,7 +22,7 @@ export function BottomNavigation({ items }: { items: NavItem[] }) {
           const Icon = item.icon;
           return (
             <li key={item.href}>
-              <Link href={item.href} aria-current={on ? "page" : undefined}
+              <Link href={item.href} prefetch={false} aria-current={on ? "page" : undefined}
                 className={cn("flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 text-[11px] font-semibold", on ? "text-safety-600" : "text-ink-500")}>
                 <Icon className={cn("h-5 w-5", on && "stroke-[2.5]")} aria-hidden />
                 {item.label}
@@ -44,7 +44,7 @@ export function SideNavigation({ items, footer }: { items: NavItem[]; footer?: R
         const on = isActive(pathname, item);
         const Icon = item.icon;
         return (
-          <Link key={item.href} href={item.href} aria-current={on ? "page" : undefined}
+          <Link key={item.href} href={item.href} prefetch={false} aria-current={on ? "page" : undefined}
             className={cn("flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm font-semibold transition-colors",
               on ? "bg-ink text-white" : "text-ink-600 hover:bg-concrete-100 hover:text-ink")}>
             <Icon className={cn("h-[18px] w-[18px]", on && "text-safety-400")} aria-hidden />

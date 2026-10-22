@@ -10,24 +10,18 @@ import { ReportButton } from "@/components/forms/report-button";
 import { DeletePostButton } from "./delete-post-button";
 import { Avatar, Badge, ButtonLink, Card } from "@/components/ui";
 import { FormSuccess } from "@/components/ui/input";
-import { createClient } from "@/lib/supabase/server";
-import { POST_COLS, getViewerState, sortMedia } from "@/lib/queries";
+import { db } from "@/lib/firebase/admin";
+import { fromQuery } from "@/lib/data/db";
+import { tenant } from "@/lib/data/tenant";
+import { getPost, getViewerState } from "@/lib/queries";
 import { getSession } from "@/lib/session";
 import { POST_TYPES, optionFor } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
-import type { FeedPost } from "@/lib/types";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ published?: string }> };
 
-async function loadPost(id: string) {
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const supabase = await createClient();
-  const { data } = await supabase.from("posts").select(POST_COLS).eq("id", id).maybeSingle();
-  return data ? sortMedia(data as unknown as FeedPost) : null;
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const post = await loadPost((await params).id);
+  const post = await getPost((await params).id);
   if (!post) return { title: "Post not found" };
   const title = `${optionFor(POST_TYPES, post.type)?.label ?? "Work"} by ${post.business.name}`;
   return { title, description: post.caption?.slice(0, 155) ?? title, openGraph: { title, images: post.media[0] ? [post.media[0].url] : undefined } };
@@ -36,14 +30,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PostPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { published } = await searchParams;
-  const post = await loadPost(id);
+  const post = await getPost(id);
   if (!post) notFound();
   const s = await getSession();
-  const supabase = await createClient();
-  const { data: comments } = await supabase.from("comments").select("id, body, created_at, user_id, author:profiles(full_name, avatar_url)").eq("post_id", id).order("created_at");
+  const comments = fromQuery<CommentRow & { is_hidden: boolean }>(await db().collection("posts").doc(id).collection("comments").orderBy("created_at").limit(200).get()).filter((c) => !c.is_hidden);
   const viewer = await getViewerState(s.user?.id, [id]);
   const isOwner = s.membership?.business.id === post.business_id;
-  const project = post.project_id && isOwner ? (await supabase.from("projects").select("id, name").eq("id", post.project_id).maybeSingle()).data : null;
+  const project = post.project_id && isOwner ? await tenant(post.business_id).doc("projects", post.project_id).get() : null;
 
   return (
     <main className="mx-auto max-w-2xl px-0 py-0 sm:px-4 sm:py-6">
@@ -71,7 +64,7 @@ export default async function PostPage({ params, searchParams }: Props) {
           <div className="flex flex-wrap gap-1.5">
             <Badge tone="orange">{optionFor(POST_TYPES, post.type)?.label}</Badge>
             {post.service && <Link href={`/explore?service=${post.service.slug}`}><Badge>{post.service.name}</Badge></Link>}
-            {project && <Link href={`/app/projects/${project.id}`}><Badge tone="blue"><Briefcase className="h-3 w-3" />{project.name}</Badge></Link>}
+            {project?.exists && <Link href={`/app/projects/${project.id}`}><Badge tone="blue"><Briefcase className="h-3 w-3" />{project.get("name")}</Badge></Link>}
           </div>
           {post.caption && <p className="whitespace-pre-line text-ink-700">{post.caption}</p>}
           {!isOwner && <ButtonLink href={`/contractor/${post.business.slug}#quote`} block size="lg">Request a quote from {post.business.name}</ButtonLink>}
@@ -80,7 +73,7 @@ export default async function PostPage({ params, searchParams }: Props) {
       </Card>
       <section id="comments" className="scroll-mt-20 space-y-4 p-4 sm:px-0">
         <h2 className="font-bold">Comments</h2>
-        <CommentList comments={(comments ?? []) as unknown as CommentRow[]} postId={post.id} viewerId={s.user?.id} canModerate={isOwner && s.membership?.role === "owner"} />
+        <CommentList comments={comments} postId={post.id} viewerId={s.user?.id} canModerate={isOwner && s.membership?.role === "owner"} />
         <CommentForm postId={post.id} signedIn={Boolean(s.user)} />
       </section>
     </main>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useFormAction } from "@/components/ui/use-form-action";
 import { Field, FormError, Input, Select, Textarea } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { LEAD_SOURCES, LEAD_STATUSES } from "@/lib/constants";
@@ -10,7 +10,7 @@ import type { ActionState } from "@/lib/validation";
 export function LeadForm({ action: serverAction, lead, services, team, submitLabel }: {
   action: (s: ActionState, fd: FormData) => Promise<ActionState>; lead?: Lead; services: Service[]; team: TeamMember[]; submitLabel: string;
 }) {
-  const [state, action] = useActionState(serverAction, {} as ActionState);
+  const [state, action] = useFormAction(serverAction);
   const fe = state.fieldErrors ?? {};
   return (
     <form action={action} className="space-y-4" noValidate>

@@ -1,6 +1,7 @@
 import { Plus, Search, Users } from "lucide-react";
 import { ButtonLink, DataTable, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
-import { createClient } from "@/lib/supabase/server";
+import { list } from "@/lib/data/db";
+import { tenant } from "@/lib/data/tenant";
 import { requireBusiness } from "@/lib/session";
 import { formatDate } from "@/lib/utils";
 import type { Customer } from "@/lib/types";
@@ -10,12 +11,15 @@ export const metadata = { title: "Customers" };
 export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const s = await requireBusiness();
   const { q } = await searchParams;
-  const supabase = await createClient();
-  let query = supabase.from("customers").select("*, projects(count)").eq("business_id", s.business.id).order("created_at", { ascending: false }).limit(300);
-  const term = q?.replace(/[%_,()]/g, " ").trim();
-  if (term) query = query.or(`name.ilike.%${term}%,phone.ilike.%${term}%,email.ilike.%${term}%,city.ilike.%${term}%`);
-  const { data } = await query;
-  const rows = (data ?? []) as (Customer & { projects: { count: number }[] })[];
+  const t = tenant(s.business.id);
+  const [all, projects] = await Promise.all([
+    list<Customer>(t.col("customers").orderBy("created_at", "desc").limit(500)),
+    list<{ customer_id: string | null }>(t.col("projects").select("customer_id")),
+  ]);
+  const projectCount = new Map<string, number>();
+  projects.forEach((p) => p.customer_id && projectCount.set(p.customer_id, (projectCount.get(p.customer_id) ?? 0) + 1));
+  const term = q?.trim().toLowerCase();
+  const rows = all.filter((c) => !term || [c.name, c.phone, c.email, c.city].some((v) => v?.toLowerCase().includes(term)));
 
   return (
     <>
@@ -33,7 +37,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           { key: "name", header: "Name", cell: (r) => r.name },
           { key: "phone", header: "Phone", cell: (r) => r.phone ?? "—" },
           { key: "city", header: "Area", cell: (r) => r.city ?? "—", hideOnMobile: true },
-          { key: "projects", header: "Projects", cell: (r) => `${r.projects?.[0]?.count ?? 0} project${r.projects?.[0]?.count === 1 ? "" : "s"}` },
+          { key: "projects", header: "Projects", cell: (r) => { const n = projectCount.get(r.id) ?? 0; return `${n} project${n === 1 ? "" : "s"}`; } },
           { key: "status", header: "Status", cell: (r) => <StatusBadge kind="customer" value={r.status} /> },
           { key: "created", header: "Added", cell: (r) => formatDate(r.created_at), hideOnMobile: true },
         ]}

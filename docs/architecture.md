@@ -1,52 +1,59 @@
 # Architecture
 
 ## Overview
-A single Next.js 15 App Router application deployed to Vercel, backed by Supabase (Postgres + Auth + Storage). There is no separate API server: pages are React Server Components that query Supabase as the signed-in user, and all writes are **Server Actions** in `src/app/actions/*`.
+A single Next.js 16 App Router application (deploy on Vercel) backed by Google Firebase: **Firebase Auth**, **Cloud Firestore** and **Cloud Storage for Firebase**. There is no separate API server and no Cloud Functions: pages are React Server Components and every write is a **Server Action** in `src/app/actions/*`, both using the Firebase **Admin SDK** on the server.
 
 ```
 Browser ──► Next.js (Vercel)
-             ├─ middleware.ts        refreshes the Supabase session cookie, guards /app /admin /onboarding /saved /account
-             ├─ Server Components     read via @supabase/ssr client (user's JWT → RLS applies)
-             └─ Server Actions       Zod-validate → rate-limit → write via same client (RLS applies)
-                                        │
-                                        ▼
-                               Supabase Postgres (RLS + triggers + RPCs) / Storage / Auth
+ │           ├─ proxy.ts            cheap gate: no __session cookie → /login for /app /admin /onboarding /saved /account
+ │           ├─ getSession()        verifySessionCookie(cookie, checkRevoked) → users/{uid} → businesses/{id}/members/{uid}
+ │           ├─ Server Components   read via Admin SDK, tenant-scoped
+ │           └─ Server Actions      Zod-validate → rate-limit → batched/transactional writes (+ side effects)
+ │                                       │
+ └─ Firebase Auth (browser SDK,          ▼
+    sign-in only) ──ID token──► session cookie     Firestore · Storage · Auth (Admin SDK)
 ```
 
-The service-role key is not used on any request path. Authorization is enforced **in the database** so a bug in a page cannot leak another tenant's data.
+### Why server-only data access
+- One place to enforce authorization (TypeScript, testable) instead of duplicating business rules in security rules.
+- Side effects that were database triggers in a SQL design (counters, notifications, analytics, quote → lead) run in the same atomic batch/transaction as the main write, without Cloud Functions.
+- Security rules still exist as defence in depth: no client writes at all, reads limited to public data, own user docs, and member-only tenant data (`firestore.rules`, tested in `tests/rules`).
 
 ## Key modules
 | Path | Purpose |
 |---|---|
-| `src/lib/supabase/{server,client,middleware,admin}.ts` | Supabase clients. `admin.ts` is server-only. |
-| `src/lib/session.ts` | `getSession()` (cached per request), `requireUser`, `requireBusiness`, `requireAdmin` |
-| `src/lib/queries.ts` | Shared reads: feed, search, profile, viewer state |
+| `src/lib/firebase/admin.ts` | Admin SDK (server-only). Uses `FIREBASE_SERVICE_ACCOUNT_KEY`, or the emulators when `*_EMULATOR_HOST` is set. |
+| `src/lib/firebase/client.ts` | Browser SDK, used **only** for Firebase Auth. |
+| `src/lib/session.ts` | Session cookie verification, `requireUser`, `requireBusiness`, `requireAdmin` |
+| `src/lib/data/tenant.ts` | **Tenant boundary** (`tenant(businessId)`), plus helpers to queue events, activity and notifications on a batch |
+| `src/lib/data/business.ts` | Denormalisation helpers (services/region on business; business snapshot + visibility on posts) |
+| `src/lib/queries.ts` | Public reads: feed, search, profiles, viewer state |
 | `src/lib/search.ts` | Pure free-text → {service, region, name} parser |
-| `src/lib/validation.ts` | Zod schemas + `parseForm` → `ActionState` |
+| `src/lib/storage.ts`, `src/app/media/[...path]` | Validated uploads; private photo streaming with a membership check |
+| `src/components/ui/use-form-action.ts` | Client navigation/refresh after actions (see below) |
 | `src/lib/plans.ts` / `plans.server.ts` | Pricing math + plan loading |
-| `src/lib/constants.ts` | Enum labels/tones (mirrors Postgres enums) |
-| `src/lib/storage.ts` | Validated uploads, signed URLs |
-| `src/lib/rate-limit.ts` | Fixed-window limiter (swap store for Redis later) |
 | `src/lib/billing.ts` | Stripe seam |
 | `src/lib/legal.ts` | Configurable legal/policy values |
 
 ## Multi-tenancy
-- Tenant = `businesses` row. Membership = `business_members (business_id, user_id, role)`.
-- Tenant tables: customers, leads, projects, project_members, tasks, project_photos, notes, activity_logs, analytics_events, quote_requests, subscriptions.
-- RLS uses SECURITY DEFINER helpers `is_business_member(bid)`, `is_business_owner(bid)`, `is_platform_admin()`, `is_business_visible(bid)`.
-- `enforce_same_business()` trigger rejects cross-tenant foreign keys and non-member assignees.
-- Storage paths are prefixed with the business id and checked by storage policies.
+- Tenant = `businesses/{businessId}`. All private data are subcollections: `customers`, `leads`, `projects`, `tasks`, `photos`, `notes`, `activity`, `events`, `quote_requests`, `members`, `followers`.
+- Server code only reaches them via `tenant(businessId)`, and `businessId` comes from `requireBusiness()` (the verified session plus a membership doc check). Ids from the browser are only ever used *inside* that path, so cross-tenant access is structurally impossible rather than filtered.
+- Cross-entity references are validated inside the tenant (a project's customer, a task's project, assignees must be members).
+- Tested in `tests/integration/isolation.test.ts` (another business gets the not-found page and none of the data; private photos are not served) and `tests/rules`.
 
 ## Data flows
-- **Quote request:** form → `submitQuoteRequest` action (Zod, honeypot, IP rate limit) → `submit_quote_request()` RPC (atomic: quote_request + lead + analytics + owner notification + activity, DB throttle 5/hour/contact).
-- **Counters** (likes, comments, saves, followers, posts, completed projects) are maintained by triggers so public pages never need to read private tables.
-- **Views:** a client `ViewTracker` calls `track_view()` once per browser session (avoids counting prefetches; ignores the business's own members).
+- **Sign-in:** browser `signInWithEmailAndPassword` → `establishSession(idToken)` server action → `createSessionCookie` (14 days, httpOnly) → profile doc created on first sign-in.
+- **Quote request:** public form → `submitQuoteRequest` (Zod, honeypot, IP rate limit, persistent per-contact limit) → one batch: quote request + lead + analytics events + owner notifications + activity + the customer's own history copy.
+- **Counters** (likes, saves, comments, followers, posts, completed projects, task totals) are kept in step with their source documents in transactions.
+- **Visibility:** each post carries `visible = post public && not hidden && business public && not suspended`; profile/admin changes re-sync it, so the feed is a single indexed query.
+- **Refresh after writes:** actions return `{ ok, redirectTo? }`; `useFormAction` / `useServerAction` navigate or `router.refresh()`. We don't call `revalidatePath`/`redirect` for `/app` routes: in testing, revalidating the `/app` layout inside an action intermittently stranded the client router; client-driven refresh was reliable (and Next 16 fixed a separate stuck-navigation race we hit on 15.5).
 
 ## Mobile & native readiness
-- Mobile-first layouts, bottom navigation, safe-area insets, PWA manifest (`/manifest.webmanifest`).
-- Business logic lives in Postgres (RLS, triggers, RPCs) and in framework-agnostic `lib/` modules, so a future React Native/Expo client can use the same Supabase backend and reuse `plans.ts`, `search.ts`, `constants.ts`, and `validation.ts`.
+- Mobile-first layouts, bottom navigation, safe-area insets, PWA manifest.
+- Firebase has first-class iOS/Android SDKs. A future Expo app can reuse the Firestore model and `plans.ts`, `search.ts`, `constants.ts`, `validation.ts`; its writes should go through the same server endpoints (security rules intentionally block client writes).
 
 ## Testing
-- `npm test`: unit tests (pricing math, search parsing).
-- `supabase/tests/core_loop.sql`: 30 assertions covering the full loop, tenant isolation, team permissions and privilege escalation (runs in a rolled-back transaction).
-- V1 was additionally verified by a Playwright run of all 16 definition-of-done steps on a 390px viewport against Postgres 16 + PostgREST 12 with a minimal auth/storage stub (the Supabase Docker images were unavailable in the build sandbox). Re-run against a real Supabase stack before release.
+- `npm test`: unit tests (pricing, search parsing).
+- `npm run test:rules`: Firestore security rules against the emulator.
+- `npm run test:integration`: HTTP tenant isolation against the running app + seeded emulators.
+- The full 16-step definition-of-done loop (sign up → … → completed project showcased and discoverable) was run end-to-end in Chromium at 390px against the Firebase emulators.

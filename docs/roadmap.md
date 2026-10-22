@@ -8,6 +8,7 @@ Auth · onboarding · public profiles · explore/search · posts/likes/comments/
 - Transactional email (quote requests, invites, verification branding) via Resend
 - Legal review of privacy/terms/refund pages; real company details in `src/lib/legal.ts`
 - Redis-backed rate limiting; error monitoring; uptime checks
+- Hosted search (Algolia/Typesense) for full-text contractor search
 - Pagination on leads/customers/projects; image resizing/compression
 
 ## V1.2 — conversion & trust
@@ -25,6 +26,6 @@ Auth · onboarding · public profiles · explore/search · posts/likes/comments/
 - Pro / Business / Enterprise plans (data-driven, no restructuring)
 
 ## V3 — platform
-- Native iOS/Android (Expo) on the same Supabase backend
+- Native iOS/Android (Expo) on the same Firebase backend (Firebase has first-class iOS/Android SDKs)
 - Caribbean expansion (additional countries in `locations`), then global
 - Acquisition/ROI analytics, marketplace features

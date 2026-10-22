@@ -1,8 +1,12 @@
-// Hand-maintained row types for the tables the UI reads. Regenerate with
-// `supabase gen types typescript` once the schema stabilises.
+// Firestore document shapes. Field names are snake_case and timestamps are
+// ISO-8601 strings (sortable, serialisable to client components).
+// See docs/database-schema.md.
 import type { CustomerStatus, LeadSource, LeadStatus, PostType, ProjectStatus, TaskPriority, TaskStatus } from "@/lib/constants";
 
-export interface Profile { id: string; full_name: string; avatar_url: string | null; account_type: "customer" | "contractor"; is_suspended?: boolean }
+export interface Profile {
+  id: string; full_name: string; avatar_url: string | null; account_type: "customer" | "contractor"; email?: string;
+  is_suspended?: boolean; is_platform_admin?: boolean; business_id?: string | null; business_role?: "owner" | "member" | null; created_at?: string;
+}
 export interface Service { id: string; slug: string; name: string; plural_name: string }
 export interface Location { id: string; name: string; slug: string; level: "country" | "region" | "city"; country_code: string; parent_id: string | null }
 
@@ -13,8 +17,12 @@ export interface Business {
   region_id: string | null; city: string | null; service_area: string | null; primary_service_id: string | null;
   is_public: boolean; is_verified: boolean; is_suspended: boolean; is_demo: boolean;
   onboarding_step: number; onboarding_completed_at: string | null;
-  follower_count: number; post_count: number; completed_project_count: number; created_at: string;
-  region?: { name: string } | null;
+  follower_count: number; post_count: number; completed_project_count: number; created_at: string; updated_at?: string;
+  region: { id: string; name: string } | null;
+  service_ids: string[];
+  services: Pick<Service, "id" | "name" | "slug">[];
+  primary_service: Pick<Service, "id" | "name" | "slug"> | null;
+  name_lower: string;
 }
 
 export interface Customer {
@@ -26,26 +34,32 @@ export interface Lead {
   id: string; business_id: string; name: string; phone: string | null; email: string | null; location: string | null;
   description: string | null; service_id: string | null; status: LeadStatus; source: LeadSource; estimated_value: number | null;
   assigned_to: string | null; customer_id: string | null; quote_request_id: string | null; created_at: string; status_changed_at: string;
+  service_name?: string | null; customer_name?: string | null; quote?: { budget_range: string | null; timeline: string | null } | null;
 }
 
 export interface Project {
   id: string; business_id: string; customer_id: string | null; lead_id: string | null; name: string; description: string | null;
   location: string | null; start_date: string | null; expected_end_date: string | null; completed_at: string | null;
   status: ProjectStatus; budget: number | null; created_at: string;
+  customer_name: string | null; member_ids: string[]; task_total: number; task_done: number;
 }
 
 export interface Task {
   id: string; project_id: string; title: string; description: string | null; assigned_to: string | null; due_date: string | null;
-  priority: TaskPriority; status: TaskStatus; created_at: string;
+  priority: TaskPriority; status: TaskStatus; created_at: string; project_name?: string;
 }
 
 export interface PostMedia { id: string; url: string; label: "before" | "after" | null; position: number }
 export interface FeedPost {
   id: string; business_id: string; type: PostType; caption: string | null; location_text: string | null; created_at: string;
   like_count: number; comment_count: number; save_count: number; project_id: string | null;
-  business: Pick<Business, "id" | "name" | "slug" | "logo_url" | "is_verified" | "city">;
+  business: Pick<Business, "id" | "name" | "slug" | "logo_url" | "is_verified" | "city" | "region_id">;
+  service_id: string | null; is_public: boolean; is_hidden: boolean; author_id: string;
   service: Pick<Service, "name" | "slug"> | null;
   media: PostMedia[];
 }
 
 export interface TeamMember { user_id: string; full_name: string; avatar_url: string | null; role: "owner" | "member" }
+
+export interface NoteRow { id: string; body: string; created_at: string; author_id: string | null; author_name: string | null }
+export interface ActivityRow { id: string; summary: string; created_at: string; actor_name?: string | null; entity_type: string; entity_id: string | null }

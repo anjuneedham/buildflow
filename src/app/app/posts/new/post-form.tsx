@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useFormAction } from "@/components/ui/use-form-action";
+import { useState } from "react";
 import { ImagePlus } from "lucide-react";
 import { createPost } from "@/app/actions/social";
 import { buttonClasses } from "@/components/ui/button";
@@ -9,12 +10,11 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { POST_TYPES, UPLOAD } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { Service } from "@/lib/types";
-import type { ActionState } from "@/lib/validation";
 
 const ACCEPT = UPLOAD.allowedTypes.join(",");
 
 export function PostForm({ projects, services, defaults }: { projects: { id: string; name: string }[]; services: Service[]; defaults: { projectId?: string; type: string; serviceId?: string; location?: string } }) {
-  const [state, action] = useActionState(createPost, {} as ActionState);
+  const [state, action] = useFormAction(createPost);
   const [type, setType] = useState(defaults.type);
   const [previews, setPreviews] = useState<string[]>([]);
   const [ba, setBa] = useState<{ before?: string; after?: string }>({});

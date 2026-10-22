@@ -10,7 +10,9 @@ const optText = (max: number) =>
 const reqText = (max: number, label: string) =>
   z.preprocess((v) => (typeof v === "string" ? v.trim() : v), z.string({ required_error: `${label} is required` }).min(1, `${label} is required`).max(max));
 const optEmail = z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : typeof v === "string" ? v.trim() : v), z.string().email("Enter a valid email").max(200).optional());
-const optUuid = z.preprocess((v) => (v === "" || v === null ? undefined : v), z.string().uuid().optional());
+// Firestore document ids (auto-ids or readable demo ids).
+export const docId = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/, "Invalid id");
+const optUuid = z.preprocess((v) => (v === "" || v === null ? undefined : v), docId.optional());
 const optMoney = z.preprocess((v) => {
   if (typeof v !== "string" || v.trim() === "") return undefined;
   return Number(v.replace(/[,$\s]/g, ""));
@@ -110,7 +112,7 @@ export const taskSchema = z.object({
 
 export const noteSchema = z.object({
   entityType: z.enum(["lead", "customer", "project"]),
-  entityId: z.string().uuid(),
+  entityId: docId,
   body: reqText(5000, "Note"),
 });
 
@@ -122,10 +124,10 @@ export const postSchema = z.object({
   locationText: optText(200),
 });
 
-export const commentSchema = z.object({ postId: z.string().uuid(), body: reqText(1000, "Comment") });
+export const commentSchema = z.object({ postId: docId, body: reqText(1000, "Comment") });
 
 export const quoteRequestSchema = z.object({
-  businessId: z.string().uuid(),
+  businessId: docId,
   kind: z.enum(["quote", "contact"]).default("quote"),
   name: reqText(160, "Your name"),
   email: optEmail,
@@ -140,7 +142,7 @@ export const quoteRequestSchema = z.object({
 
 export const reportSchema = z.object({
   targetType: z.enum(["post", "comment", "business"]),
-  targetId: z.string().uuid(),
+  targetId: docId,
   reason: z.enum(values(REPORT_REASONS)),
   details: optText(1000),
 });
@@ -152,6 +154,8 @@ export type ActionState = {
   error?: string;
   message?: string;
   fieldErrors?: Record<string, string[] | undefined>;
+  /** Set by actions that finished and want the client to navigate. */
+  redirectTo?: string;
 };
 
 export function formToObject(fd: FormData) {

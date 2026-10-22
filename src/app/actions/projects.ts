@@ -1,134 +1,220 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { db, bucket } from "@/lib/firebase/admin";
+import { isId, now } from "@/lib/data/db";
+import { addActivity, addEvent, addNotification, inc, tenant } from "@/lib/data/tenant";
 import { requireBusiness } from "@/lib/session";
-import { logActivity } from "@/lib/activity";
 import { uploadImage, validImage } from "@/lib/storage";
 import { PROJECT_STATUSES, TASK_STATUSES, optionFor, values } from "@/lib/constants";
-import { parseForm, projectSchema, taskSchema, type ActionState } from "@/lib/validation";
+import { docId, parseForm, projectSchema, taskSchema, type ActionState } from "@/lib/validation";
 
 async function ctx() {
   const s = await requireBusiness();
-  return { supabase: await createClient(), businessId: s.business.id, userId: s.user.id, isOwner: s.isOwner };
+  return { t: tenant(s.business.id), businessId: s.business.id, userId: s.user.id, userName: s.profile?.full_name ?? null, isOwner: s.isOwner };
 }
 
-const projectRow = (d: z.infer<typeof projectSchema>) => ({
+/** Only ids of real members survive; prevents assigning outsiders. */
+async function memberIds(businessId: string, ids: string[]) {
+  const clean = Array.from(new Set(ids.filter((v) => docId.safeParse(v).success))).slice(0, 50);
+  if (!clean.length) return [];
+  const snaps = await db().getAll(...clean.map((id) => tenant(businessId).doc("members", id)));
+  return snaps.filter((s) => s.exists).map((s) => s.id);
+}
+
+async function customerName(businessId: string, id: string | undefined) {
+  if (!id) return { ok: true as const, name: null };
+  const snap = await tenant(businessId).doc("customers", id).get();
+  return snap.exists ? { ok: true as const, name: snap.get("name") as string } : { ok: false as const };
+}
+
+async function refreshCompletedCount(businessId: string) {
+  const t = tenant(businessId);
+  const n = (await t.col("projects").where("status", "==", "completed").count().get()).data().count;
+  await t.root.update({ completed_project_count: n });
+}
+
+const projectFields = (d: z.infer<typeof projectSchema>) => ({
   name: d.name, customer_id: d.customerId ?? null, description: d.description ?? null, location: d.location ?? null,
   start_date: d.startDate ?? null, expected_end_date: d.expectedEndDate ?? null, status: d.status, budget: d.budget ?? null,
 });
 
 export async function createProject(_: ActionState, fd: FormData): Promise<ActionState> {
-  const { supabase, businessId, userId } = await ctx();
+  const { t, businessId, userId, userName } = await ctx();
   const parsed = parseForm(projectSchema, fd);
   if (!parsed.data) return parsed.state;
-  const { data, error } = await supabase.from("projects")
-    .insert({ ...projectRow(parsed.data), lead_id: parsed.data.leadId ?? null, business_id: businessId, created_by: userId }).select("id").single();
-  if (error) return { ok: false, error: "Couldn't create the project." };
-  if (parsed.data.leadId) {
-    await supabase.from("leads").update({ status: "won" }).eq("id", parsed.data.leadId).eq("business_id", businessId).neq("status", "won");
+  const d = parsed.data;
+  const customer = await customerName(businessId, d.customerId);
+  if (!customer.ok) return { ok: false, error: "Customer not found." };
+  const members = await memberIds(businessId, fd.getAll("memberIds").map(String));
+  const ref = t.col("projects").doc();
+  const ts = now();
+  const batch = db().batch();
+  batch.set(ref, {
+    ...projectFields(d), customer_name: customer.name, lead_id: d.leadId ?? null, member_ids: members, task_total: 0, task_done: 0,
+    completed_at: d.status === "completed" ? ts : null, created_by: userId, created_at: ts, updated_at: ts,
+  });
+  if (d.leadId) {
+    const lead = await t.doc("leads", d.leadId).get();
+    if (lead.exists && lead.get("status") !== "won") {
+      batch.update(lead.ref, { status: "won", status_changed_at: ts, updated_at: ts });
+      addEvent(batch, businessId, "project_won", { lead_id: d.leadId });
+    }
   }
-  const members = fd.getAll("memberIds").map(String).filter((v) => z.string().uuid().safeParse(v).success);
-  if (members.length) await supabase.from("project_members").insert(members.map((user_id) => ({ project_id: data.id, business_id: businessId, user_id })));
-  await logActivity(supabase, { businessId, actorId: userId, entityType: "project", entityId: data.id, action: "created", summary: `Created project ${parsed.data.name}` });
-  revalidatePath("/app", "layout");
-  redirect(`/app/projects/${data.id}`);
+  if (d.status === "completed") addEvent(batch, businessId, "project_completed", { project_id: ref.id });
+  members.filter((m) => m !== userId).forEach((m) => addNotification(batch, m, { businessId, type: "project_assigned", title: `You were added to ${d.name}`, link: `/app/projects/${ref.id}` }));
+  addActivity(batch, businessId, { actorId: userId, actorName: userName, entityType: "project", entityId: ref.id, action: "created", summary: `Created project ${d.name}` });
+  await batch.commit();
+  if (d.status === "completed") await refreshCompletedCount(businessId);
+  return { ok: true, redirectTo: `/app/projects/${ref.id}` };
 }
 
 export async function updateProject(id: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  const { supabase, businessId, userId } = await ctx();
+  const { t, businessId, userId, userName } = await ctx();
+  if (!isId(id)) return { ok: false, error: "Project not found." };
   const parsed = parseForm(projectSchema, fd);
   if (!parsed.data) return parsed.state;
-  const { error } = await supabase.from("projects").update(projectRow(parsed.data)).eq("id", id).eq("business_id", businessId);
-  if (error) return { ok: false, error: "Couldn't update the project." };
-  const members = fd.getAll("memberIds").map(String).filter((v) => z.string().uuid().safeParse(v).success);
-  const { data: existing } = await supabase.from("project_members").select("user_id").eq("project_id", id);
-  const have = new Set((existing ?? []).map((m) => m.user_id));
-  const want = new Set(members);
-  const add = members.filter((m) => !have.has(m));
-  const remove = [...have].filter((m) => !want.has(m));
-  if (add.length) await supabase.from("project_members").insert(add.map((user_id) => ({ project_id: id, business_id: businessId, user_id })));
-  if (remove.length) await supabase.from("project_members").delete().eq("project_id", id).in("user_id", remove);
-  await logActivity(supabase, { businessId, actorId: userId, entityType: "project", entityId: id, action: "updated", summary: `Updated project details` });
-  revalidatePath("/app", "layout");
-  redirect(`/app/projects/${id}`);
+  const d = parsed.data;
+  const ref = t.doc("projects", id);
+  const prev = await ref.get();
+  if (!prev.exists) return { ok: false, error: "Project not found." };
+  const customer = await customerName(businessId, d.customerId);
+  if (!customer.ok) return { ok: false, error: "Customer not found." };
+  const members = await memberIds(businessId, fd.getAll("memberIds").map(String));
+  const before: string[] = prev.get("member_ids") ?? [];
+  const batch = db().batch();
+  const wasCompleted = prev.get("status") === "completed";
+  batch.update(ref, {
+    ...projectFields(d), customer_name: customer.name, member_ids: members, updated_at: now(),
+    completed_at: d.status === "completed" ? prev.get("completed_at") ?? now() : null,
+  });
+  if (d.status === "completed" && !wasCompleted) addEvent(batch, businessId, "project_completed", { project_id: id });
+  members.filter((m) => !before.includes(m) && m !== userId).forEach((m) => addNotification(batch, m, { businessId, type: "project_assigned", title: `You were added to ${d.name}`, link: `/app/projects/${id}` }));
+  addActivity(batch, businessId, { actorId: userId, actorName: userName, entityType: "project", entityId: id, action: "updated", summary: "Updated project details" });
+  await batch.commit();
+  if (wasCompleted !== (d.status === "completed")) await refreshCompletedCount(businessId);
+  return { ok: true, redirectTo: `/app/projects/${id}` };
 }
 
 export async function setProjectStatus(id: string, status: string) {
-  const { supabase, businessId, userId } = await ctx();
+  const { t, businessId, userId, userName } = await ctx();
   const parsed = z.enum(values(PROJECT_STATUSES)).safeParse(status);
-  if (!parsed.success) return { ok: false, error: "Invalid status" };
-  const { data, error } = await supabase.from("projects").update({ status: parsed.data }).eq("id", id).eq("business_id", businessId).select("name").single();
-  if (error) return { ok: false, error: "Couldn't update status" };
-  await logActivity(supabase, { businessId, actorId: userId, entityType: "project", entityId: id, action: "status_changed", summary: `${data.name} is now ${optionFor(PROJECT_STATUSES, parsed.data)?.label}` });
-  revalidatePath("/app", "layout");
+  if (!parsed.success || !isId(id)) return { ok: false, error: "Invalid status" };
+  const ref = t.doc("projects", id);
+  const prev = await ref.get();
+  if (!prev.exists) return { ok: false, error: "Project not found" };
+  if (prev.get("status") === parsed.data) return { ok: true };
+  const batch = db().batch();
+  const completing = parsed.data === "completed";
+  batch.update(ref, { status: parsed.data, completed_at: completing ? now() : null, updated_at: now() });
+  if (completing) addEvent(batch, businessId, "project_completed", { project_id: id });
+  addActivity(batch, businessId, { actorId: userId, actorName: userName, entityType: "project", entityId: id, action: "status_changed", summary: `${prev.get("name")} is now ${optionFor(PROJECT_STATUSES, parsed.data)?.label}` });
+  await batch.commit();
+  if (completing || prev.get("status") === "completed") await refreshCompletedCount(businessId);
   return { ok: true };
 }
 
 export async function deleteProject(id: string) {
-  const { supabase, businessId, isOwner } = await ctx();
+  const { t, businessId, isOwner } = await ctx();
   if (!isOwner) return { ok: false, error: "Only the business owner can delete projects." };
-  await supabase.from("projects").delete().eq("id", id).eq("business_id", businessId);
-  revalidatePath("/app", "layout");
-  redirect("/app/projects");
+  if (!isId(id)) return { ok: false, error: "Project not found." };
+  const [tasks, photos, notes, posts] = await Promise.all([
+    t.col("tasks").where("project_id", "==", id).get(),
+    t.col("photos").where("project_id", "==", id).get(),
+    t.col("notes").where("entity_id", "==", id).get(),
+    db().collection("posts").where("business_id", "==", businessId).where("project_id", "==", id).get(),
+  ]);
+  const batch = db().batch();
+  batch.delete(t.doc("projects", id));
+  [...tasks.docs, ...photos.docs, ...notes.docs].forEach((d) => batch.delete(d.ref));
+  posts.docs.forEach((p) => batch.update(p.ref, { project_id: null }));
+  await batch.commit();
+  await Promise.all(photos.docs.map((p) => bucket().file(p.get("path")).delete().catch(() => {})));
+  await refreshCompletedCount(businessId);
+  return { ok: true, redirectTo: "/app/projects" };
 }
 
 // ---------------- Tasks ----------------
 export async function createTask(projectId: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  const { supabase, businessId, userId } = await ctx();
+  const { t, businessId, userId, userName } = await ctx();
+  if (!isId(projectId)) return { ok: false, error: "Project not found." };
   const parsed = parseForm(taskSchema, fd);
   if (!parsed.data) return parsed.state;
   const d = parsed.data;
-  const { error } = await supabase.from("tasks").insert({
-    business_id: businessId, project_id: projectId, title: d.title, description: d.description ?? null, assigned_to: d.assignedTo ?? null,
-    due_date: d.dueDate ?? null, priority: d.priority, status: d.status, created_by: userId,
+  const project = await t.doc("projects", projectId).get();
+  if (!project.exists) return { ok: false, error: "Project not found." };
+  if (d.assignedTo && !(await memberIds(businessId, [d.assignedTo])).length) return { ok: false, error: "That person isn't on your team." };
+  const ts = now();
+  const ref = t.col("tasks").doc();
+  const batch = db().batch();
+  batch.set(ref, {
+    project_id: projectId, project_name: project.get("name"), title: d.title, description: d.description ?? null, assigned_to: d.assignedTo ?? null,
+    due_date: d.dueDate ?? null, priority: d.priority, status: d.status, completed_at: d.status === "done" ? ts : null, created_by: userId, created_at: ts, updated_at: ts,
   });
-  if (error) return { ok: false, error: error.message.includes("assignee") ? "That person isn't on your team." : "Couldn't add the task." };
-  await logActivity(supabase, { businessId, actorId: userId, entityType: "project", entityId: projectId, action: "task_added", summary: `Added task "${d.title}"` });
-  revalidatePath(`/app/projects/${projectId}`);
-  revalidatePath("/app");
+  batch.update(project.ref, { task_total: inc(), ...(d.status === "done" ? { task_done: inc() } : {}) });
+  if (d.assignedTo && d.assignedTo !== userId) addNotification(batch, d.assignedTo, { businessId, type: "task_assigned", title: `New task: ${d.title}`, link: `/app/projects/${projectId}` });
+  addActivity(batch, businessId, { actorId: userId, actorName: userName, entityType: "project", entityId: projectId, action: "task_added", summary: `Added task "${d.title}"` });
+  await batch.commit();
   return { ok: true, message: "Task added" };
 }
 
 export async function setTaskStatus(taskId: string, status: string) {
-  const { supabase, businessId, userId } = await ctx();
+  const { t, userId, userName } = await ctx();
   const parsed = z.enum(values(TASK_STATUSES)).safeParse(status);
-  if (!parsed.success) return { ok: false, error: "Invalid status" };
-  const { data, error } = await supabase.from("tasks").update({ status: parsed.data }).eq("id", taskId).eq("business_id", businessId).select("title, project_id").single();
-  if (error) return { ok: false, error: "Couldn't update the task" };
-  if (parsed.data === "done") {
-    await logActivity(supabase, { businessId, actorId: userId, entityType: "project", entityId: data.project_id, action: "task_done", summary: `Completed "${data.title}"` });
+  if (!parsed.success || !isId(taskId)) return { ok: false, error: "Invalid status" };
+  const ref = t.doc("tasks", taskId);
+  let projectId = "";
+  try {
+    await db().runTransaction(async (tx) => {
+      const task = await tx.get(ref);
+      if (!task.exists) throw new Error("nf");
+      projectId = task.get("project_id");
+      const was = task.get("status");
+      if (was === parsed.data) return;
+      tx.update(ref, { status: parsed.data, completed_at: parsed.data === "done" ? now() : null, updated_at: now() });
+      const delta = (parsed.data === "done" ? 1 : 0) - (was === "done" ? 1 : 0);
+      if (delta) tx.update(t.doc("projects", projectId), { task_done: inc(delta) });
+      if (parsed.data === "done") {
+        tx.set(t.col("activity").doc(), { actor_id: userId, actor_name: userName, entity_type: "project", entity_id: projectId, action: "task_done", summary: `Completed "${task.get("title")}"`, created_at: now() });
+      }
+    });
+  } catch {
+    return { ok: false, error: "Couldn't update the task" };
   }
-  revalidatePath(`/app/projects/${data.project_id}`);
-  revalidatePath("/app");
   return { ok: true };
 }
 
 export async function deleteTask(taskId: string) {
-  const { supabase, businessId } = await ctx();
-  const { data } = await supabase.from("tasks").delete().eq("id", taskId).eq("business_id", businessId).select("project_id").maybeSingle();
-  if (data) revalidatePath(`/app/projects/${data.project_id}`);
+  const { t } = await ctx();
+  if (!isId(taskId)) return { ok: false };
+  const ref = t.doc("tasks", taskId);
+  let projectId = "";
+  await db().runTransaction(async (tx) => {
+    const task = await tx.get(ref);
+    if (!task.exists) return;
+    projectId = task.get("project_id");
+    tx.delete(ref);
+    tx.update(t.doc("projects", projectId), { task_total: inc(-1), ...(task.get("status") === "done" ? { task_done: inc(-1) } : {}) });
+  });
   return { ok: true };
 }
 
 // ---------------- Photos ----------------
 export async function uploadProjectPhotos(projectId: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  const { supabase, businessId, userId } = await ctx();
-  const { data: project } = await supabase.from("projects").select("id").eq("id", projectId).eq("business_id", businessId).maybeSingle();
-  if (!project) return { ok: false, error: "Project not found." };
+  const { t, businessId, userId, userName } = await ctx();
+  if (!isId(projectId) || !(await t.doc("projects", projectId).get()).exists) return { ok: false, error: "Project not found." };
   const files = fd.getAll("photos").filter(validImage).slice(0, 10);
   if (files.length === 0) return { ok: false, error: "Choose at least one photo." };
   const caption = String(fd.get("caption") ?? "").trim().slice(0, 300) || null;
   let uploaded = 0;
   for (const f of files) {
-    const r = await uploadImage(supabase, "project-files", businessId, f);
+    const r = await uploadImage("private", businessId, f);
     if ("error" in r) return { ok: false, error: r.error };
-    await supabase.from("project_photos").insert({ business_id: businessId, project_id: projectId, url: r.url, caption, uploaded_by: userId });
+    await t.col("photos").add({ project_id: projectId, path: r.url, caption, uploaded_by: userId, created_at: now() });
     uploaded++;
   }
-  await logActivity(supabase, { businessId, actorId: userId, entityType: "project", entityId: projectId, action: "photos_added", summary: `Added ${uploaded} photo${uploaded > 1 ? "s" : ""}` });
-  revalidatePath(`/app/projects/${projectId}`);
+  const batch = db().batch();
+  addActivity(batch, businessId, { actorId: userId, actorName: userName, entityType: "project", entityId: projectId, action: "photos_added", summary: `Added ${uploaded} photo${uploaded > 1 ? "s" : ""}` });
+  await batch.commit();
   return { ok: true, message: `${uploaded} photo${uploaded > 1 ? "s" : ""} uploaded` };
 }

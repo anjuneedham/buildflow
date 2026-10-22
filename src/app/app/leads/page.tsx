@@ -1,7 +1,8 @@
 import { ClipboardList, Plus, Search } from "lucide-react";
 import { LeadCard } from "@/components/cards/lead-card";
 import { ButtonLink, EmptyState, PageHeader, Tabs } from "@/components/ui";
-import { createClient } from "@/lib/supabase/server";
+import { list } from "@/lib/data/db";
+import { tenant } from "@/lib/data/tenant";
 import { requireBusiness } from "@/lib/session";
 import { getTeam } from "@/lib/team";
 import { LEAD_STATUSES, OPEN_LEAD_STATUSES } from "@/lib/constants";
@@ -13,12 +14,10 @@ export const metadata = { title: "Leads" };
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
   const s = await requireBusiness();
   const { status = "open", q } = await searchParams;
-  const supabase = await createClient();
-  const [{ data: all }, team] = await Promise.all([
-    supabase.from("leads").select("*").eq("business_id", s.business.id).order("created_at", { ascending: false }).limit(500),
+  const [leads, team] = await Promise.all([
+    list<Lead>(tenant(s.business.id).col("leads").orderBy("created_at", "desc").limit(500)),
     getTeam(s.business.id),
   ]);
-  const leads = (all ?? []) as Lead[];
   const names = new Map(team.map((m) => [m.user_id, m.full_name.split(" ")[0]]));
   const term = q?.trim().toLowerCase();
   const visible = leads

@@ -1,27 +1,32 @@
 import { Check, Info } from "lucide-react";
 import { Badge, Card, CardBody, CardHeader, PageHeader } from "@/components/ui";
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/firebase/admin";
+import { count } from "@/lib/data/db";
+import { tenant } from "@/lib/data/tenant";
+import { getPlan } from "@/lib/plans.server";
 import { requireBusiness } from "@/lib/session";
 import { billingMode } from "@/lib/billing";
-import { formatMoney, planFromRow, seatPriceBreakdown } from "@/lib/plans";
-import { formatDate } from "@/lib/utils";
+import { formatMoney, seatPriceBreakdown } from "@/lib/plans";
+import { daysUntil, formatDate } from "@/lib/utils";
 
 export const metadata = { title: "Billing" };
 
 export default async function BillingPage() {
   const s = await requireBusiness();
-  const supabase = await createClient();
-  const { data: sub } = await supabase.from("subscriptions").select("*, plan:subscription_plans(*)").eq("business_id", s.business.id).maybeSingle();
-  const { count: members } = await supabase.from("business_members").select("user_id", { count: "exact", head: true }).eq("business_id", s.business.id);
+  const [subSnap, members] = await Promise.all([
+    db().collection("subscriptions").doc(s.business.id).get(),
+    count(tenant(s.business.id).col("members")),
+  ]);
+  const sub = subSnap.data() as { plan_id: string; status: string; seats: number; trial_ends_at: string | null; current_period_end: string | null; cancel_at_period_end: boolean } | undefined;
 
-  if (!sub?.plan) {
+  if (!sub) {
     return <><PageHeader title="Billing" /><Card className="p-4 text-sm text-ink-500">No subscription found for this business. Contact support.</Card></>;
   }
-  const plan = planFromRow(sub.plan);
+  const plan = await getPlan(sub.plan_id);
   const seats = Math.max(sub.seats, members ?? 1);
   const bill = seatPriceBreakdown(plan, seats);
   const trialing = sub.status === "trialing";
-  const daysLeft = sub.trial_ends_at ? Math.max(0, Math.ceil((new Date(sub.trial_ends_at).getTime() - Date.now()) / 864e5)) : 0;
+  const daysLeft = sub.trial_ends_at ? daysUntil(sub.trial_ends_at) : 0;
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">

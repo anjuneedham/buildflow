@@ -16,7 +16,7 @@ Your construction business, projects, customers and reputation — all in one pl
 1. Sign up → 2. Create business → 3. Public profile → 4. Add services → 5. Upload images → 6. Post project →
 7. Customer discovers profile → 8. Requests quote → 9. Lead appears → 10. Convert to customer → 11. Create project →
 12. Add tasks → 13. Update project → 14. Complete → 15. Showcase → 16. New discovery.
-All 16 steps are covered by the browser E2E run and `supabase/tests/core_loop.sql`.
+All 16 steps are covered by the browser E2E run; tenant isolation by `tests/rules` and `tests/integration`.
 
 ## Feature requirements
 - **Auth:** email/password, logout, reset, verification. Contractors are routed to onboarding.

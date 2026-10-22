@@ -1,5 +1,6 @@
 import { Avatar, Badge, Card, CardBody, CardHeader, PageHeader } from "@/components/ui";
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/firebase/admin";
+import { list } from "@/lib/data/db";
 import { requireBusiness } from "@/lib/session";
 import { getTeam } from "@/lib/team";
 import { formatMoney } from "@/lib/plans";
@@ -11,10 +12,9 @@ export const metadata = { title: "Team" };
 
 export default async function TeamPage() {
   const s = await requireBusiness();
-  const supabase = await createClient();
-  const [team, { data: invites }, plans] = await Promise.all([
+  const [team, invites, plans] = await Promise.all([
     getTeam(s.business.id),
-    s.isOwner ? supabase.from("business_invitations").select("id, email, created_at, token").eq("business_id", s.business.id).is("accepted_at", null) : Promise.resolve({ data: [] }),
+    s.isOwner ? list<{ id: string; email: string; created_at: string }>(db().collection("invitations").where("business_id", "==", s.business.id).where("accepted_at", "==", null)) : Promise.resolve([]),
     getPlans(),
   ]);
   const plan = plans[0];
@@ -39,12 +39,12 @@ export default async function TeamPage() {
           <CardHeader title="Invite a team member" subtitle={plan ? `Each additional user is ${formatMoney(plan.additionalSeatPriceCents)}/month on ${plan.name}.` : undefined} />
           <CardBody className="space-y-4">
             <InviteForm />
-            {(invites ?? []).length > 0 && (
+            {invites.length > 0 && (
               <ul className="space-y-2">
-                {(invites ?? []).map((i) => (
+                {invites.map((i) => (
                   <li key={i.id} className="flex items-center justify-between gap-2 rounded-lg bg-concrete-50 p-3 text-sm">
-                    <span className="min-w-0"><span className="block truncate font-semibold">{i.email}</span><span className="text-xs text-ink-500">Invited {formatDate(i.created_at)} · link: /invite/{i.token.slice(0, 8)}…</span></span>
-                    <RevokeInvite id={i.id} token={i.token} />
+                    <span className="min-w-0"><span className="block truncate font-semibold">{i.email}</span><span className="text-xs text-ink-500">Invited {formatDate(i.created_at)} · link: /invite/{i.id.slice(0, 8)}…</span></span>
+                    <RevokeInvite token={i.id} />
                   </li>
                 ))}
               </ul>

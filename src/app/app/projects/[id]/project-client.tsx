@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useFormAction } from "@/components/ui/use-form-action";
+import { useEffect, useRef, useState } from "react";
 import { Check, ImagePlus, Plus, Trash2 } from "lucide-react";
 import { createTask, deleteProject, deleteTask, setProjectStatus, setTaskStatus, uploadProjectPhotos } from "@/app/actions/projects";
 import { StatusChanger } from "@/components/crm/status-changer";
@@ -10,10 +11,10 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Field, FormError, Input, Select } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { useActionToast } from "@/components/ui/toast";
+import { useServerAction } from "@/components/ui/use-form-action";
 import { PROJECT_STATUSES, TASK_PRIORITIES } from "@/lib/constants";
 import { cn, formatDate } from "@/lib/utils";
 import type { Task, TeamMember } from "@/lib/types";
-import type { ActionState } from "@/lib/validation";
 
 export function ProjectStatus({ id, status }: { id: string; status: string }) {
   return <StatusChanger label="Project status" value={status} options={PROJECT_STATUSES} onChange={(v) => setProjectStatus(id, v)} />;
@@ -29,7 +30,7 @@ export function DeleteProject({ id }: { id: string }) {
 
 export function TaskList({ projectId, tasks, team }: { projectId: string; tasks: Task[]; team: TeamMember[] }) {
   const [adding, setAdding] = useState(tasks.length === 0);
-  const [pending, start] = useTransition();
+  const [pending, run] = useServerAction();
   const names = new Map(team.map((m) => [m.user_id, m.full_name]));
   const today = new Date().toISOString().slice(0, 10);
   return (
@@ -41,7 +42,7 @@ export function TaskList({ projectId, tasks, team }: { projectId: string; tasks:
             return (
               <li key={t.id} className="flex items-start gap-3 p-3">
                 <button disabled={pending} aria-label={done ? "Mark not done" : "Mark done"}
-                  onClick={() => start(async () => { await setTaskStatus(t.id, done ? "todo" : "done"); })}
+                  onClick={() => run(() => setTaskStatus(t.id, done ? "todo" : "done"))}
                   className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-2", done ? "border-site-green bg-site-green text-white" : "border-concrete-300 hover:border-ink-500")}>
                   {done && <Check className="h-4 w-4" />}
                 </button>
@@ -56,9 +57,9 @@ export function TaskList({ projectId, tasks, team }: { projectId: string; tasks:
                 </div>
                 <div className="flex shrink-0 items-center">
                   {t.status === "todo" && (
-                    <button disabled={pending} onClick={() => start(async () => { await setTaskStatus(t.id, "in_progress"); })} className="min-h-9 rounded-lg px-2 text-xs font-semibold text-ink-500 hover:bg-concrete-100">Start</button>
+                    <button disabled={pending} onClick={() => run(() => setTaskStatus(t.id, "in_progress"))} className="min-h-9 rounded-lg px-2 text-xs font-semibold text-ink-500 hover:bg-concrete-100">Start</button>
                   )}
-                  <button disabled={pending} onClick={() => start(async () => { await deleteTask(t.id); })} aria-label="Delete task" className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-500 hover:text-site-red"><Trash2 className="h-4 w-4" /></button>
+                  <button disabled={pending} onClick={() => run(() => deleteTask(t.id))} aria-label="Delete task" className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-500 hover:text-site-red"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </li>
             );
@@ -73,7 +74,7 @@ export function TaskList({ projectId, tasks, team }: { projectId: string; tasks:
 }
 
 function TaskForm({ projectId, team, onDone }: { projectId: string; team: TeamMember[]; onDone: () => void }) {
-  const [state, action] = useActionState(createTask.bind(null, projectId), {} as ActionState);
+  const [state, action] = useFormAction(createTask.bind(null, projectId));
   const ref = useRef<HTMLFormElement>(null);
   useActionToast(state);
   useEffect(() => { if (state.ok) ref.current?.reset(); }, [state]);
@@ -92,18 +93,17 @@ function TaskForm({ projectId, team, onDone }: { projectId: string; team: TeamMe
 }
 
 export function PhotoUpload({ projectId }: { projectId: string }) {
-  const [state, action] = useActionState(uploadProjectPhotos.bind(null, projectId), {} as ActionState);
+  const [state, action, pending] = useFormAction(uploadProjectPhotos.bind(null, projectId));
   const [count, setCount] = useState(0);
-  const ref = useRef<HTMLFormElement>(null);
   useActionToast(state);
-  useEffect(() => { if (state.ok) { ref.current?.reset(); setCount(0); } }, [state]);
+  // React resets the form after a successful action; we clear the counter on submit.
   return (
-    <form ref={ref} action={action} className="flex flex-wrap items-center gap-2">
+    <form action={action} onSubmit={() => setCount(0)} className="flex flex-wrap items-center gap-2">
       <label className={buttonClasses({ variant: "outline", className: "cursor-pointer" })}>
-        <ImagePlus className="h-4 w-4" />{count ? `${count} selected` : "Choose photos"}
-        <input type="file" name="photos" accept="image/jpeg,image/png,image/webp,image/heic" multiple className="sr-only" onChange={(e) => setCount(e.target.files?.length ?? 0)} />
+        <ImagePlus className="h-4 w-4" />{pending ? "Uploading…" : count ? `${count} selected` : "Choose photos"}
+        <input type="file" name="photos" accept="image/jpeg,image/png,image/webp,image/heic" multiple className="sr-only" disabled={pending} onChange={(e) => setCount(e.target.files?.length ?? 0)} />
       </label>
-      {count > 0 && <SubmitButton pendingText="Uploading…">Upload</SubmitButton>}
+      {count > 0 && <SubmitButton>Upload</SubmitButton>}
       {state.ok === false && <p className="w-full text-sm text-site-red">{state.error}</p>}
     </form>
   );

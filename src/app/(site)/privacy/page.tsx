@@ -42,7 +42,7 @@ export default function Privacy() {
       <p>We send service messages (such as verification, password reset and billing notices). If we send marketing emails, you can unsubscribe at any time.</p>
 
       <h2>5. Data storage and third-party services</h2>
-      <p>We use trusted providers to run the Service, which may include Supabase (database, authentication and file storage), Vercel (hosting), Stripe (payments) and an email delivery provider. These providers process data on our behalf under their own security and privacy commitments. Data may be stored on servers located outside your country.</p>
+      <p>We use trusted providers to run the Service, which may include Google Firebase (database, authentication and file storage), Vercel (hosting), Stripe (payments) and an email delivery provider. These providers process data on our behalf under their own security and privacy commitments. Data may be stored on servers located outside your country.</p>
 
       <h2>6. Payments</h2>
       <p>Payments are processed by our payment provider. We do not store full card numbers. We receive limited billing information such as the last four digits, card brand, billing country and payment status.</p>

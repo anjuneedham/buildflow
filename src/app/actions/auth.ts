@@ -1,90 +1,68 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { env } from "@/lib/env";
-import { rateLimit } from "@/lib/rate-limit";
-import { safeNext } from "@/lib/utils";
-import { parseForm, signInSchema, signUpSchema, type ActionState } from "@/lib/validation";
 import { z } from "zod";
+import { adminAuth, db } from "@/lib/firebase/admin";
+import { now } from "@/lib/data/db";
+import { rateLimit } from "@/lib/rate-limit";
+import { getSession, SESSION_COOKIE, SESSION_MAX_AGE_MS } from "@/lib/session";
+import { safeNext } from "@/lib/utils";
 
 async function clientIp() {
   const h = await headers();
   return h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? "unknown";
 }
 
-export async function signUp(_: ActionState, fd: FormData): Promise<ActionState> {
-  const parsed = parseForm(signUpSchema, fd);
-  if (!parsed.data) return parsed.state;
-  if (!rateLimit(`signup:${await clientIp()}`, 5, 60 * 60_000).ok) return { ok: false, error: "Too many sign-up attempts. Try again later." };
-
-  const { fullName, email, password, accountType } = parsed.data;
-  const supabase = await createClient();
-  const next = accountType === "contractor" ? "/onboarding" : "/explore";
-  const { data, error } = await supabase.auth.signUp({
-    email, password,
-    options: {
-      data: { full_name: fullName, account_type: accountType },
-      emailRedirectTo: `${env.siteUrl}/auth/callback?next=${encodeURIComponent(next)}`,
-    },
+async function setSessionCookie(idToken: string) {
+  const cookie = await adminAuth().createSessionCookie(idToken, { expiresIn: SESSION_MAX_AGE_MS });
+  (await cookies()).set(SESSION_COOKIE, cookie, {
+    httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: SESSION_MAX_AGE_MS / 1000,
   });
-  if (error) return { ok: false, error: error.message };
-  // With email confirmation on, there is no session yet.
-  if (!data.session) redirect(`/verify-email?email=${encodeURIComponent(email)}`);
-  redirect(next);
 }
 
-export async function signIn(_: ActionState, fd: FormData): Promise<ActionState> {
-  const parsed = parseForm(signInSchema, fd);
-  if (!parsed.data) return parsed.state;
-  if (!rateLimit(`signin:${await clientIp()}`, 20, 15 * 60_000).ok) return { ok: false, error: "Too many attempts. Wait a few minutes and try again." };
+/**
+ * Exchanges a fresh Firebase ID token for a session cookie. Creates the
+ * user profile document on first sign-in. Returns where to go next.
+ */
+export async function establishSession(input: { idToken: string; fullName?: string; accountType?: "contractor" | "customer"; next?: string }): Promise<{ ok: true; next: string } | { ok: false; error: string }> {
+  if (!rateLimit(`session:${await clientIp()}`, 30, 15 * 60_000).ok) return { ok: false, error: "Too many attempts. Wait a few minutes and try again." };
+  const parsed = z.object({
+    idToken: z.string().min(10).max(5000),
+    fullName: z.string().trim().max(120).optional(),
+    accountType: z.enum(["contractor", "customer"]).optional(),
+    next: z.string().max(500).optional(),
+  }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid sign-in request." };
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
-  if (error) {
-    if (error.message.toLowerCase().includes("confirm")) return { ok: false, error: "Please verify your email first. Check your inbox for the link." };
-    return { ok: false, error: "Email or password is incorrect." };
+  let decoded;
+  try {
+    decoded = await adminAuth().verifyIdToken(parsed.data.idToken);
+  } catch {
+    return { ok: false, error: "Your sign-in expired. Please try again." };
   }
-  const requested = fd.get("next");
-  if (typeof requested === "string" && requested) redirect(safeNext(requested));
-  const { data: member } = await supabase.from("business_members").select("business_id").eq("user_id", data.user.id).limit(1).maybeSingle();
-  const { data: profile } = await supabase.from("profiles").select("account_type").eq("id", data.user.id).maybeSingle();
-  if (member) redirect("/app");
-  redirect(profile?.account_type === "contractor" ? "/onboarding" : "/explore");
+  const ref = db().collection("users").doc(decoded.uid);
+  const existing = await ref.get();
+  if (!existing.exists) {
+    await ref.set({
+      full_name: parsed.data.fullName ?? decoded.name ?? "", email: decoded.email ?? null, avatar_url: null,
+      account_type: parsed.data.accountType ?? "customer", is_platform_admin: false, is_suspended: false,
+      business_id: null, business_role: null, created_at: now(),
+    });
+  } else if (existing.get("is_suspended")) {
+    return { ok: false, error: "This account is suspended. Contact support." };
+  }
+  await setSessionCookie(parsed.data.idToken);
+
+  const profile = (await ref.get()).data()!;
+  if (parsed.data.next) return { ok: true, next: safeNext(parsed.data.next) };
+  if (profile.business_id) return { ok: true, next: "/app" };
+  return { ok: true, next: profile.account_type === "contractor" ? "/onboarding" : "/explore" };
 }
 
 export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  const s = await getSession();
+  (await cookies()).delete(SESSION_COOKIE);
+  if (s.user) await adminAuth().revokeRefreshTokens(s.user.id).catch(() => {});
   redirect("/");
-}
-
-export async function requestPasswordReset(_: ActionState, fd: FormData): Promise<ActionState> {
-  const email = z.string().trim().email().safeParse(fd.get("email"));
-  if (!email.success) return { ok: false, error: "Enter a valid email", fieldErrors: { email: ["Enter a valid email"] } };
-  if (!rateLimit(`reset:${await clientIp()}`, 5, 60 * 60_000).ok) return { ok: false, error: "Too many requests. Try again later." };
-  const supabase = await createClient();
-  await supabase.auth.resetPasswordForEmail(email.data, { redirectTo: `${env.siteUrl}/auth/callback?next=/reset-password` });
-  // Same response whether or not the account exists.
-  return { ok: true, message: "If an account exists for that email, a reset link is on its way." };
-}
-
-export async function updatePassword(_: ActionState, fd: FormData): Promise<ActionState> {
-  const pw = z.string().min(8, "Use at least 8 characters").max(72).safeParse(fd.get("password"));
-  if (!pw.success) return { ok: false, error: pw.error.issues[0].message, fieldErrors: { password: [pw.error.issues[0].message] } };
-  if (fd.get("password") !== fd.get("confirm")) return { ok: false, error: "Passwords don't match", fieldErrors: { confirm: ["Passwords don't match"] } };
-  const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({ password: pw.data });
-  if (error) return { ok: false, error: "Your reset link has expired. Request a new one." };
-  return { ok: true, message: "Password updated. You're signed in." };
-}
-
-export async function resendVerification(_: ActionState, fd: FormData): Promise<ActionState> {
-  const email = z.string().trim().email().safeParse(fd.get("email"));
-  if (!email.success) return { ok: false, error: "Enter a valid email" };
-  if (!rateLimit(`resend:${email.data}`, 3, 60 * 60_000).ok) return { ok: false, error: "Please wait before requesting another email." };
-  const supabase = await createClient();
-  await supabase.auth.resend({ type: "signup", email: email.data, options: { emailRedirectTo: `${env.siteUrl}/auth/callback` } });
-  return { ok: true, message: "Verification email sent." };
 }

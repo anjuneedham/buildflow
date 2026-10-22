@@ -2,14 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, Camera, MapPin, Megaphone, Pencil, User, Wallet } from "lucide-react";
 import { ActivityList } from "@/components/crm/activity-list";
-import { Notes, type NoteRow } from "@/components/crm/notes";
+import { Notes } from "@/components/crm/notes";
 import { Avatar, ButtonLink, Card, CardBody, CardHeader, PageHeader, StatusBadge } from "@/components/ui";
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/firebase/admin";
+import { fromDoc, isId, list } from "@/lib/data/db";
+import { tenant } from "@/lib/data/tenant";
 import { requireBusiness } from "@/lib/session";
-import { signedUrls } from "@/lib/storage";
+import { privateMediaUrl } from "@/lib/storage";
 import { getTeam } from "@/lib/team";
 import { formatAmount, formatDate } from "@/lib/utils";
-import type { Project, Task } from "@/lib/types";
+import type { ActivityRow, NoteRow, Project, Task } from "@/lib/types";
 import { DeleteProject, PhotoUpload, ProjectStatus, TaskList } from "./project-client";
 
 export const metadata = { title: "Project" };
@@ -17,26 +19,24 @@ export const metadata = { title: "Project" };
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const s = await requireBusiness();
-  const supabase = await createClient();
-  const { data } = await supabase.from("projects").select("*, customer:customers(id, name, phone)").eq("id", id).eq("business_id", s.business.id).maybeSingle();
-  if (!data) notFound();
-  const p = data as Project & { customer: { id: string; name: string; phone: string | null } | null };
-  const [{ data: tasks }, { data: photos }, { data: members }, { data: notes }, { data: activity }, { data: posts }, team] = await Promise.all([
-    supabase.from("tasks").select("*").eq("project_id", id).order("status").order("due_date", { nullsFirst: false }),
-    supabase.from("project_photos").select("id, url, caption, created_at").eq("project_id", id).order("created_at", { ascending: false }),
-    supabase.from("project_members").select("user_id").eq("project_id", id),
-    supabase.from("notes").select("id, body, created_at, author_id, author:profiles(full_name)").eq("business_id", s.business.id).eq("entity_type", "project").eq("entity_id", id).order("created_at", { ascending: false }),
-    supabase.from("activity_logs").select("id, summary, created_at, actor:profiles(full_name)").eq("business_id", s.business.id).eq("entity_type", "project").eq("entity_id", id).order("created_at", { ascending: false }).limit(25),
-    supabase.from("posts").select("id").eq("project_id", id).limit(1),
+  const t = tenant(s.business.id);
+  const p = isId(id) ? fromDoc<Project>(await t.doc("projects", id).get()) : null;
+  if (!p) notFound();
+  const [tasks, photos, notes, activity, posts, team] = await Promise.all([
+    list<Task>(t.col("tasks").where("project_id", "==", id)),
+    list<{ id: string; path: string; caption: string | null }>(t.col("photos").where("project_id", "==", id).orderBy("created_at", "desc")),
+    list<NoteRow>(t.col("notes").where("entity_id", "==", id).orderBy("created_at", "desc")),
+    list<ActivityRow>(t.col("activity").where("entity_id", "==", id).orderBy("created_at", "desc").limit(25)),
+    db().collection("posts").where("business_id", "==", s.business.id).where("project_id", "==", id).limit(1).get(),
     getTeam(s.business.id),
   ]);
-  const urls = await signedUrls(supabase, (photos ?? []).map((ph) => ph.url));
-  const memberIds = new Set((members ?? []).map((m) => m.user_id));
+  const order = { todo: 0, in_progress: 0, done: 1 } as const;
+  const allTasks = tasks.sort((a, b) => order[a.status] - order[b.status] || (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999"));
+  const memberIds = new Set(p.member_ids ?? []);
   const crew = team.filter((m) => memberIds.has(m.user_id));
-  const allTasks = (tasks ?? []) as Task[];
-  const done = allTasks.filter((t) => t.status === "done").length;
+  const done = allTasks.filter((x) => x.status === "done").length;
   const isCompleted = p.status === "completed";
-  const hasPost = (posts ?? []).length > 0;
+  const hasPost = !posts.empty;
 
   return (
     <div className="space-y-4">
@@ -60,7 +60,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       <Card><CardHeader title="Status" /><CardBody><ProjectStatus id={id} status={p.status} /></CardBody></Card>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <InfoTile icon={User} label="Customer" value={p.customer ? <Link href={`/app/customers/${p.customer.id}`} className="underline">{p.customer.name}</Link> : "—"} />
+        <InfoTile icon={User} label="Customer" value={p.customer_id ? <Link href={`/app/customers/${p.customer_id}`} className="underline">{p.customer_name}</Link> : "—"} />
         <InfoTile icon={Wallet} label="Budget" value={formatAmount(p.budget)} />
         <InfoTile icon={CalendarDays} label="Timeline" value={`${formatDate(p.start_date, { month: "short", day: "numeric" })} → ${formatDate(p.expected_end_date, { month: "short", day: "numeric" })}`} />
         <InfoTile icon={MapPin} label="Location" value={p.location ?? "—"} />
@@ -78,19 +78,19 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             <CardHeader title="Site photos" subtitle="Private to your team" />
             <CardBody className="space-y-4">
               <PhotoUpload projectId={id} />
-              {(photos ?? []).length === 0 ? <p className="flex items-center gap-2 text-sm text-ink-500"><Camera className="h-4 w-4" />No photos yet.</p> : (
+              {photos.length === 0 ? <p className="flex items-center gap-2 text-sm text-ink-500"><Camera className="h-4 w-4" />No photos yet.</p> : (
                 <div className="grid grid-cols-3 gap-1.5">
-                  {(photos ?? []).map((ph) => urls.get(ph.url) && (
-                    <a key={ph.id} href={urls.get(ph.url)} target="_blank" rel="noreferrer" className="aspect-square overflow-hidden rounded-lg bg-concrete-100">
+                  {photos.map((ph) => (
+                    <a key={ph.id} href={privateMediaUrl(ph.path)} target="_blank" rel="noreferrer" className="aspect-square overflow-hidden rounded-lg bg-concrete-100">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={urls.get(ph.url)} alt={ph.caption ?? "Site photo"} loading="lazy" className="h-full w-full object-cover" />
+                      <img src={privateMediaUrl(ph.path)} alt={ph.caption ?? "Site photo"} loading="lazy" className="h-full w-full object-cover" />
                     </a>
                   ))}
                 </div>
               )}
             </CardBody>
           </Card>
-          <Card><CardHeader title="Notes" /><CardBody><Notes entityType="project" entityId={id} notes={(notes ?? []) as unknown as NoteRow[]} viewerId={s.user.id} path={`/app/projects/${id}`} /></CardBody></Card>
+          <Card><CardHeader title="Notes" /><CardBody><Notes entityType="project" entityId={id} notes={notes} viewerId={s.user.id} /></CardBody></Card>
         </div>
         <div className="space-y-4">
           <Card>
@@ -101,7 +101,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               )}
             </CardBody>
           </Card>
-          <Card><CardHeader title="Activity" /><CardBody><ActivityList items={(activity ?? []) as never} /></CardBody></Card>
+          <Card><CardHeader title="Activity" /><CardBody><ActivityList items={activity} /></CardBody></Card>
         </div>
       </div>
     </div>

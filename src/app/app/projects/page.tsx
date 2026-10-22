@@ -1,7 +1,8 @@
 import { Briefcase, Plus } from "lucide-react";
 import { ProjectCard } from "@/components/cards/project-card";
 import { ButtonLink, EmptyState, PageHeader, Tabs } from "@/components/ui";
-import { createClient } from "@/lib/supabase/server";
+import { list } from "@/lib/data/db";
+import { tenant } from "@/lib/data/tenant";
 import { requireBusiness } from "@/lib/session";
 import { ACTIVE_PROJECT_STATUSES, PROJECT_STATUSES } from "@/lib/constants";
 import type { Project } from "@/lib/types";
@@ -11,9 +12,7 @@ export const metadata = { title: "Projects" };
 export default async function ProjectsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const s = await requireBusiness();
   const { status = "active" } = await searchParams;
-  const supabase = await createClient();
-  const { data } = await supabase.from("projects").select("*, customer:customers(name), tasks(status)").eq("business_id", s.business.id).order("created_at", { ascending: false }).limit(300);
-  const all = (data ?? []) as (Project & { customer: { name: string } | null; tasks: { status: string }[] })[];
+  const all = await list<Project>(tenant(s.business.id).col("projects").orderBy("created_at", "desc").limit(500));
   const visible = all.filter((p) => status === "all" || (status === "active" ? ACTIVE_PROJECT_STATUSES.includes(p.status) : p.status === status));
   const n = (st: string) => all.filter((p) => p.status === st).length;
   return (
@@ -30,7 +29,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
             action={all.length === 0 ? <ButtonLink href="/app/projects/new">Create a project</ButtonLink> : undefined} />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
-            {visible.map((p) => <ProjectCard key={p.id} project={p} customerName={p.customer?.name} tasks={{ total: p.tasks.length, done: p.tasks.filter((t) => t.status === "done").length }} />)}
+            {visible.map((p) => <ProjectCard key={p.id} project={p} customerName={p.customer_name} tasks={{ total: p.task_total ?? 0, done: p.task_done ?? 0 }} />)}
           </div>
         )}
       </div>

@@ -1,24 +1,24 @@
 import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/firebase/admin";
+import { count } from "@/lib/data/db";
 import { startOfMonthISO } from "@/lib/utils";
 
 export const metadata = { title: "Dashboard" };
 
 export default async function AdminDashboard() {
-  const supabase = await createClient();
-  const c = (q: PromiseLike<{ count: number | null }>) => Promise.resolve(q).then((r) => r.count ?? 0);
+  const d = db();
   const month = startOfMonthISO();
   const [users, contractors, businesses, newBiz, posts, quotes, openReports, trialing, active] = await Promise.all([
-    c(supabase.from("profiles").select("id", { count: "exact", head: true })),
-    c(supabase.from("profiles").select("id", { count: "exact", head: true }).eq("account_type", "contractor")),
-    c(supabase.from("businesses").select("id", { count: "exact", head: true })),
-    c(supabase.from("businesses").select("id", { count: "exact", head: true }).gte("created_at", month)),
-    c(supabase.from("posts").select("id", { count: "exact", head: true })),
-    c(supabase.from("analytics_events").select("id", { count: "exact", head: true }).eq("event_type", "quote_request").gte("created_at", month)),
-    c(supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "open")),
-    c(supabase.from("subscriptions").select("id", { count: "exact", head: true }).eq("status", "trialing")),
-    c(supabase.from("subscriptions").select("id", { count: "exact", head: true }).eq("status", "active")),
+    count(d.collection("users")),
+    count(d.collection("users").where("account_type", "==", "contractor")),
+    count(d.collection("businesses")),
+    count(d.collection("businesses").where("created_at", ">=", month)),
+    count(d.collection("posts")),
+    count(d.collectionGroup("events").where("type", "==", "quote_request").where("created_at", ">=", month)),
+    count(d.collection("reports").where("status", "==", "open")),
+    count(d.collection("subscriptions").where("status", "==", "trialing")),
+    count(d.collection("subscriptions").where("status", "==", "active")),
   ]);
   const tiles = [
     ["Users", users, "/admin/users"], ["Contractor accounts", contractors, "/admin/users"], ["Businesses", businesses, "/admin/businesses"],

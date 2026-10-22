@@ -1,5 +1,5 @@
 // Single source of truth for enum labels and badge tones used across the UI.
-// Values mirror the Postgres enums in supabase/migrations.
+// Values are stored as-is in Firestore documents.
 
 export type Tone = "neutral" | "blue" | "orange" | "green" | "red" | "yellow" | "purple";
 

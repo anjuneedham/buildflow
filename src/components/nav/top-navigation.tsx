@@ -3,13 +3,12 @@ import { Bell } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Avatar, ButtonLink } from "@/components/ui";
 import { getSession } from "@/lib/session";
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/firebase/admin";
 import { UserMenu } from "./user-menu";
 
 export async function unreadCount(userId: string) {
-  const supabase = await createClient();
-  const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null);
-  return count ?? 0;
+  const snap = await db().collection("users").doc(userId).collection("notifications").where("read_at", "==", null).count().get();
+  return snap.data().count;
 }
 
 /** Shared header for public pages; adapts to signed-in state. */

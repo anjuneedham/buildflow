@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useFormAction } from "@/components/ui/use-form-action";
+import { useState } from "react";
 import { updateBusinessProfile } from "@/app/actions/business";
 import { Avatar } from "@/components/ui/avatar";
 import { buttonClasses } from "@/components/ui/button";
@@ -9,10 +10,9 @@ import { Field, FormError, Input, Select, Textarea } from "@/components/ui/input
 import { SubmitButton } from "@/components/ui/submit-button";
 import { useActionToast } from "@/components/ui/toast";
 import type { Business, Location, Service } from "@/lib/types";
-import type { ActionState } from "@/lib/validation";
 
 export function ProfileForm({ business: b, services, regions, selected }: { business: Business; services: Service[]; regions: Location[]; selected: string[] }) {
-  const [state, action] = useActionState(updateBusinessProfile, {} as ActionState);
+  const [state, action] = useFormAction(updateBusinessProfile);
   const [logo, setLogo] = useState(b.logo_url);
   const [cover, setCover] = useState(b.cover_url);
   useActionToast(state);

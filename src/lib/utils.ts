@@ -59,6 +59,16 @@ export function safeNext(next: string | null | undefined, fallback = "/app") {
   return next;
 }
 
+/** Whole days from now until an ISO date (0 if past). */
+export function daysUntil(iso: string) {
+  return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 864e5));
+}
+
+/** YYYY-MM-DD for today + n days. */
+export function dateInDays(n: number) {
+  return new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+}
+
 export function startOfMonthISO() {
   const d = new Date();
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();

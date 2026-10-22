@@ -2,13 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Briefcase, Mail, MapPin, Pencil, Phone, Plus } from "lucide-react";
 import { ProjectCard } from "@/components/cards/project-card";
-import { Notes, type NoteRow } from "@/components/crm/notes";
+import { Notes } from "@/components/crm/notes";
 import { ButtonLink, Card, CardBody, CardHeader, PageHeader, StatusBadge } from "@/components/ui";
 import { FormSuccess } from "@/components/ui/input";
-import { createClient } from "@/lib/supabase/server";
+import { fromDoc, isId, list } from "@/lib/data/db";
+import { tenant } from "@/lib/data/tenant";
 import { requireBusiness } from "@/lib/session";
 import { formatAmount, formatDate } from "@/lib/utils";
-import type { Customer, Project } from "@/lib/types";
+import type { Customer, Lead, NoteRow, Project } from "@/lib/types";
 import { DeleteCustomer } from "./delete-customer";
 
 export const metadata = { title: "Customer" };
@@ -17,16 +18,15 @@ export default async function CustomerPage({ params, searchParams }: { params: P
   const { id } = await params;
   const { converted } = await searchParams;
   const s = await requireBusiness();
-  const supabase = await createClient();
-  const { data } = await supabase.from("customers").select("*").eq("id", id).eq("business_id", s.business.id).maybeSingle();
-  if (!data) notFound();
-  const c = data as Customer;
-  const [{ data: projects }, { data: leads }, { data: notes }] = await Promise.all([
-    supabase.from("projects").select("*").eq("customer_id", id).order("created_at", { ascending: false }),
-    supabase.from("leads").select("id, name, status, estimated_value, created_at").eq("customer_id", id).order("created_at", { ascending: false }),
-    supabase.from("notes").select("id, body, created_at, author_id, author:profiles(full_name)").eq("business_id", s.business.id).eq("entity_type", "customer").eq("entity_id", id).order("created_at", { ascending: false }),
+  const t = tenant(s.business.id);
+  const c = isId(id) ? fromDoc<Customer>(await t.doc("customers", id).get()) : null;
+  if (!c) notFound();
+  const [projects, leads, notes] = await Promise.all([
+    list<Project>(t.col("projects").where("customer_id", "==", id).orderBy("created_at", "desc")),
+    list<Lead>(t.col("leads").where("customer_id", "==", id).orderBy("created_at", "desc")),
+    list<NoteRow>(t.col("notes").where("entity_id", "==", id).orderBy("created_at", "desc")),
   ]);
-  const totalValue = (projects ?? []).reduce((n, p) => n + Number(p.budget ?? 0), 0);
+  const totalValue = projects.reduce((n, p) => n + Number(p.budget ?? 0), 0);
 
   return (
     <div className="space-y-4">
@@ -46,11 +46,11 @@ export default async function CustomerPage({ params, searchParams }: { params: P
         <div className="space-y-4">
           <section>
             <h2 className="mb-2 font-bold">Projects <span className="font-normal text-ink-500">· {formatAmount(totalValue)} total</span></h2>
-            {(projects ?? []).length === 0 ? (
+            {projects.length === 0 ? (
               <Card className="p-4 text-sm text-ink-500">No projects yet for this customer.</Card>
-            ) : <div className="grid gap-3 sm:grid-cols-2">{(projects as Project[]).map((p) => <ProjectCard key={p.id} project={p} />)}</div>}
+            ) : <div className="grid gap-3 sm:grid-cols-2">{projects.map((p) => <ProjectCard key={p.id} project={p} />)}</div>}
           </section>
-          <Card><CardHeader title="Notes" /><CardBody><Notes entityType="customer" entityId={id} notes={(notes ?? []) as unknown as NoteRow[]} viewerId={s.user.id} path={`/app/customers/${id}`} /></CardBody></Card>
+          <Card><CardHeader title="Notes" /><CardBody><Notes entityType="customer" entityId={id} notes={notes} viewerId={s.user.id} /></CardBody></Card>
         </div>
         <div className="space-y-4">
           <Card>
@@ -66,9 +66,9 @@ export default async function CustomerPage({ params, searchParams }: { params: P
           <Card>
             <CardHeader title="Lead history" />
             <CardBody>
-              {(leads ?? []).length === 0 ? <p className="text-sm text-ink-500">Added directly, not from a lead.</p> : (
+              {leads.length === 0 ? <p className="text-sm text-ink-500">Added directly, not from a lead.</p> : (
                 <ul className="space-y-2">
-                  {(leads ?? []).map((l) => (
+                  {leads.map((l) => (
                     <li key={l.id}><Link href={`/app/leads/${l.id}`} className="flex items-center justify-between gap-2 rounded-lg bg-concrete-50 p-2.5 text-sm hover:bg-concrete-100">
                       <span><Briefcase className="mr-1 inline h-3.5 w-3.5" />{formatDate(l.created_at)} · {formatAmount(l.estimated_value)}</span><StatusBadge kind="lead" value={l.status} />
                     </Link></li>

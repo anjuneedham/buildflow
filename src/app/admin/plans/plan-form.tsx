@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useFormAction } from "@/components/ui/use-form-action";
 import { updatePlan } from "@/app/actions/admin";
 import { Field, Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -9,7 +9,7 @@ import { useActionToast } from "@/components/ui/toast";
 type PlanRow = { id: string; name: string; base_price_cents: number; included_seats: number; additional_seat_price_cents: number };
 
 export function PlanForm({ plan }: { plan: PlanRow }) {
-  const [state, action] = useActionState(updatePlan.bind(null, plan.id), {} as { ok?: boolean; error?: string; message?: string });
+  const [state, action] = useFormAction(updatePlan.bind(null, plan.id));
   useActionToast(state);
   return (
     <form action={action} className="grid gap-3 sm:grid-cols-4 sm:items-end">

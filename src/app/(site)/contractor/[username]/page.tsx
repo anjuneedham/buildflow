@@ -39,10 +39,10 @@ export default async function ContractorProfilePage({ params }: Props) {
   const isOwnBusiness = s.membership?.business.id === b.id;
   const posts = await getFeed({ businessId: b.id, limit: 30 });
   const viewer = await getViewerState(s.user?.id, posts.map((p) => p.id), [b.id]);
-  const services = b.services.map((x) => x.service);
+  const services = b.services ?? [];
   const showcase = posts.filter((p) => p.type === "completed_project" || p.type === "before_after");
   const social = b.social_links ?? {};
-  const contactDefaults = { name: s.profile?.full_name, email: s.user?.email };
+  const contactDefaults = { name: s.profile?.full_name, email: s.user?.email ?? undefined };
 
   const jsonLd = {
     "@context": "https://schema.org", "@type": "HomeAndConstructionBusiness", name: b.name, description: b.description ?? b.tagline,

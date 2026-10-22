@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Bell, FileText, Heart, MessageCircle, UserPlus, Briefcase, ListTodo } from "lucide-react";
-import { markAllNotificationsRead } from "@/app/actions/business";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
-import { SubmitButton } from "@/components/ui/submit-button";
-import { createClient } from "@/lib/supabase/server";
+import { MarkAllRead } from "./mark-all-read";
+import { db } from "@/lib/firebase/admin";
+import { list } from "@/lib/data/db";
 import { requireBusiness } from "@/lib/session";
 import { cn, timeAgo } from "@/lib/utils";
 
@@ -13,14 +13,13 @@ const ICONS: Record<string, typeof Bell> = { quote_request: FileText, new_lead: 
 
 export default async function NotificationsPage() {
   const s = await requireBusiness();
-  const supabase = await createClient();
-  const { data } = await supabase.from("notifications").select("*").eq("user_id", s.user.id).order("created_at", { ascending: false }).limit(100);
-  const items = data ?? [];
+  const items = await list<{ id: string; type: string; title: string; body: string | null; link: string | null; read_at: string | null; created_at: string }>(
+    db().collection("users").doc(s.user.id).collection("notifications").orderBy("created_at", "desc").limit(100));
   const unread = items.filter((n) => !n.read_at).length;
   return (
     <div className="mx-auto max-w-2xl">
       <PageHeader title="Notifications" subtitle={unread ? `${unread} unread` : "You're all caught up"}
-        actions={unread > 0 ? <form action={markAllNotificationsRead}><SubmitButton size="sm" variant="outline">Mark all read</SubmitButton></form> : undefined} />
+        actions={unread > 0 ? <MarkAllRead /> : undefined} />
       {items.length === 0 ? <EmptyState icon={Bell} title="No notifications yet" description="Quote requests, comments, new followers and assignments will show up here." /> : (
         <Card className="divide-y divide-concrete-200">
           {items.map((n) => {

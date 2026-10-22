@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useFormAction } from "@/components/ui/use-form-action";
 import { Field, FormError, Input, Select, Textarea } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { PROJECT_STATUSES } from "@/lib/constants";
@@ -11,7 +11,7 @@ export function ProjectForm({ action: serverAction, project, customers, team, me
   action: (s: ActionState, fd: FormData) => Promise<ActionState>; project?: Project; customers: { id: string; name: string }[];
   team: TeamMember[]; members?: string[]; defaults?: { customerId?: string; leadId?: string; name?: string; location?: string; budget?: number | null; description?: string | null }; submitLabel: string;
 }) {
-  const [state, action] = useActionState(serverAction, {} as ActionState);
+  const [state, action] = useFormAction(serverAction);
   const fe = state.fieldErrors ?? {};
   return (
     <form action={action} className="space-y-4" noValidate>

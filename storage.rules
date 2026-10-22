@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// All uploads go through server actions (Admin SDK) which validate type,
+// size and tenant ownership. Public images are served via tokenised
+// download URLs; private project photos via the authenticated /media route.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -3,7 +3,6 @@ import { Check } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { getRegions, getServices } from "@/lib/queries";
 import { requireUser } from "@/lib/session";
-import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { BrandingStep, BusinessStep, FinishStep, FirstRecordStep, ServiceAreaStep, ServicesStep } from "./steps";
 
@@ -23,12 +22,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   const step = Math.min(Math.max(2, requested), reached);
 
   const [services, regions] = await Promise.all([getServices(), getRegions(business?.country_code ?? "JM")]);
-  let selected: string[] = [];
-  if (business) {
-    const supabase = await createClient();
-    const { data } = await supabase.from("business_services").select("service_id").eq("business_id", business.id);
-    selected = (data ?? []).map((r) => r.service_id);
-  }
+  const selected = business?.service_ids ?? [];
 
   return (
     <div className="min-h-dvh">

@@ -1,114 +1,148 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/firebase/admin";
+import { isId, now } from "@/lib/data/db";
+import { recountPosts, resolveRegion, resolveServices, syncBusinessToPosts } from "@/lib/data/business";
+import { tenant } from "@/lib/data/tenant";
 import { requireBusiness, requireUser } from "@/lib/session";
 import { uploadImage, validImage } from "@/lib/storage";
-import { businessProfileSchema, inviteSchema, parseForm, type ActionState } from "@/lib/validation";
+import { businessProfileSchema, docId, inviteSchema, parseForm, type ActionState } from "@/lib/validation";
 import { env } from "@/lib/env";
+
+async function syncSeats(businessId: string) {
+  const n = (await tenant(businessId).col("members").count().get()).data().count;
+  await db().collection("subscriptions").doc(businessId).set({ seats: Math.max(1, n) }, { merge: true });
+}
 
 export async function updateBusinessProfile(_: ActionState, fd: FormData): Promise<ActionState> {
   const s = await requireBusiness();
   if (!s.isOwner) return { ok: false, error: "Only the owner can edit the business profile." };
-  const supabase = await createClient();
   const parsed = parseForm(businessProfileSchema, fd);
   if (!parsed.data) return parsed.state;
   const d = parsed.data;
+  const region = await resolveRegion(d.regionId);
   const patch: Record<string, unknown> = {
-    name: d.name, tagline: d.tagline ?? null, description: d.description ?? null, phone: d.phone ?? null, email: d.email ?? null,
-    website: d.website ?? null, years_in_business: d.yearsInBusiness ?? null, region_id: d.regionId ?? null, city: d.city ?? null,
-    service_area: d.serviceArea ?? null, is_public: d.isPublic,
+    name: d.name, name_lower: d.name.toLowerCase(), tagline: d.tagline ?? null, description: d.description ?? null, phone: d.phone ?? null,
+    email: d.email ?? null, website: d.website ?? null, years_in_business: d.yearsInBusiness ?? null, region_id: region?.id ?? null, region,
+    city: d.city ?? null, service_area: d.serviceArea ?? null, is_public: d.isPublic, updated_at: now(),
     social_links: Object.fromEntries(Object.entries({ instagram: d.instagram, facebook: d.facebook, tiktok: d.tiktok }).filter(([, v]) => v)),
   };
   for (const [field, column] of [["logo", "logo_url"], ["cover", "cover_url"]] as const) {
     const f = fd.get(field);
     if (validImage(f)) {
-      const r = await uploadImage(supabase, "public-media", s.business.id, f);
+      const r = await uploadImage("public", s.business.id, f);
       if ("error" in r) return { ok: false, error: r.error, fieldErrors: { [field]: [r.error!] } };
       patch[column] = r.url;
     }
   }
-  const primary = z.string().uuid().safeParse(fd.get("primaryServiceId"));
-  if (primary.success) patch.primary_service_id = primary.data;
-  const { error } = await supabase.from("businesses").update(patch).eq("id", s.business.id);
-  if (error) return { ok: false, error: "Couldn't save your profile." };
-
-  const serviceIds = Array.from(new Set([...(primary.success ? [primary.data] : []), ...fd.getAll("serviceIds").map(String)]))
-    .filter((v) => z.string().uuid().safeParse(v).success).slice(0, 15);
-  if (serviceIds.length) {
-    await supabase.from("business_services").delete().eq("business_id", s.business.id);
-    await supabase.from("business_services").insert(serviceIds.map((service_id) => ({ business_id: s.business.id, service_id })));
+  const primary = docId.safeParse(fd.get("primaryServiceId"));
+  const ids = Array.from(new Set([...(primary.success ? [primary.data] : []), ...fd.getAll("serviceIds").map(String)]))
+    .filter((v) => docId.safeParse(v).success).slice(0, 15);
+  if (ids.length) {
+    const services = await resolveServices(ids);
+    patch.services = services;
+    patch.service_ids = services.map((x) => x.id);
+    const p = services.find((x) => primary.success && x.id === primary.data) ?? services[0] ?? null;
+    patch.primary_service = p;
+    patch.primary_service_id = p?.id ?? null;
   }
-  revalidatePath("/", "layout");
+  await tenant(s.business.id).root.update(patch);
+  await syncBusinessToPosts(s.business.id);
+  await recountPosts(s.business.id);
   return { ok: true, message: "Profile saved" };
 }
 
 // ---------------- Team ----------------
+// Invites live at invitations/{token} so the link alone identifies them.
 export async function inviteMember(_: ActionState, fd: FormData): Promise<ActionState> {
   const s = await requireBusiness();
   if (!s.isOwner) return { ok: false, error: "Only the owner can invite team members." };
   const parsed = parseForm(inviteSchema, fd);
   if (!parsed.data) return parsed.state;
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("business_invitations")
-    .upsert({ business_id: s.business.id, email: parsed.data.email.toLowerCase(), invited_by: s.user.id }, { onConflict: "business_id,email" })
-    .select("token").single();
-  if (error) return { ok: false, error: "Couldn't create the invite." };
-  revalidatePath("/app/team");
+  const email = parsed.data.email.toLowerCase();
+  const existing = await db().collection("invitations").where("business_id", "==", s.business.id).where("email", "==", email).where("accepted_at", "==", null).limit(1).get();
+  const token = existing.empty ? crypto.randomUUID() : existing.docs[0].id;
+  if (existing.empty) {
+    await db().collection("invitations").doc(token).set({
+      business_id: s.business.id, business_name: s.business.name, email, role: "member", invited_by: s.user.id, accepted_at: null, created_at: now(),
+    });
+  }
   // Email delivery is a V1.x item; the owner shares this link directly.
-  return { ok: true, message: `Invite created. Share this link: ${env.siteUrl}/invite/${data.token}` };
+  return { ok: true, message: `Invite created. Share this link: ${env.siteUrl}/invite/${token}` };
 }
 
-export async function revokeInvite(id: string) {
+export async function revokeInvite(token: string) {
   const s = await requireBusiness();
-  const supabase = await createClient();
-  await supabase.from("business_invitations").delete().eq("id", id).eq("business_id", s.business.id);
-  revalidatePath("/app/team");
+  if (!s.isOwner) return { ok: false };
+  const ref = db().collection("invitations").doc(token);
+  const inv = await ref.get();
+  if (inv.exists && inv.get("business_id") === s.business.id) await ref.delete();
   return { ok: true };
 }
 
 export async function removeMember(userId: string) {
   const s = await requireBusiness();
   if (!s.isOwner) return { ok: false, error: "Only the owner can remove members." };
-  const supabase = await createClient();
-  await supabase.from("business_members").delete().eq("business_id", s.business.id).eq("user_id", userId).neq("role", "owner");
-  revalidatePath("/app/team");
+  if (!isId(userId) || userId === s.user.id) return { ok: false, error: "You can't remove yourself." };
+  const member = tenant(s.business.id).doc("members", userId);
+  const snap = await member.get();
+  if (!snap.exists || snap.get("role") === "owner") return { ok: false, error: "Member not found." };
+  const batch = db().batch();
+  batch.delete(member);
+  batch.set(db().collection("users").doc(userId), { business_id: null, business_role: null }, { merge: true });
+  await batch.commit();
+  await syncSeats(s.business.id);
   return { ok: true };
 }
 
 export async function acceptInvite(token: string) {
-  await requireUser(`/invite/${token}`);
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("accept_invitation", { p_token: token });
-  if (error) redirect(`/invite/${token}?error=${encodeURIComponent(error.message.includes("different email") ? "This invite was sent to a different email address." : "This invite is no longer valid.")}`);
-  revalidatePath("/", "layout");
+  const s = await requireUser(`/invite/${token}`);
+  const fail = (msg: string) => redirect(`/invite/${token}?error=${encodeURIComponent(msg)}`);
+  if (!z.string().uuid().safeParse(token).success) fail("This invite is no longer valid.");
+  if (s.membership) fail("You already belong to a business on BuildFlow.");
+  const ref = db().collection("invitations").doc(token);
+  let businessId = "";
+  try {
+    await db().runTransaction(async (tx) => {
+      const inv = await tx.get(ref);
+      if (!inv.exists || inv.get("accepted_at")) throw new Error("This invite is no longer valid.");
+      if (inv.get("email") !== s.user.email?.toLowerCase()) throw new Error("This invite was sent to a different email address.");
+      businessId = inv.get("business_id");
+      tx.set(tenant(businessId).doc("members", s.user.id), { role: inv.get("role"), full_name: s.profile?.full_name ?? "", avatar_url: s.profile?.avatar_url ?? null, created_at: now() });
+      tx.set(db().collection("users").doc(s.user.id), { business_id: businessId, business_role: inv.get("role"), account_type: "contractor" }, { merge: true });
+      tx.update(ref, { accepted_at: now(), accepted_by: s.user.id });
+    });
+  } catch (e) {
+    fail(e instanceof Error ? e.message : "This invite is no longer valid.");
+  }
+  await syncSeats(businessId);
   redirect("/app");
 }
 
 // ---------------- Notifications ----------------
 export async function markAllNotificationsRead() {
   const s = await requireUser("/app/notifications");
-  const supabase = await createClient();
-  await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", s.user.id).is("read_at", null);
-  revalidatePath("/", "layout");
+  const unread = await db().collection("users").doc(s.user.id).collection("notifications").where("read_at", "==", null).limit(400).get();
+  const batch = db().batch();
+  unread.docs.forEach((d) => batch.update(d.ref, { read_at: now() }));
+  await batch.commit();
 }
 
 // ---------------- Account (any user) ----------------
 export async function updateAccount(_: ActionState, fd: FormData): Promise<ActionState> {
   const s = await requireUser("/account");
-  const supabase = await createClient();
   const name = z.string().trim().min(1, "Name is required").max(120).safeParse(fd.get("fullName"));
   if (!name.success) return { ok: false, error: name.error.issues[0].message, fieldErrors: { fullName: [name.error.issues[0].message] } };
   const patch: Record<string, unknown> = { full_name: name.data };
   const f = fd.get("avatar");
   if (validImage(f)) {
-    const r = await uploadImage(supabase, "public-media", `users/${s.user.id}`, f);
+    const r = await uploadImage("public", `users/${s.user.id}`, f);
     if ("error" in r) return { ok: false, error: r.error };
     patch.avatar_url = r.url;
   }
-  await supabase.from("profiles").update(patch).eq("id", s.user.id);
-  revalidatePath("/", "layout");
+  await db().collection("users").doc(s.user.id).set(patch, { merge: true });
+  if (s.membership) await tenant(s.membership.business.id).doc("members", s.user.id).set(patch, { merge: true });
   return { ok: true, message: "Account updated" };
 }

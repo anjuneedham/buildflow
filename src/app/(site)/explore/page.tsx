@@ -8,18 +8,18 @@ import { EmptyState, Tabs, ButtonLink } from "@/components/ui";
 import { getFeed, getViewerState, searchBusinesses } from "@/lib/queries";
 import { resolveExploreFilters, type ExploreParams } from "@/lib/explore";
 import { getSession } from "@/lib/session";
-import { isSupabaseConfigured } from "@/lib/env";
+import { isFirebaseConfigured } from "@/lib/env";
 import { cn } from "@/lib/utils";
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<ExploreParams> }): Promise<Metadata> {
-  if (!isSupabaseConfigured) return { title: "Explore contractors" };
+  if (!isFirebaseConfigured) return { title: "Explore contractors" };
   const f = await resolveExploreFilters(await searchParams);
   const title = f.heading && (f.service || f.region) ? f.heading : "Explore contractors & construction work";
   return { title, description: `Browse ${title.toLowerCase()} on BuildFlow. See their completed projects and request a quote.`, alternates: { canonical: "/explore" } };
 }
 
 export default async function ExplorePage({ searchParams }: { searchParams: Promise<ExploreParams> }) {
-  if (!isSupabaseConfigured) return <NotConfigured />;
+  if (!isFirebaseConfigured) return <NotConfigured />;
   const sp = await searchParams;
   const f = await resolveExploreFilters(sp);
   const tab = sp.tab === "contractors" || (f.name && sp.tab !== "work") ? "contractors" : "work";
@@ -83,7 +83,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
 function NotConfigured() {
   return (
     <main className="mx-auto max-w-xl px-4 py-16">
-      <EmptyState icon={Compass} title="Connect Supabase to explore" description="Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (see README), apply the migrations and load the demo seed." />
+      <EmptyState icon={Compass} title="Connect Firebase to explore" description="Set the NEXT_PUBLIC_FIREBASE_* variables (see README), start the emulators and run npm run seed." />
     </main>
   );
 }

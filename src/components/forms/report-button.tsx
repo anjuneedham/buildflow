@@ -9,7 +9,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { REPORT_REASONS } from "@/lib/constants";
 import type { ActionState } from "@/lib/validation";
 
-export function ReportButton({ targetType, targetId, label = "Report" }: { targetType: "post" | "comment" | "business"; targetId: string; label?: string }) {
+export function ReportButton({ targetType, targetId, targetPath, label = "Report" }: { targetType: "post" | "comment" | "business"; targetId: string; targetPath?: string; label?: string }) {
   const [open, setOpen] = useState(false);
   const [state, action] = useActionState(reportContent, {} as ActionState);
   return (
@@ -22,6 +22,7 @@ export function ReportButton({ targetType, targetId, label = "Report" }: { targe
           <form action={action} className="space-y-4">
             <input type="hidden" name="targetType" value={targetType} />
             <input type="hidden" name="targetId" value={targetId} />
+            {targetPath && <input type="hidden" name="targetPath" value={targetPath} />}
             <FormError message={state.error} />
             <Field label="Reason" htmlFor="reason"><Select id="reason" name="reason" options={REPORT_REASONS} required /></Field>
             <Field label="Details" htmlFor="details" optional><Textarea id="details" name="details" rows={3} /></Field>

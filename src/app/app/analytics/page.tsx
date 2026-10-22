@@ -1,5 +1,6 @@
 import { Card, CardBody, CardHeader, PageHeader } from "@/components/ui";
-import { createClient } from "@/lib/supabase/server";
+import { list } from "@/lib/data/db";
+import { tenant } from "@/lib/data/tenant";
 import { requireBusiness } from "@/lib/session";
 import { LEAD_SOURCES } from "@/lib/constants";
 
@@ -21,19 +22,18 @@ const METRICS = [
 
 export default async function AnalyticsPage() {
   const s = await requireBusiness();
-  const supabase = await createClient();
+  const t = tenant(s.business.id);
   const now = new Date();
   const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const [{ data: events }, { data: leads }] = await Promise.all([
-    supabase.from("analytics_events").select("event_type, created_at").eq("business_id", s.business.id).gte("created_at", lastMonth.toISOString()).limit(50000),
-    supabase.from("leads").select("source, status").eq("business_id", s.business.id).limit(5000),
+  const [ev, leads] = await Promise.all([
+    list<{ type: string; created_at: string }>(t.col("events").where("created_at", ">=", lastMonth.toISOString()).select("type", "created_at").limit(50000)),
+    list<{ source: string; status: string }>(t.col("leads").select("source", "status").limit(5000)),
   ]);
-  const ev = events ?? [];
-  const count = (type: string, from: Date, to?: Date) => ev.filter((e) => e.event_type === type && new Date(e.created_at) >= from && (!to || new Date(e.created_at) < to)).length;
+  const count = (type: string, from: Date, to?: Date) => ev.filter((e) => e.type === type && new Date(e.created_at) >= from && (!to || new Date(e.created_at) < to)).length;
   const quotes = count("quote_request", thisMonth);
   const sources = LEAD_SOURCES.map((src) => {
-    const rows = (leads ?? []).filter((l) => l.source === src.value);
+    const rows = leads.filter((l) => l.source === src.value);
     return { ...src, total: rows.length, won: rows.filter((l) => l.status === "won").length };
   }).filter((x) => x.total > 0).sort((a, b) => b.total - a.total);
   const maxSource = Math.max(1, ...sources.map((x) => x.total));

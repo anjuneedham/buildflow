@@ -9,7 +9,7 @@ import type { Service } from "@/lib/types";
 import type { ActionState } from "@/lib/validation";
 
 export function QuoteForm({ businessId, businessName, services, kind = "quote", defaults }: {
-  businessId: string; businessName: string; services: Service[]; kind?: "quote" | "contact"; defaults?: { name?: string; email?: string };
+  businessId: string; businessName: string; services: Pick<Service, "id" | "name">[]; kind?: "quote" | "contact"; defaults?: { name?: string; email?: string };
 }) {
   const [state, action] = useActionState(submitQuoteRequest, {} as ActionState);
   if (state.ok) {

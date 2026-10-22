@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/firebase/admin";
+import { fromQuery } from "@/lib/data/db";
 import { requireUser } from "@/lib/session";
 import { AccountForm } from "./account-form";
 import { Card, StatusBadge } from "@/components/ui";
@@ -10,8 +11,8 @@ export const metadata = { title: "Account", robots: { index: false } };
 
 export default async function AccountPage() {
   const s = await requireUser("/account");
-  const supabase = await createClient();
-  const { data: requests } = await supabase.from("quote_requests").select("id, created_at, kind, description, business:businesses(name, slug)").eq("requester_id", s.user.id).order("created_at", { ascending: false }).limit(20);
+  const requests = fromQuery<{ id: string; created_at: string; kind: string; description: string; business_name: string; business_slug: string }>(
+    await db().collection("users").doc(s.user.id).collection("quote_requests").orderBy("created_at", "desc").limit(20).get());
   return (
     <main className="mx-auto max-w-xl space-y-6 px-4 py-6">
       <h1 className="font-display text-2xl font-extrabold">Account</h1>
@@ -27,13 +28,12 @@ export default async function AccountPage() {
       )}
       <section>
         <h2 className="mb-2 font-bold">My quote requests</h2>
-        {(requests ?? []).length === 0 ? <p className="text-sm text-ink-500">You haven&apos;t requested any quotes yet.</p> : (
+        {requests.length === 0 ? <p className="text-sm text-ink-500">You haven&apos;t requested any quotes yet.</p> : (
           <ul className="divide-y divide-concrete-200 rounded-xl border border-concrete-200 bg-white">
-            {(requests ?? []).map((r) => {
-              const biz = r.business as unknown as { name: string; slug: string } | null;
+            {requests.map((r) => {
               return (
                 <li key={r.id} className="p-3 text-sm">
-                  <div className="flex items-center justify-between gap-2"><Link href={`/contractor/${biz?.slug}`} className="font-semibold">{biz?.name}</Link><span className="text-xs text-ink-500">{formatDate(r.created_at)}</span></div>
+                  <div className="flex items-center justify-between gap-2"><Link href={`/contractor/${r.business_slug}`} className="font-semibold">{r.business_name}</Link><span className="text-xs text-ink-500">{formatDate(r.created_at)}</span></div>
                   <p className="line-clamp-2 text-ink-600">{r.description}</p>
                   {r.kind === "contact" && <StatusBadge kind="lead" value="contacted" className="mt-1" />}
                 </li>
