@@ -1,0 +1,1108 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c2127"><meta name="description" content="BuildFlow: run your construction business, showcase your work, win more jobs. Clickable demo."><meta property="og:title" content="BuildFlow demo"><meta property="og:description" content="Clickable demo of the BuildFlow construction CRM and contractor marketplace."><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%231c2127%27/%3E%3Crect x=%277%27 y=%277%27 width=%2712%27 height=%275%27 rx=%271%27 fill=%27%23f26b1d%27/%3E%3Crect x=%277%27 y=%2713.5%27 width=%2716%27 height=%275%27 rx=%271%27 fill=%27%23ff8a3d%27/%3E%3Crect x=%277%27 y=%2720%27 width=%2718%27 height=%275%27 rx=%271%27 fill=%27%23efede8%27/%3E%3C/svg%3E"><title>BuildFlow demo</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,600..900&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: phone-first app shell — sticky top bar, one scrolling column (max 760px), fixed bottom tab bar; sheets slide up for forms. */
+:root {
+  --bg: #f7f6f3; --surface: #ffffff; --sunk: #efede8; --line: #e2dfd7; --line-strong: #cfcbc0;
+  --fg: #1c2127; --muted: #59626d; --ink: #1c2127; --on-ink: #f7f6f3;
+  --safety: #f26b1d; --safety-strong: #d65611; --safety-soft: #fff1e6; --on-safety: #ffffff;
+  --blue: #2c5d8f; --blue-soft: #e8f0f8; --green: #2f7d4f; --green-soft: #e7f3ec; --red: #b83a2e; --red-soft: #fbeceb; --amber: #8a6600; --amber-soft: #fbf3dc; --violet: #6a3fb0; --violet-soft: #f0eafa;
+  --shadow: 0 1px 2px rgba(20,24,28,.06), 0 1px 1px rgba(20,24,28,.04);
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121519; --surface: #1b2026; --sunk: #232930; --line: #2c333b; --line-strong: #3b434d;
+  --fg: #eceae4; --muted: #a3a8ae; --ink: #eceae4; --on-ink: #121519;
+  --safety: #ff8a3d; --safety-strong: #ff9d5c; --safety-soft: #33231a; --on-safety: #1b1209;
+  --blue: #8fb8e3; --blue-soft: #1d2a38; --green: #7cc79a; --green-soft: #1a2c22; --red: #f0958b; --red-soft: #3a1f1c; --amber: #e7c25a; --amber-soft: #352c14; --violet: #c2a6f0; --violet-soft: #2a2238;
+  --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #121519; --surface: #1b2026; --sunk: #232930; --line: #2c333b; --line-strong: #3b434d;
+  --fg: #eceae4; --muted: #a3a8ae; --ink: #eceae4; --on-ink: #121519;
+  --safety: #ff8a3d; --safety-strong: #ff9d5c; --safety-soft: #33231a; --on-safety: #1b1209;
+  --blue: #8fb8e3; --blue-soft: #1d2a38; --green: #7cc79a; --green-soft: #1a2c22; --red: #f0958b; --red-soft: #3a1f1c; --amber: #e7c25a; --amber-soft: #352c14; --violet: #c2a6f0; --violet-soft: #2a2238;
+  --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); -webkit-tap-highlight-color: transparent; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 50; background: var(--surface); }
+button, input, select, textarea { font: inherit; color: inherit; }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+p { margin: 0; }
+.col { max-width: 760px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.stack { display: grid; gap: 14px; }
+.row { display: flex; gap: 8px; align-items: center; }
+.wrap { flex-wrap: wrap; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.tiny { font-size: 12px; }
+.grow { flex: 1; min-width: 0; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Top bar */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.top .col { display: flex; align-items: center; gap: 10px; min-height: 56px; }
+.logo { display: flex; align-items: center; gap: 8px; font: 800 18px/1 var(--display); letter-spacing: -0.01em; background: none; border: 0; padding: 0; cursor: pointer; }
+.logo b { color: var(--safety); font-weight: 800; }
+.mode { margin-left: auto; display: inline-flex; background: var(--sunk); border-radius: 10px; padding: 3px; }
+.mode button { border: 0; background: none; padding: 7px 10px; border-radius: 8px; font-size: 13px; font-weight: 650; color: var(--muted); cursor: pointer; min-height: 34px; }
+.mode button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: var(--shadow); }
+
+/* Bottom nav */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.tabs .inner { max-width: 760px; margin: 0 auto; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
+.tabs button { border: 0; background: none; display: grid; justify-items: center; gap: 2px; padding: 8px 2px 9px; font-size: 11px; font-weight: 650; color: var(--muted); cursor: pointer; min-height: 56px; }
+.tabs button[aria-current="page"] { color: var(--safety); }
+.tabs svg { width: 22px; height: 22px; }
+main.screen { padding-block: 16px calc(88px + env(safe-area-inset-bottom, 0px)); }
+
+/* Controls */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid transparent; font-weight: 650; font-size: 14px; cursor: pointer; text-align: center; text-decoration: none; }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn.primary { background: var(--safety); color: var(--on-safety); }
+.btn.primary:hover:not(:disabled) { background: var(--safety-strong); }
+.btn.dark { background: var(--ink); color: var(--on-ink); }
+.btn.outline { background: var(--surface); border-color: var(--line-strong); }
+.btn.ghost { background: none; color: var(--muted); }
+.btn.danger { background: none; color: var(--red); }
+.btn.sm { min-height: 36px; padding: 0 12px; font-size: 13px; border-radius: 8px; }
+.btn.block { width: 100%; }
+.btn.lg { min-height: 50px; font-size: 15px; }
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--safety) 60%, transparent); outline-offset: 2px; }
+.field { display: grid; gap: 6px; }
+.field label { font-size: 13px; font-weight: 650; }
+.field label span { font-weight: 400; color: var(--muted); }
+.input { width: 100%; min-height: 44px; border: 1px solid var(--line-strong); background: var(--surface); border-radius: 10px; padding: 9px 12px; font-size: 16px; }
+textarea.input { min-height: 88px; resize: vertical; }
+.input:focus { border-color: var(--safety); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--safety) 22%, transparent); }
+.grid2 { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+
+/* Surfaces */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+.card.pad { padding: 16px; }
+.card-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.card-h h3 { font-size: 16px; font-weight: 750; }
+.list > * + * { border-top: 1px solid var(--line); }
+.item { display: flex; gap: 12px; align-items: center; padding: 12px 16px; background: none; border: 0; width: 100%; text-align: left; cursor: pointer; }
+.item:hover { background: var(--sunk); }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 650; white-space: nowrap; background: var(--sunk); color: var(--muted); }
+.t-orange { background: var(--safety-soft); color: var(--safety-strong); }
+.t-blue { background: var(--blue-soft); color: var(--blue); }
+.t-green { background: var(--green-soft); color: var(--green); }
+.t-red { background: var(--red-soft); color: var(--red); }
+.t-yellow { background: var(--amber-soft); color: var(--amber); }
+.t-purple { background: var(--violet-soft); color: var(--violet); }
+.avatar { flex: none; display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #1c2127; color: #ff8a3d; font: 800 14px/1 var(--display); overflow: hidden; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar.round { border-radius: 50%; }
+.avatar.lg { width: 76px; height: 76px; font-size: 24px; border-radius: 16px; border: 4px solid var(--surface); }
+.pills { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px 4px; }
+.pills::-webkit-scrollbar { display: none; }
+.pill { flex: none; min-height: 38px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); font-size: 13px; font-weight: 650; cursor: pointer; }
+.pill[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.seg { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+.seg button { flex: none; border: 0; background: none; padding: 10px 10px 9px; border-bottom: 2px solid transparent; font-weight: 650; font-size: 14px; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { color: var(--fg); border-color: var(--safety); }
+.seg .c { margin-left: 4px; font-size: 11px; background: var(--sunk); border-radius: 5px; padding: 1px 5px; }
+.stat { padding: 14px; display: grid; gap: 2px; text-align: left; cursor: pointer; border: 1px solid var(--line); background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); }
+.stat.hot { border-color: var(--safety); background: var(--safety-soft); }
+.stat b { font: 800 30px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.stats { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 640px) { .stats.four { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.band { background: #1c2127; color: #efede8; border-radius: 14px; padding: 16px; display: grid; gap: 14px; }
+.band .big { font: 800 34px/1 var(--display); color: #ff8a3d; font-variant-numeric: tabular-nums; }
+.band .trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.band .trio b { display: block; font: 750 20px/1.2 var(--display); }
+.band .trio span { font-size: 11px; color: #a9a498; }
+.empty { border: 1px dashed var(--line-strong); border-radius: 14px; padding: 28px 18px; text-align: center; display: grid; gap: 8px; justify-items: center; }
+.empty h3 { font-size: 16px; }
+.notice { border-radius: 12px; padding: 12px 14px; font-size: 14px; background: var(--amber-soft); color: var(--fg); border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent); }
+.ok { background: var(--green-soft); border-color: color-mix(in srgb, var(--green) 35%, transparent); }
+.back { border: 0; background: none; color: var(--muted); font-weight: 650; font-size: 14px; padding: 4px 0; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; min-height: 36px; }
+.h1 { font: 800 26px/1.15 var(--display); }
+
+/* Post + media */
+.post { overflow: hidden; }
+.post-head { display: flex; gap: 10px; align-items: center; padding: 10px 12px; }
+.media { position: relative; background: var(--sunk); aspect-ratio: 4 / 3; overflow: hidden; }
+.media.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; aspect-ratio: 8 / 5; }
+.media img, .media svg { display: block; width: 100%; height: 100%; object-fit: cover; }
+.media .lbl { position: absolute; top: 8px; left: 8px; background: rgba(13,16,19,.8); color: #fff; font-size: 11px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; }
+.media .cell { position: relative; overflow: hidden; }
+.acts { display: flex; align-items: center; padding: 4px 6px 0; }
+.icon-btn { border: 0; background: none; min-width: 40px; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border-radius: 10px; font-weight: 650; font-size: 14px; color: var(--muted); cursor: pointer; }
+.icon-btn:hover { background: var(--sunk); }
+.icon-btn svg { width: 21px; height: 21px; }
+.icon-btn.on { color: var(--safety); }
+.quote-strip { margin: 10px 12px 12px; display: flex; justify-content: center; min-height: 40px; align-items: center; border-radius: 10px; background: var(--safety-soft); color: var(--safety-strong); font-weight: 700; font-size: 14px; border: 0; cursor: pointer; width: calc(100% - 24px); }
+
+/* Profile */
+.cover { height: 150px; background: #1c2127; position: relative; overflow: hidden; margin-inline: -16px; }
+.cover svg, .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.portfolio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; border-radius: 12px; overflow: hidden; }
+.portfolio button { padding: 0; border: 0; aspect-ratio: 1; overflow: hidden; cursor: pointer; background: var(--sunk); }
+.portfolio svg, .portfolio img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sticky-cta { position: fixed; left: 0; right: 0; bottom: calc(56px + env(safe-area-inset-bottom, 0px)); z-index: 35; background: color-mix(in srgb, var(--surface) 96%, transparent); border-top: 1px solid var(--line); padding-block: 8px; }
+.sticky-cta .col { display: flex; gap: 8px; }
+
+/* Sheet */
+.scrim { position: fixed; inset: 0; z-index: 60; background: rgba(13,16,19,.55); display: flex; align-items: flex-end; justify-content: center; }
+.sheet { background: var(--surface); width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; border-radius: 18px 18px 0 0; padding: 0 0 calc(16px + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 640px) { .scrim { align-items: center; } .sheet { border-radius: 18px; } }
+.sheet-h { position: sticky; top: 0; background: var(--surface); display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); z-index: 1; }
+.sheet-h h2 { font-size: 18px; }
+.sheet-b { padding: 16px; display: grid; gap: 14px; }
+
+/* Tasks */
+.check { flex: none; width: 28px; height: 28px; border-radius: 7px; border: 2px solid var(--line-strong); background: var(--surface); display: grid; place-items: center; cursor: pointer; color: #fff; }
+.check.done { background: var(--green); border-color: var(--green); }
+.strike { text-decoration: line-through; color: var(--muted); }
+.progress { height: 6px; background: var(--sunk); border-radius: 99px; overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--safety); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 70; background: #1c2127; color: #fff; padding: 11px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,.25); max-width: calc(100% - 32px); }
+.hero { background: #1c2127; color: #efede8; border-radius: 16px; padding: 20px; display: grid; gap: 10px; background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px); background-size: 24px 24px; }
+.hero h1 { font-size: 28px; font-weight: 850; font-stretch: 92%; line-height: 1.05; }
+.hero em { font-style: normal; color: #ff8a3d; }
+.skeleton { background: var(--sunk); border-radius: 14px; height: 120px; }
+@media (prefers-reduced-motion: no-preference) { .sheet { animation: up .22s ease-out; } @keyframes up { from { transform: translateY(24px); opacity: .6; } } }
+</style>
+
+</head><body><div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+<script>
+// Demo seed for the BuildFlow artifact. All businesses are fictional and flagged demo.
+const H = 3600e3, D = 24 * H, now = Date.now();
+const d = (n) => new Date(now + n * D).toISOString().slice(0, 10);
+const seed = {
+  "businesses/kingston-pro-builders": { name: "Kingston Pro Builders", slug: "kingston-pro-builders", primary: "general-contractor", services: ["general-contractor", "renovation", "mason", "carpenter"], parish: "Kingston", city: "Kingston", area: "Kingston, St Andrew & St Catherine", tagline: "Residential builds & renovations done right, on time.", description: "DEMO BUSINESS. Kingston Pro Builders is a fictional general contractor used to demonstrate BuildFlow. New homes, extensions and full renovations across the Corporate Area.", phone: "+1 876 555 0101", email: "office@kingstonpro.example", years: 12, verified: true, demo: true, ownerId: null, followers: [], completed: 1, coverScene: "house", createdAt: now - 40 * D },
+  "businesses/island-electrical-services": { name: "Island Electrical Services", slug: "island-electrical-services", primary: "electrician", services: ["electrician"], parish: "St Andrew", city: "Half Way Tree", area: "St Andrew & Kingston", tagline: "Licensed electrical installs, rewiring and solar-ready upgrades.", description: "DEMO BUSINESS. A fictional electrician used to demonstrate BuildFlow.", phone: "+1 876 555 0102", email: "hello@islandelectrical.example", years: 8, verified: false, demo: true, ownerId: null, followers: [], completed: 0, coverScene: "panel", createdAt: now - 30 * D },
+  "businesses/prime-tiling-renovation": { name: "Prime Tiling & Renovation", slug: "prime-tiling-renovation", primary: "tiler", services: ["tiler", "renovation"], parish: "Clarendon", city: "May Pen", area: "Clarendon, Manchester & St Catherine", tagline: "Floors, bathrooms and kitchens with a clean finish.", description: "DEMO BUSINESS. A fictional tiling company used to demonstrate BuildFlow.", phone: "+1 876 555 0103", email: "jobs@primetiling.example", years: 6, verified: false, demo: true, ownerId: null, followers: [], completed: 0, coverScene: "tile-after", createdAt: now - 25 * D },
+  "businesses/caribbean-roofing-solutions": { name: "Caribbean Roofing Solutions", slug: "caribbean-roofing-solutions", primary: "roofer", services: ["roofer", "carpenter"], parish: "St James", city: "Montego Bay", area: "Island-wide", tagline: "Hurricane-ready roofing, repairs and waterproofing.", description: "DEMO BUSINESS. A fictional roofer used to demonstrate BuildFlow.", phone: "+1 876 555 0104", email: "info@caribbeanroofing.example", years: 15, verified: true, demo: true, ownerId: null, followers: [], completed: 0, coverScene: "roof", createdAt: now - 20 * D },
+  "posts/demo-post-1": { businessId: "kingston-pro-builders", authorId: null, type: "completed_project", caption: "Stamped concrete driveway and covered patio finished in Portmore. Six weeks start to finish. (Demo post)", service: "general-contractor", location: "Portmore, St Catherine", projectId: "demo-proj-3", media: [{ scene: "driveway" }], likedBy: [], commentCount: 0, createdAt: now - 3 * D },
+  "posts/demo-post-2": { businessId: "kingston-pro-builders", authorId: null, type: "work_in_progress", caption: "Block work going up on the Hope Road extension. (Demo post)", service: "mason", location: "Kingston", projectId: "demo-proj-1", media: [{ scene: "wall" }], likedBy: [], commentCount: 0, createdAt: now - 1 * D },
+  "posts/demo-post-3": { businessId: "island-electrical-services", authorId: null, type: "service_showcase", caption: "Full 200A panel upgrade with surge protection. Ready for solar. (Demo post)", service: "electrician", location: "Half Way Tree, St Andrew", projectId: null, media: [{ scene: "panel" }], likedBy: [], commentCount: 0, createdAt: now - 2 * D },
+  "posts/demo-post-4": { businessId: "prime-tiling-renovation", authorId: null, type: "before_after", caption: "Bathroom transformation: old ceramic out, large-format porcelain in. (Demo post)", service: "tiler", location: "May Pen, Clarendon", projectId: null, media: [{ scene: "tile-before" }, { scene: "tile-after" }], likedBy: [], commentCount: 0, createdAt: now - 5 * D },
+  "posts/demo-post-5": { businessId: "caribbean-roofing-solutions", authorId: null, type: "completed_project", caption: "New hip roof with hurricane straps, Montego Bay. (Demo post)", service: "roofer", location: "Montego Bay, St James", projectId: null, media: [{ scene: "roof" }], likedBy: [], commentCount: 0, createdAt: now - 6 * H },
+  "posts/demo-post-6": { businessId: "kingston-pro-builders", authorId: null, type: "completed_project", caption: "Kitchen refit in Barbican: new cabinets, quartz tops, under-cabinet lighting. (Demo post)", service: "renovation", location: "Barbican, St Andrew", projectId: null, media: [{ scene: "kitchen" }], likedBy: [], commentCount: 0, createdAt: now - 9 * D },
+  "customers/demo-cust-1": { businessId: "kingston-pro-builders", name: "Tamara Williams (Demo)", phone: "+1 876 555 1001", email: "tamara@example.com", address: "12 Hope Road", city: "Kingston", notesText: "Prefers WhatsApp in the evenings.", notes: [], createdAt: now - 20 * D },
+  "customers/demo-cust-2": { businessId: "kingston-pro-builders", name: "Blue Mountain Cafe Ltd (Demo)", phone: "+1 876 555 1002", email: "ops@example.com", address: "4 Lady Musgrave Road", city: "Kingston", notesText: "Commercial client.", notes: [], createdAt: now - 15 * D },
+  "customers/demo-cust-3": { businessId: "kingston-pro-builders", name: "Paul Henry (Demo)", phone: "+1 876 555 1003", email: "", address: "Portmore", city: "St Catherine", notesText: "", notes: [], createdAt: now - 60 * D },
+  "projects/demo-proj-1": { businessId: "kingston-pro-builders", name: "Williams Home Extension (Demo)", customerId: "demo-cust-1", leadId: null, description: "Add master bedroom and en-suite to the rear of the house.", location: "Hope Road, Kingston", start: d(-30), end: d(45), status: "in_progress", budget: 5500000, tasks: [{ id: "t1", title: "Pour foundation", due: d(-20), priority: "high", status: "done" }, { id: "t2", title: "Block work to belt course", due: d(3), priority: "high", status: "in_progress" }, { id: "t3", title: "Order roofing materials", due: d(5), priority: "medium", status: "todo" }, { id: "t4", title: "Confirm tile selection with client", due: d(12), priority: "low", status: "todo" }], notes: [], createdAt: now - 35 * D },
+  "projects/demo-proj-2": { businessId: "kingston-pro-builders", name: "Cafe Fit-out (Demo)", customerId: "demo-cust-2", leadId: null, description: "Counters, partition walls and flooring.", location: "Lady Musgrave Road", start: d(10), end: d(40), status: "upcoming", budget: 2400000, tasks: [{ id: "t5", title: "Site measurement", due: d(7), priority: "medium", status: "todo" }], notes: [], createdAt: now - 12 * D },
+  "projects/demo-proj-3": { businessId: "kingston-pro-builders", name: "Henry Patio & Driveway (Demo)", customerId: "demo-cust-3", leadId: null, description: "Stamped concrete driveway and covered patio.", location: "Portmore", start: d(-90), end: d(-40), status: "completed", budget: 1200000, tasks: [], notes: [], createdAt: now - 95 * D },
+  "leads/demo-lead-1": { businessId: "kingston-pro-builders", name: "Kerry-Ann Douglas (Demo)", phone: "+1 876 555 2001", email: "kerryann@example.com", service: "general-contractor", location: "Barbican, St Andrew", description: "Two-bedroom extension on existing house.", status: "new", source: "buildflow", value: 4200000, notes: [], customerId: null, createdAt: now - 5 * H },
+  "leads/demo-lead-2": { businessId: "kingston-pro-builders", name: "Garfield Morris (Demo)", phone: "+1 876 555 2002", email: "", service: "mason", location: "Spanish Town", description: "Perimeter wall, about 60 ft.", status: "contacted", source: "referral", value: 650000, notes: [], customerId: null, createdAt: now - 2 * D },
+  "leads/demo-lead-3": { businessId: "kingston-pro-builders", name: "Nadine Scott (Demo)", phone: "", email: "nadine@example.com", service: "renovation", location: "Constant Spring", description: "Kitchen remodel with new cabinets.", status: "quote_sent", source: "social_media", value: 1800000, notes: [], customerId: null, createdAt: now - 4 * D },
+  "leads/demo-lead-4": { businessId: "kingston-pro-builders", name: "Ocean View Apartments (Demo)", phone: "+1 876 555 2004", email: "manager@example.com", service: "painter", location: "New Kingston", description: "Repaint and repair 12 units.", status: "negotiation", source: "website", value: 3100000, notes: [], customerId: null, createdAt: now - 6 * D },
+  "leads/demo-lead-5": { businessId: "island-electrical-services", name: "Panel upgrade enquiry (Demo)", phone: "+1 876 555 4001", email: "", service: "electrician", location: "Liguanea", description: "Old fuse box, wants a modern panel.", status: "new", source: "buildflow", value: 350000, notes: [], customerId: null, createdAt: now - 8 * H },
+  "activity/demo-act-1": { businessId: "kingston-pro-builders", text: "Quote request from Kerry-Ann Douglas (Demo)", ref: { name: "lead", id: "demo-lead-1" }, at: now - 5 * H },
+  "activity/demo-act-2": { businessId: "kingston-pro-builders", text: "Williams Home Extension (Demo) is now In progress", ref: { name: "project", id: "demo-proj-1" }, at: now - 2 * D },
+};
+
+
+(() => {
+  // Standalone stand-in for the Claude runtime: same db/user API, data kept in this browser's localStorage.
+  const KEY = "buildflow-demo-v1", UKEY = "buildflow-demo-user";
+  const subs = new Set(); let store = new Map();
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify([...store])); } catch {} };
+  const load = () => { try { const raw = localStorage.getItem(KEY); if (raw) { store = new Map(JSON.parse(raw)); return true; } } catch {} return false; };
+  if (!load()) { store = new Map(Object.entries(seed)); save(); }
+  const notify = () => { save(); subs.forEach((f) => f()); };
+  window.addEventListener("storage", (e) => { if (e.key === KEY && load()) subs.forEach((f) => f()); });
+  const clone = (v) => JSON.parse(JSON.stringify(v));
+  const snapDoc = (p) => ({ id: p.split("/").pop(), exists: store.has(p), data: () => store.get(p), metadata: { fromCache: false, hasPendingWrites: false } });
+  const docRef = (path) => ({ id: path.split("/").pop(), path,
+    get: async () => snapDoc(path),
+    set: async (v) => { store.set(path, clone(v)); notify(); },
+    update: async (v) => { if (!store.has(path)) throw { code: "invalid_argument" }; store.set(path, { ...store.get(path), ...clone(v) }); notify(); },
+    delete: async () => { store.delete(path); notify(); },
+    onSnapshot(next) { const f = () => next(snapDoc(path)); subs.add(f); setTimeout(f, 0); return () => subs.delete(f); },
+    collection: (c) => colRef(path + "/" + c) });
+  const query = (col, filters = [], order = null, lim = 1000) => {
+    const run = () => { let docs = [...store.keys()].filter((k) => k.startsWith(col + "/") && k.split("/").length === col.split("/").length + 1).map(snapDoc);
+      for (const [f, op, v] of filters) docs = docs.filter((d) => { const x = d.data()[f]; return op === "==" ? x === v : op === "array-contains" ? (x || []).includes(v) : true; });
+      if (order) docs.sort((a, b) => (a.data()[order[0]] > b.data()[order[0]] ? 1 : -1) * (order[1] === "desc" ? -1 : 1));
+      docs = docs.slice(0, lim); return { docs, size: docs.length, empty: !docs.length, docChanges: () => [], metadata: {} }; };
+    return { where: (f, op, v) => query(col, [...filters, [f, op, v]], order, lim), orderBy: (f, dir) => query(col, filters, [f, dir], lim), limit: (n) => query(col, filters, order, n), get: async () => run(),
+      onSnapshot(next) { const f = () => next(run()); subs.add(f); setTimeout(f, 0); return () => subs.delete(f); } };
+  };
+  const colRef = (path) => ({ ...query(path), path, doc: (id) => docRef(path + "/" + (id || Math.random().toString(36).slice(2, 12))), add: async (v) => { const r = docRef(path + "/" + Math.random().toString(36).slice(2, 12)); await r.set(v); return r; } });
+  const db = { doc: docRef, collection: colRef };
+  let uid = ""; try { uid = localStorage.getItem(UKEY) || ""; if (!uid) { uid = "u_" + Math.random().toString(36).slice(2, 12); localStorage.setItem(UKEY, uid); } } catch { uid = "u_guest"; }
+  const user = { me: async () => ({ id: uid, name: "You", avatarUrl: "", color: "#f26b1d", email: null, isOwner: true, canEdit: true }), id: async () => uid, can: async () => true, isOwner: async () => true, canEdit: async () => true,
+    profiles: async (ids) => Object.fromEntries([].concat(ids).map((i) => [i, { id: i, name: i === uid ? "You" : "BuildFlow user", avatarUrl: "" }])) };
+  window.__resetDemo = () => { try { localStorage.removeItem(KEY); } catch {} location.reload(); };
+  window.claude = { use: async (n) => (n === "db" ? db : n === "user" ? user : null) };
+})();
+
+</script>
+<script>
+const { useState, useEffect, useMemo, useRef, useCallback, createContext, useContext } = React;
+const html = htm.bind(React.createElement);
+
+/* ───────────────────────── Reference data ───────────────────────── */
+const SERVICES = [
+  ["general-contractor","General Contractor","General Contractors"],["electrician","Electrician","Electricians"],["plumber","Plumber","Plumbers"],
+  ["mason","Mason","Masons"],["tiler","Tiler","Tilers"],["carpenter","Carpenter","Carpenters"],["painter","Painter","Painters"],
+  ["roofer","Roofer","Roofers"],["landscaper","Landscaper","Landscapers"],["hvac","HVAC Technician","HVAC Professionals"],
+  ["renovation","Home Renovation","Home Renovation Contractors"],["welder","Welder / Steel Work","Welders"],
+].map(([id, name, plural]) => ({ id, name, plural }));
+const svc = (id) => SERVICES.find((s) => s.id === id);
+const PARISHES = ["Kingston","St Andrew","St Catherine","Clarendon","Manchester","St Elizabeth","Westmoreland","Hanover","St James","Trelawny","St Ann","St Mary","Portland","St Thomas"];
+const LEAD_ST = [["new","New","t-orange"],["contacted","Contacted","t-blue"],["qualified","Qualified","t-purple"],["quote_sent","Quote sent","t-yellow"],["negotiation","Negotiation","t-yellow"],["won","Won","t-green"],["lost","Lost","t-red"]];
+const OPEN_LEAD = ["new","contacted","qualified","quote_sent","negotiation"];
+const PROJ_ST = [["planning","Planning",""],["upcoming","Upcoming","t-blue"],["in_progress","In progress","t-orange"],["on_hold","On hold","t-yellow"],["completed","Completed","t-green"],["cancelled","Cancelled","t-red"]];
+const ACTIVE_PROJ = ["planning","upcoming","in_progress","on_hold"];
+const SOURCES = [["buildflow","BuildFlow"],["referral","Referral"],["phone","Phone"],["social_media","Social media"],["website","Website"],["other","Other"]];
+const POST_TYPES = [["completed_project","Completed project"],["before_after","Before / after"],["work_in_progress","Work in progress"],["service_showcase","Service showcase"],["business_update","Business update"]];
+const PRIORITY = [["low","Low",""],["medium","Medium","t-yellow"],["high","High","t-red"]];
+const SCENES = [["house","New build"],["roof","Roof"],["wall","Block wall"],["tile-before","Old tiles"],["tile-after","New tiles"],["panel","Electrical panel"],["driveway","Driveway"],["kitchen","Kitchen"]];
+const label = (list, v) => (list.find((x) => x[0] === v) || [v, v, ""]);
+const money = (n) => (n == null || n === "" || isNaN(n)) ? "—" : "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
+const compact = (n) => "$" + new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n || 0);
+const ago = (t) => { const s = (Date.now() - t) / 1000; if (s < 60) return "just now"; if (s < 3600) return Math.round(s/60)+"m ago"; if (s < 86400) return Math.round(s/3600)+"h ago"; if (s < 604800) return Math.round(s/86400)+"d ago"; return new Date(t).toLocaleDateString("en-US",{month:"short",day:"numeric"}); };
+const day = (d) => d ? new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—";
+const initials = (n) => (n || "?").replace(/\(.*?\)/g, "").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+const slugify = (s) => s.toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || "contractor";
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const today = () => new Date().toISOString().slice(0, 10);
+const monthStart = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).getTime(); };
+
+/* ───────────────────────── Icons ───────────────────────── */
+const P = { compass: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Zm4.2-14.2-2.1 6.3-6.3 2.1 2.1-6.3 6.3-2.1Z", search: "m21 21-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Z", bookmark: "M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z", user: "M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z", home: "M3 10.5 12 3l9 7.5V21H3V10.5ZM9 21v-6h6v6", clipboard: "M9 4h6v3H9zM8 5H6v16h12V5h-2M9 12h6M9 16h4", briefcase: "M3 8h18v12H3zM8 8V5h8v3M3 13h18", users: "M16 20a6 6 0 0 0-12 0M10 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM21 20a5 5 0 0 0-4-4.9M15.5 4.3a4 4 0 0 1 0 7.4", store: "M3 9l2-5h14l2 5M4 9v11h16V9M9 20v-5h6v5M3 9h18", heart: "M12 20s-7.5-4.6-9.2-9.1C1.6 7.6 3.8 4.5 7 4.5c2 0 3.4 1 5 3 1.6-2 3-3 5-3 3.2 0 5.4 3.1 4.2 6.4C19.5 15.4 12 20 12 20Z", chat: "M21 12a8 8 0 0 1-11.8 7L3 21l2-5.6A8 8 0 1 1 21 12Z", link: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1", pin: "M12 21s-7-6.2-7-11.5a7 7 0 1 1 14 0C19 14.8 12 21 12 21Zm0-9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z", check: "M5 12.5l4.5 4.5L19 7.5", plus: "M12 5v14M5 12h14", back: "M15 18l-6-6 6-6", phone: "M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z", mail: "M3 6h18v12H3zM3 7l9 6 9-6", file: "M14 3H6v18h12V7l-4-4ZM14 3v4h4M9 13h6M9 17h6", trash: "M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3", verified: "M12 2l2.4 2.2 3.2-.4.6 3.2 2.8 1.6-1.3 3 1.3 3-2.8 1.6-.6 3.2-3.2-.4L12 22l-2.4-2.2-3.2.4-.6-3.2L3 15.4l1.3-3L3 9.4l2.8-1.6.6-3.2 3.2.4L12 2Zm-3.5 10 2.5 2.5 4.5-5", eye: "M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z", camera: "M3 8h4l2-3h6l2 3h4v12H3zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z", hammer: "M14 6l4 4M3 21l9-9M12 4l8 8-3 3-8-8z", megaphone: "M3 11v3l12 5V6L3 11ZM15 9h2a3 3 0 0 1 0 6h-2M7 15v4h3" };
+const Icon = ({ n, fill, size }) => html`<svg viewBox="0 0 24 24" width=${size || 20} height=${size || 20} fill=${fill ? "currentColor" : "none"} stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=${P[n]} /></svg>`;
+const LogoMark = () => html`<svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#1c2127"/><rect x="7" y="7" width="12" height="5" rx="1" fill="#f26b1d"/><rect x="7" y="13.5" width="16" height="5" rx="1" fill="#ff8a3d"/><rect x="7" y="20" width="18" height="5" rx="1" fill="#efede8"/></svg>`;
+
+/* Illustrated "site photos" for demo posts (fixed palette: they are pictures, not UI). */
+function Scene({ kind }) {
+  const sky = html`<rect width="400" height="300" fill="#a9cbe6"/><rect y="210" width="400" height="90" fill="#9a8f7f"/>`;
+  const tag = html`<g><rect x="10" y="272" width="104" height="20" rx="4" fill="rgba(13,16,19,.75)"/><text x="18" y="286" font-size="10" font-family="Public Sans, sans-serif" fill="#ffb27a" font-weight="700">ILLUSTRATION</text></g>`;
+  let body;
+  if (kind === "roof") body = html`${sky}<rect x="80" y="150" width="240" height="90" fill="#e8dcc4"/><polygon points="60,155 200,70 340,155" fill="#a8452f"/>${[0,1,2,3,4,5,6,7].map((i) => html`<line key=${i} x1=${80+i*35} y1="155" x2="200" y2="70" stroke="#8d3725" stroke-width="2"/>`)}<rect x="180" y="185" width="40" height="55" fill="#6e5440"/><rect x="105" y="175" width="40" height="30" fill="#5d7f9c"/><rect x="255" y="175" width="40" height="30" fill="#5d7f9c"/>`;
+  else if (kind === "wall") body = html`${sky}${Array.from({ length: 7 }).flatMap((_, r) => Array.from({ length: 10 }).map((__, c) => html`<rect key=${r+"-"+c} x=${c*44-(r%2?22:0)} y=${90+r*22} width="42" height="20" fill=${["#c9c1b2","#d3cbbc","#bfb7a8"][(r*3+c)%3]}/>`))}`;
+  else if (kind === "tile-before" || kind === "tile-after") { const a = kind === "tile-after"; body = html`<rect width="400" height="300" fill=${a ? "#f1efea" : "#8c8576"}/>${Array.from({ length: 8 }).flatMap((_, r) => Array.from({ length: a ? 6 : 11 }).map((__, c) => { const w = a ? 66 : 36; return html`<rect key=${r+"-"+c} x=${c*(w+2)+1} y=${r*(a?66:36)+1} width=${w} height=${a?64:34} fill=${a ? ["#f7f6f2","#ecebe5","#f3f1ec"][(r+c)%3] : ["#a59d8c","#978f7e","#b0a896","#8a8272"][(r*5+c)%4]}/>`; }))}`; }
+  else if (kind === "panel") body = html`<rect width="400" height="300" fill="#d7d5cf"/><rect x="125" y="30" width="150" height="240" rx="6" fill="#5e646b"/><rect x="135" y="40" width="130" height="220" fill="#3c4148"/>${Array.from({ length: 8 }).flatMap((_, r) => [0,1].map((c) => html`<g key=${r+"-"+c}><rect x=${145+c*62} y=${52+r*25} width="50" height="18" rx="2" fill="#1e2125"/><rect x=${152+c*62} y=${56+r*25} width="16" height="10" fill="#f26b1d"/></g>`))}`;
+  else if (kind === "driveway") body = html`${sky}<rect x="230" y="110" width="150" height="100" fill="#ece3d1"/><polygon points="220,115 305,70 390,115" fill="#5b6f82"/><polygon points="0,300 150,300 270,210 220,210" fill="#c7bba6"/>${[0,1,2,3,4,5].map((i) => html`<line key=${i} x1=${20+i*45} y1="300" x2=${225+i*8} y2="210" stroke="#b3a68f" stroke-width="3"/>`)}<rect x="40" y="150" width="120" height="8" fill="#6b5a46"/><rect x="45" y="158" width="6" height="52" fill="#6b5a46"/><rect x="150" y="158" width="6" height="52" fill="#6b5a46"/>`;
+  else if (kind === "kitchen") body = html`<rect width="400" height="300" fill="#efe9df"/><rect y="170" width="400" height="130" fill="#3e4a55"/><rect y="160" width="400" height="14" fill="#d9d3c8"/>${[0,1,2,3].map((i) => html`<rect key=${i} x=${10+i*98} y="188" width="88" height="100" rx="3" fill="#4b5966"/>`)}${[0,1,2].map((i) => html`<rect key=${"u"+i} x=${30+i*120} y="30" width="100" height="80" rx="3" fill="#ffffff" stroke="#d9d3c8"/>`)}<rect x="250" y="135" width="70" height="25" fill="#b9c4cc"/>`;
+  else body = html`${sky}<rect x="70" y="110" width="260" height="130" fill="#ece5d6"/>${[0,1,2,3,4].map((i) => html`<rect key=${i} x=${70+i*60} y="95" width="10" height="145" fill="#9aa0a6"/>`)}<rect x="60" y="88" width="280" height="10" fill="#9aa0a6"/>${[0,1,2].map((i) => html`<rect key=${"w"+i} x=${100+i*85} y="140" width="45" height="45" fill="#6c8aa6"/>`)}<rect x="0" y="232" width="400" height="10" fill="#8a8172"/>`;
+  return html`<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label=${label(SCENES, kind)[1] + " (illustration)"}>${body}${tag}</svg>`;
+}
+const Photo = ({ m }) => m && m.asset ? html`<img src=${"/_blob/" + m.asset} alt="Project photo" loading="lazy" onError=${(e) => { e.currentTarget.style.visibility = "hidden"; }} />` : html`<${Scene} kind=${m ? m.scene : "house"} />`;
+
+/* ───────────────────────── Data layer ───────────────────────── */
+const Ctx = createContext(null);
+const useApp = () => useContext(Ctx);
+
+function useQuery(db, build, deps) {
+  const [rows, setRows] = useState(null);
+  useEffect(() => {
+    if (!db) return;
+    const q = build(db);
+    if (!q) { setRows([]); return; }
+    const off = q.onSnapshot((s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() }))), () => setRows((r) => r || []));
+    return off;
+  }, [db, ...deps]);
+  return rows;
+}
+function useDoc(db, path) {
+  const [doc, setDoc] = useState(undefined);
+  useEffect(() => {
+    if (!db || !path) return;
+    return db.doc(path).onSnapshot((s) => setDoc(s.exists ? { id: s.id, ...s.data() } : null), () => setDoc(null));
+  }, [db, path]);
+  return doc;
+}
+
+/* ───────────────────────── Small UI pieces ───────────────────────── */
+const Badge = ({ list, v }) => { const [, l, t] = label(list, v); return html`<span class=${"badge " + (t || "")}>${l}</span>`; };
+const Avatar = ({ b, size }) => html`<span class=${"avatar" + (size === "lg" ? " lg" : "")} aria-hidden="true">${b && b.logo ? html`<img src=${"/_blob/" + b.logo} alt="" />` : initials(b && b.name)}</span>`;
+const Empty = ({ icon, title, text, action }) => html`<div class="empty">${icon && html`<span style=${{ color: "var(--safety)" }}><${Icon} n=${icon} size=${28} /></span>`}<h3>${title}</h3>${text && html`<p class="muted small" style=${{ maxWidth: "36ch" }}>${text}</p>`}${action}</div>`;
+const Back = ({ to, children }) => { const { go } = useApp(); return html`<button class="back" onClick=${() => go(to)}><${Icon} n="back" size=${16} />${children}</button>`; };
+function Sheet({ title, onClose, children }) {
+  useEffect(() => { const k = (e) => e.key === "Escape" && onClose(); window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onClose]);
+  return html`<div class="scrim" onClick=${(e) => e.target === e.currentTarget && onClose()}><div class="sheet" role="dialog" aria-modal="true" aria-label=${title}><div class="sheet-h"><h2>${title}</h2><button class="icon-btn" aria-label="Close" onClick=${onClose}>✕</button></div><div class="sheet-b">${children}</div></div></div>`;
+}
+const Field = ({ label: l, opt, children, id }) => html`<div class="field"><label for=${id}>${l} ${opt && html`<span>(optional)</span>`}</label>${children}</div>`;
+const Select = ({ id, value, onChange, options, placeholder }) => html`<select id=${id} class="input" value=${value ?? ""} onChange=${(e) => onChange(e.target.value)}>${placeholder !== undefined && html`<option value="">${placeholder}</option>`}${options.map(([v, l]) => html`<option key=${v} value=${v}>${l}</option>`)}</select>`;
+function StagePicker({ list, value, onPick }) {
+  return html`<div class="pills" role="radiogroup">${list.map(([v, l]) => html`<button key=${v} class="pill" role="radio" aria-checked=${v === value} aria-pressed=${v === value} onClick=${() => v !== value && onPick(v)}>${l}</button>`)}</div>`;
+}
+
+/* ───────────────────────── Customer side ───────────────────────── */
+function PostCard({ p, compact: hideHead }) {
+  const { businesses, go, me, act, saved } = useApp();
+  const b = businesses.find((x) => x.id === p.businessId);
+  if (!b) return null;
+  const liked = (p.likedBy || []).includes(me);
+  const isSaved = saved.includes(p.id);
+  const media = p.media || [];
+  return html`<article class="card post">
+    ${!hideHead && html`<button class="post-head item" style=${{ padding: "10px 12px" }} onClick=${() => go({ name: "biz", id: b.id })}><${Avatar} b=${b} /><span class="grow"><b class="row truncate" style=${{ gap: 4 }}>${b.name}${b.verified && html`<span style=${{ color: "var(--blue)" }}><${Icon} n="verified" size=${16} /></span>`}</b><span class="tiny muted truncate">${p.location ? p.location + " · " : ""}${ago(p.createdAt)}</span></span></button>`}
+    <button style=${{ all: "unset", display: "block", cursor: "pointer", width: "100%" }} aria-label="Open post" onClick=${() => go({ name: "post", id: p.id })}>
+      ${p.type === "before_after" && media.length >= 2
+        ? html`<div class="media pair">${media.slice(0, 2).map((m, i) => html`<div class="cell" key=${i}><${Photo} m=${m} /><span class="lbl">${i ? "After" : "Before"}</span></div>`)}</div>`
+        : html`<div class="media"><${Photo} m=${media[0]} /></div>`}
+    </button>
+    <div class="acts">
+      <button class=${"icon-btn" + (liked ? " on" : "")} aria-pressed=${liked} aria-label="Like" onClick=${() => act.toggleLike(p)}><${Icon} n="heart" fill=${liked} />${(p.likedBy || []).length || ""}</button>
+      <button class="icon-btn" aria-label="Comments" onClick=${() => go({ name: "post", id: p.id })}><${Icon} n="chat" />${p.commentCount || ""}</button>
+      <span class="grow"></span>
+      <button class=${"icon-btn" + (isSaved ? " on" : "")} aria-pressed=${isSaved} aria-label="Save" onClick=${() => act.toggleSave(p.id)}><${Icon} n="bookmark" fill=${isSaved} /></button>
+    </div>
+    <div style=${{ padding: "2px 14px 0" }} class="stack">
+      <div class="row wrap"><${Badge} list=${POST_TYPES} v=${p.type} /><span class="badge t-orange">${(svc(p.service) || {}).name || "Construction"}</span></div>
+      ${p.caption && html`<p style=${{ whiteSpace: "pre-line" }}>${p.caption}</p>`}
+    </div>
+    ${!hideHead && html`<button class="quote-strip" onClick=${() => go({ name: "biz", id: b.id, quote: true })}>Get a quote from ${b.name}</button>`}
+    ${hideHead && html`<div style=${{ height: 12 }}></div>`}
+  </article>`;
+}
+
+function parseSearch(q) {
+  let rest = " " + q.toLowerCase().replace(/[^a-z0-9 ]/g, " ") + " ";
+  let parish = null, service = null;
+  for (const p of [...PARISHES].sort((a, b) => b.length - a.length)) { const k = " " + p.toLowerCase() + " "; if (rest.includes(k)) { parish = p; rest = rest.replace(k, " "); break; } }
+  const keys = SERVICES.flatMap((s) => [s.plural, s.name, s.name.split(" ")[0] + "s", s.name.split(" ")[0]].map((k) => [s, " " + k.toLowerCase() + " "])).sort((a, b) => b[1].length - a[1].length);
+  for (const [s, k] of keys) if (k.length > 4 && rest.includes(k)) { service = s.id; rest = rest.replace(k, " "); break; }
+  return { parish, service, name: rest.replace(/\b(in|near|contractors?|the)\b/g, " ").replace(/\s+/g, " ").trim() };
+}
+
+function Explore({ focus }) {
+  const { posts, businesses, go } = useApp();
+  const [q, setQ] = useState("");
+  const [service, setService] = useState("");
+  const [parish, setParish] = useState("");
+  const [tab, setTab] = useState(focus ? "contractors" : "work");
+  const parsed = useMemo(() => parseSearch(q), [q]);
+  const S = service || parsed.service, Pa = parish || parsed.parish, name = parsed.name;
+  const visibleBiz = businesses.filter((b) => b.public !== false
+    && (!S || (b.services || []).includes(S)) && (!Pa || b.parish === Pa)
+    && (!name || [b.name, b.tagline, b.city, b.area].some((v) => (v || "").toLowerCase().includes(name))));
+  const ids = new Set(visibleBiz.map((b) => b.id));
+  const feed = posts.filter((p) => ids.has(p.businessId) && (!S || p.service === S || (businesses.find((b) => b.id === p.businessId)?.services || []).includes(S)));
+  const heading = S || Pa ? `${S ? svc(S).plural : "Contractors"}${Pa ? " in " + Pa : ""}` : "Explore";
+  return html`<div class="stack">
+    <div><h1 class="h1">${heading}</h1><p class="muted small">Find contractors through the work they've done.</p></div>
+    <div class="row" style=${{ position: "relative" }}>
+      <span style=${{ position: "absolute", left: 12, color: "var(--muted)", display: "flex" }}><${Icon} n="search" /></span>
+      <input class="input" style=${{ paddingLeft: 40 }} id="search" type="search" placeholder='Try "electricians in Kingston"' value=${q} autoFocus=${!!focus} onInput=${(e) => setQ(e.target.value)} aria-label="Search contractors, trades or places" />
+    </div>
+    <div class="grid2">
+      <${Select} id="svc" value=${service} onChange=${setService} placeholder="All services" options=${SERVICES.map((s) => [s.id, s.plural])} />
+      <${Select} id="parish" value=${parish} onChange=${setParish} placeholder="All parishes" options=${PARISHES.map((p) => [p, p])} />
+    </div>
+    <div class="pills">${SERVICES.slice(0, 8).map((s) => html`<button key=${s.id} class="pill" aria-pressed=${S === s.id} onClick=${() => setService(service === s.id ? "" : s.id)}>${s.plural}</button>`)}</div>
+    <div class="seg"><button aria-pressed=${tab === "work"} onClick=${() => setTab("work")}>Work</button><button aria-pressed=${tab === "contractors"} onClick=${() => setTab("contractors")}>Contractors <span class="c">${visibleBiz.length}</span></button></div>
+    ${tab === "work"
+      ? (feed.length ? feed.map((p) => html`<${PostCard} key=${p.id} p=${p} />`) : html`<${Empty} icon="compass" title="No work posted here yet" text="Try another trade or parish, or browse contractors." />`)
+      : (visibleBiz.length ? visibleBiz.map((b) => html`<${BizCard} key=${b.id} b=${b} />`) : html`<${Empty} icon="search" title="No contractors found" text="Try a broader search, like just the trade or just the parish." />`)}
+  </div>`;
+}
+
+function BizCard({ b }) {
+  const { go, posts } = useApp();
+  const n = posts.filter((p) => p.businessId === b.id).length;
+  return html`<button class="card item" style=${{ alignItems: "flex-start", padding: 14 }} onClick=${() => go({ name: "biz", id: b.id })}>
+    <${Avatar} b=${b} />
+    <span class="grow stack" style=${{ gap: 3 }}>
+      <b class="row" style=${{ gap: 4 }}>${b.name}${b.verified && html`<span style=${{ color: "var(--blue)" }}><${Icon} n="verified" size=${16} /></span>`}</b>
+      <span class="small" style=${{ color: "var(--safety-strong)", fontWeight: 650 }}>${(svc(b.primary) || {}).name || "Construction"}</span>
+      <span class="small muted row" style=${{ gap: 4 }}><${Icon} n="pin" size=${14} />${[b.city, b.parish].filter(Boolean).join(", ")}</span>
+      ${b.tagline && html`<span class="small">${b.tagline}</span>`}
+      <span class="tiny muted">${b.completed || 0} jobs done · ${n} posts · ${(b.followers || []).length} followers</span>
+    </span>
+  </button>`;
+}
+
+function QuoteForm({ b, kind, onDone }) {
+  const { act, meName } = useApp();
+  const [f, setF] = useState({ name: meName || "", phone: "", email: "", service: b.primary || "", location: "", description: "", budget: "", timeline: "" });
+  const [err, setErr] = useState("");
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  if (sent) return html`<div class="stack" style=${{ textAlign: "center", justifyItems: "center", padding: "12px 0" }}><span style=${{ color: "var(--green)" }}><${Icon} n="check" size=${44} /></span><h3>${kind === "quote" ? "Quote request sent" : "Message sent"}</h3><p class="muted">${b.name} sees it right away as a new lead. Switch to <b>Contractor</b> mode as ${b.name} to see it arrive.</p><button class="btn outline" onClick=${onDone}>Done</button></div>`;
+  async function submit(e) {
+    e.preventDefault();
+    if (!f.name.trim() || !f.description.trim()) return setErr("Add your name and a short description of the job.");
+    if (!f.phone.trim() && !f.email.trim()) return setErr("Add a phone number or email so they can reach you.");
+    setBusy(true); setErr("");
+    const ok = await act.submitQuote(b, { ...f, kind });
+    setBusy(false);
+    if (ok) setSent(true); else setErr("Couldn't send. You may have view-only access to this demo.");
+  }
+  return html`<form class="stack" onSubmit=${submit} noValidate>
+    ${err && html`<div class="notice" role="alert">${err}</div>`}
+    <${Field} label="Your name" id="q-name"><input id="q-name" class="input" value=${f.name} onInput=${set("name")} autocomplete="name" /><//>
+    <div class="grid2">
+      <${Field} label="Phone" id="q-phone"><input id="q-phone" class="input" type="tel" value=${f.phone} onInput=${set("phone")} /><//>
+      <${Field} label="Email" id="q-email"><input id="q-email" class="input" type="email" value=${f.email} onInput=${set("email")} /><//>
+    </div>
+    ${kind === "quote" && html`<${Field} label="Service needed" id="q-svc" opt><${Select} id="q-svc" value=${f.service} onChange=${(v) => setF({ ...f, service: v })} placeholder="Choose a service" options=${(b.services || []).map((s) => [s, (svc(s) || {}).name || s])} /><//>
+    <${Field} label="Project location" id="q-loc" opt><input id="q-loc" class="input" placeholder="e.g. Liguanea, St Andrew" value=${f.location} onInput=${set("location")} /><//>`}
+    <${Field} label=${kind === "quote" ? "Describe the job" : "Message"} id="q-desc"><textarea id="q-desc" class="input" value=${f.description} onInput=${set("description")} placeholder=${kind === "quote" ? "What needs doing, rough size, anything special…" : "How can they help?"}></textarea><//>
+    ${kind === "quote" && html`<div class="grid2">
+      <${Field} label="Budget" id="q-b" opt><${Select} id="q-b" value=${f.budget} onChange=${(v) => setF({ ...f, budget: v })} placeholder="Not sure yet" options=${["Under 250k","250k – 500k","500k – 1M","1M – 5M","5M+"].map((v) => [v, v])} /><//>
+      <${Field} label="Timeline" id="q-t" opt><${Select} id="q-t" value=${f.timeline} onChange=${(v) => setF({ ...f, timeline: v })} placeholder="Flexible" options=${["As soon as possible","Within 1 month","1 – 3 months","3+ months"].map((v) => [v, v])} /><//>
+    </div>`}
+    <button class="btn primary lg block" disabled=${busy}>${busy ? "Sending…" : kind === "quote" ? "Request a quote" : "Send message"}</button>
+    <p class="tiny muted" style=${{ textAlign: "center" }}>Your details go only to ${b.name}.</p>
+  </form>`;
+}
+
+function BizProfile({ id, quote }) {
+  const { businesses, posts, go, me, act, mode, actingAs, toast } = useApp();
+  const b = businesses.find((x) => x.id === id);
+  const [sheet, setSheet] = useState(quote ? "quote" : null);
+  useEffect(() => { if (b) act.trackView(b.id); }, [b && b.id]);
+  if (!b) return html`<${Empty} title="Contractor not found" action=${html`<button class="btn outline" onClick=${() => go({ name: "explore" })}>Explore</button>`} />`;
+  const own = mode === "contractor" && actingAs === b.id;
+  const bp = posts.filter((p) => p.businessId === b.id);
+  const showcase = bp.filter((p) => p.type === "completed_project" || p.type === "before_after");
+  const following = (b.followers || []).includes(me);
+  const copy = async () => { try { await navigator.clipboard.writeText(`buildflow.app/contractor/${b.slug}`); toast("Profile link copied"); } catch { toast(`buildflow.app/contractor/${b.slug}`); } };
+  return html`<div class="stack" style=${{ gap: 16 }}>
+    <div class="cover">${b.cover ? html`<img src=${"/_blob/" + b.cover} alt="" />` : html`<${Scene} kind=${b.coverScene || "house"} />`}${b.demo && html`<span class="badge" style=${{ position: "absolute", top: 10, left: 16, background: "#e7c25a", color: "#1c2127" }}>DEMO PROFILE</span>`}</div>
+    <div style=${{ marginTop: -54, position: "relative", zIndex: 1 }}><${Avatar} b=${b} size="lg" /></div>
+    <div class="stack" style=${{ gap: 6 }}>
+      <h1 class="h1 row wrap" style=${{ gap: 8 }}>${b.name}${b.verified ? html`<span class="badge t-blue"><${Icon} n="verified" size=${13} />Verified</span>` : html`<span class="badge">Not yet verified</span>`}</h1>
+      <b style=${{ color: "var(--safety-strong)" }}>${(svc(b.primary) || {}).name || "Construction services"}</b>
+      <span class="small muted row" style=${{ gap: 4, alignItems: "flex-start" }}><${Icon} n="pin" size=${16} /><span>${[b.city, b.parish].filter(Boolean).join(", ")}${b.area ? " · Serves " + b.area : ""}</span></span>
+      ${b.tagline && html`<p>${b.tagline}</p>`}
+    </div>
+    ${own ? html`<div class="row wrap"><button class="btn primary" onClick=${() => go({ name: "newpost" })}><${Icon} n="plus" />Post work</button><button class="btn outline" onClick=${() => go({ name: "editprofile" })}>Edit profile</button></div>`
+      : html`<div class="stack" style=${{ gap: 8 }}>
+          <div class="row"><button class=${"btn " + (following ? "outline" : "outline")} aria-pressed=${following} onClick=${() => act.toggleFollow(b)}><${Icon} n=${following ? "check" : "plus"} />${following ? "Following" : "Follow"}</button><button class="btn ghost" onClick=${copy}><${Icon} n="link" />Share</button></div>
+          <div class="grid2"><button class="btn primary lg" onClick=${() => setSheet("quote")}><${Icon} n="file" />Request a quote</button><button class="btn outline lg" onClick=${() => setSheet("contact")}><${Icon} n="chat" />Contact</button></div>
+        </div>`}
+    <div class="stats four">
+      ${[["hammer", b.completed || 0, "Jobs completed"], ["camera", bp.length, "Posts"], ["users", (b.followers || []).length, "Followers"], ["briefcase", b.years ?? "—", "Years in business"]].map(([ic, v, l]) => html`<div key=${l} class="stat" style=${{ cursor: "default" }}><span style=${{ color: "var(--safety)" }}><${Icon} n=${ic} size=${18} /></span><b>${v}</b><span class="tiny muted">${l}</span></div>`)}
+    </div>
+    <section class="stack" style=${{ gap: 8 }}><h2 style=${{ fontSize: 19 }}>Portfolio</h2>
+      ${showcase.length ? html`<div class="portfolio">${showcase.slice(0, 9).map((p) => html`<button key=${p.id} onClick=${() => go({ name: "post", id: p.id })} aria-label="Open project"><${Photo} m=${(p.media || []).slice(-1)[0]} /></button>`)}</div>`
+        : html`<${Empty} icon="camera" title="No completed projects posted yet" text=${own ? "Post your best finished jobs. It's the first thing customers look at." : "Ask for photos of past work when you request a quote."} />`}
+    </section>
+    <div class="card pad stack" style=${{ gap: 10 }}>
+      <h3 style=${{ fontSize: 16 }}>About</h3>
+      <p class="small" style=${{ whiteSpace: "pre-line" }}>${b.description || "This business hasn't added a description yet."}</p>
+      <div class="row wrap">${(b.services || []).map((s) => html`<span key=${s} class=${"badge" + (s === b.primary ? " t-orange" : "")}>${(svc(s) || {}).name || s}</span>`)}</div>
+      ${(b.phone || b.email) && html`<div class="stack small" style=${{ gap: 4 }}>${b.phone && html`<span class="row"><${Icon} n="phone" size=${16} /><span style=${{ userSelect: "all" }}>${b.phone}</span></span>`}${b.email && html`<span class="row"><${Icon} n="mail" size=${16} /><span style=${{ userSelect: "all" }}>${b.email}</span></span>`}</div>`}
+    </div>
+    <div class="card pad"><b>Reviews</b><p class="small muted">Customer reviews are coming soon.</p></div>
+    ${bp.length > 0 && html`<section class="stack"><h2 style=${{ fontSize: 19 }}>Posts</h2>${bp.map((p) => html`<${PostCard} key=${p.id} p=${p} compact=${true} />`)}</section>`}
+    ${!own && html`<div class="sticky-cta"><div class="col"><button class="btn primary grow" onClick=${() => setSheet("quote")}>Request a quote</button><button class="btn outline" onClick=${() => setSheet("contact")}>Contact</button></div></div><div style=${{ height: 56 }}></div>`}
+    ${sheet && html`<${Sheet} title=${sheet === "quote" ? "Request a quote" : "Contact " + b.name} onClose=${() => setSheet(null)}><${QuoteForm} b=${b} kind=${sheet} onDone=${() => setSheet(null)} /><//>`}
+  </div>`;
+}
+
+function PostDetail({ id }) {
+  const { posts, db, me, act, profiles, go, actingAs, mode } = useApp();
+  const p = posts.find((x) => x.id === id);
+  const comments = useQuery(db, (d) => d.collection("comments").where("postId", "==", id), [id]) || [];
+  const [body, setBody] = useState("");
+  useEffect(() => { if (p) act.trackView(p.businessId, p.id); }, [p && p.id]);
+  if (!p) return html`<${Empty} title="Post not found" />`;
+  const sorted = [...comments].sort((a, b) => a.createdAt - b.createdAt);
+  const isOwner = mode === "contractor" && actingAs === p.businessId;
+  return html`<div class="stack">
+    <${Back} to=${{ name: "explore" }}>Explore<//>
+    <${PostCard} p=${p} />
+    <section class="stack" style=${{ gap: 10 }}>
+      <h2 style=${{ fontSize: 17 }}>Comments</h2>
+      ${sorted.length === 0 && html`<p class="muted small">No comments yet. Be the first.</p>`}
+      ${sorted.map((c) => { const pr = profiles[c.authorId] || {}; return html`<div key=${c.id} class="row" style=${{ alignItems: "flex-start" }}>
+        ${pr.avatarUrl ? html`<img class="avatar round" style=${{ width: 32, height: 32 }} src=${pr.avatarUrl} alt="" />` : html`<span class="avatar round" style=${{ width: 32, height: 32, fontSize: 11 }}>${initials(pr.name)}</span>`}
+        <div class="grow"><p class="small"><b>${pr.name || "BuildFlow user"}</b> <span class="tiny muted">${ago(c.createdAt)}</span></p><p class="small" style=${{ whiteSpace: "pre-line", overflowWrap: "anywhere" }}>${c.body}</p>
+        ${(c.authorId === me || isOwner) && html`<button class="btn danger sm" style=${{ paddingInline: 0 }} onClick=${() => act.deleteComment(p, c)}>Delete</button>`}</div></div>`; })}
+      <form class="row" onSubmit=${async (e) => { e.preventDefault(); if (body.trim() && await act.addComment(p, body.trim())) setBody(""); }}>
+        <input class="input grow" id="comment" placeholder="Add a comment…" value=${body} onInput=${(e) => setBody(e.target.value)} maxlength="1000" aria-label="Comment" />
+        <button class="btn primary" disabled=${!body.trim()}>Post</button>
+      </form>
+    </section>
+  </div>`;
+}
+
+function Saved() {
+  const { posts, businesses, saved, me } = useApp();
+  const [tab, setTab] = useState("posts");
+  const sp = posts.filter((p) => saved.includes(p.id));
+  const fb = businesses.filter((b) => (b.followers || []).includes(me));
+  return html`<div class="stack">
+    <h1 class="h1">Saved</h1>
+    <div class="seg"><button aria-pressed=${tab === "posts"} onClick=${() => setTab("posts")}>Saved work <span class="c">${sp.length}</span></button><button aria-pressed=${tab === "following"} onClick=${() => setTab("following")}>Following <span class="c">${fb.length}</span></button></div>
+    ${tab === "posts" ? (sp.length ? sp.map((p) => html`<${PostCard} key=${p.id} p=${p} />`) : html`<${Empty} icon="bookmark" title="Nothing saved yet" text="Tap the bookmark on any post to keep ideas for your project." />`)
+      : (fb.length ? fb.map((b) => html`<${BizCard} key=${b.id} b=${b} />`) : html`<${Empty} icon="users" title="You're not following anyone yet" text="Follow contractors to keep up with their latest work." />`)}
+  </div>`;
+}
+
+function Home() {
+  const { go, setMode, businesses } = useApp();
+  return html`<div class="stack">
+    <div class="hero">
+      <h1>Run your construction business. <em>Showcase your work.</em> Win more jobs.</h1>
+      <p style=${{ color: "#a9a498" }}>This is a clickable demo of BuildFlow. Request a quote as a homeowner, then switch to Contractor mode and watch it arrive as a lead. Changes are saved in this browser only.</p>
+      <div class="row wrap"><button class="btn primary" onClick=${() => go({ name: "explore" })}>Explore contractors</button><button class="btn" style=${{ background: "transparent", color: "#efede8", border: "1px solid rgba(255,255,255,.3)" }} onClick=${() => setMode("contractor")}>I'm a contractor</button></div>
+    </div>
+    <div class="card pad stack" style=${{ gap: 8 }}>
+      <b>Try the full loop in 2 minutes</b>
+      <ol class="small" style=${{ margin: 0, paddingLeft: 20, display: "grid", gap: 4 }}>
+        <li>Open a contractor and tap <b>Request a quote</b>.</li>
+        <li>Switch to <b>Contractor</b> mode as that business. Your request is a new lead.</li>
+        <li>Move it to Won, convert to a customer, create a project, add tasks.</li>
+        <li>Mark the project Completed and tap <b>Showcase this project</b>.</li>
+        <li>Back in <b>Customer</b> mode, the finished job is in Explore.</li>
+      </ol>
+    </div>
+    <h2 style=${{ fontSize: 19 }}>Contractors on BuildFlow</h2>
+    ${businesses.slice(0, 6).map((b) => html`<${BizCard} key=${b.id} b=${b} />`)}
+    <div class="card pad row wrap small"><span class="grow muted">Demo data lives in this browser. Reset it any time.</span><button class="btn outline sm" onClick=${() => window.__resetDemo()}>Reset demo data</button></div>
+    <div class="card pad stack" style=${{ gap: 6 }}><b>Pricing for contractors</b><p class="small"><span style=${{ font: "800 24px var(--display)" }}>$50</span>/month includes 1 user. Each extra team member is $20/month. Free for homeowners.</p></div>
+  </div>`;
+}
+
+/* ───────────────────────── Contractor side ───────────────────────── */
+function PickBusiness() {
+  const { businesses, me, setActingAs, act, go } = useApp();
+  const mine = businesses.filter((b) => b.ownerId === me);
+  const demo = businesses.filter((b) => b.demo);
+  const [creating, setCreating] = useState(false);
+  const [f, setF] = useState({ name: "", primary: "", parish: "", city: "", tagline: "" });
+  const [err, setErr] = useState("");
+  async function create(e) {
+    e.preventDefault();
+    if (f.name.trim().length < 2 || !f.primary || !f.parish) return setErr("Add your business name, main trade and parish.");
+    const id = await act.createBusiness(f);
+    if (id) { setActingAs(id); go({ name: "dash", welcome: true }); } else setErr("Couldn't create the business. You may have view-only access to this demo.");
+  }
+  return html`<div class="stack">
+    <div><h1 class="h1">Contractor workspace</h1><p class="muted">Pick the business you're working as, or set up your own in under a minute.</p></div>
+    ${mine.length > 0 && html`<div class="card list"><div class="card-h"><h3>Your businesses</h3></div>${mine.map((b) => html`<button key=${b.id} class="item" onClick=${() => { setActingAs(b.id); go({ name: "dash" }); }}><${Avatar} b=${b} /><span class="grow"><b>${b.name}</b><br/><span class="small muted">${(svc(b.primary) || {}).name}</span></span></button>`)}</div>`}
+    <div class="card list"><div class="card-h"><h3>Demo businesses</h3><span class="tiny muted">Anyone can act as these</span></div>${demo.map((b) => html`<button key=${b.id} class="item" onClick=${() => { setActingAs(b.id); go({ name: "dash" }); }}><${Avatar} b=${b} /><span class="grow"><b>${b.name}</b><br/><span class="small muted">${(svc(b.primary) || {}).name} · ${b.parish}</span></span></button>`)}</div>
+    ${creating ? html`<form class="card pad stack" onSubmit=${create} noValidate>
+        <h3 style=${{ fontSize: 17 }}>Set up your business</h3>
+        ${err && html`<div class="notice" role="alert">${err}</div>`}
+        <${Field} label="Business name" id="nb-name"><input id="nb-name" class="input" autoFocus value=${f.name} onInput=${(e) => setF({ ...f, name: e.target.value })} placeholder="e.g. Reid Construction" /><//>
+        <div class="grid2">
+          <${Field} label="Main trade" id="nb-svc"><${Select} id="nb-svc" value=${f.primary} onChange=${(v) => setF({ ...f, primary: v })} placeholder="Choose…" options=${SERVICES.map((s) => [s.id, s.name])} /><//>
+          <${Field} label="Parish" id="nb-parish"><${Select} id="nb-parish" value=${f.parish} onChange=${(v) => setF({ ...f, parish: v })} placeholder="Choose…" options=${PARISHES.map((p) => [p, p])} /><//>
+        </div>
+        <${Field} label="City / area" id="nb-city" opt><input id="nb-city" class="input" value=${f.city} onInput=${(e) => setF({ ...f, city: e.target.value })} /><//>
+        <${Field} label="One-line pitch" id="nb-tag" opt><input id="nb-tag" class="input" value=${f.tagline} onInput=${(e) => setF({ ...f, tagline: e.target.value })} placeholder="What customers should know first" /><//>
+        <div class="row"><button class="btn primary grow">Create my business</button><button type="button" class="btn ghost" onClick=${() => setCreating(false)}>Cancel</button></div>
+        <p class="tiny muted">Starts a 14-day free trial of BuildFlow Basic. You can add services, contact details and photos later.</p>
+      </form>` : html`<button class="btn dark lg" onClick=${() => setCreating(true)}><${Icon} n="plus" />Set up my own business</button>`}
+  </div>`;
+}
+
+function Dashboard({ welcome }) {
+  const { biz, leads, projects, customers, events, posts, go, activity } = useApp();
+  const ms = monthStart();
+  const newLeads = leads.filter((l) => l.status === "new").length;
+  const active = projects.filter((p) => ACTIVE_PROJ.includes(p.status)).length;
+  const done = projects.filter((p) => p.status === "completed").length;
+  const open = leads.filter((l) => OPEN_LEAD.includes(l.status));
+  const pipeline = open.reduce((n, l) => n + Number(l.value || 0), 0);
+  const views = events.filter((e) => e.type === "profile_view" && e.at >= ms).length;
+  const quotes = leads.filter((l) => l.source === "buildflow" && l.createdAt >= ms).length;
+  const engagement = posts.filter((p) => p.businessId === biz.id).reduce((n, p) => n + (p.likedBy || []).length + (p.commentCount || 0), 0) + (biz.followers || []).length;
+  const due = projects.flatMap((p) => (p.tasks || []).filter((t) => t.status !== "done" && t.due).map((t) => ({ ...t, project: p }))).sort((a, b) => a.due.localeCompare(b.due)).slice(0, 6);
+  return html`<div class="stack">
+    ${welcome && html`<div class="notice ok">Welcome to BuildFlow! Your profile is live. Post your best work so customers can find you.</div>`}
+    <div><p class="small muted">${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p><h1 class="h1">How's business at ${biz.name}?</h1></div>
+    <div class="pills">${[["leadnew", "Add lead"], ["custnew", "Add customer"], ["projnew", "New project"], ["newpost", "Create post"]].map(([r, l]) => html`<button key=${r} class=${"btn sm " + (r === "newpost" ? "primary" : "outline")} style=${{ flex: "none" }} onClick=${() => go({ name: r })}><${Icon} n="plus" size=${16} />${l}</button>`)}</div>
+    <div class="stats four">
+      <button class=${"stat" + (newLeads ? " hot" : "")} onClick=${() => go({ name: "leads", status: "new" })}><${Icon} n="clipboard" /><b>${newLeads}</b><span class="small muted">New leads</span></button>
+      <button class="stat" onClick=${() => go({ name: "projects" })}><${Icon} n="briefcase" /><b>${active}</b><span class="small muted">Active projects</span></button>
+      <button class="stat" onClick=${() => go({ name: "projects", status: "completed" })}><${Icon} n="check" /><b>${done}</b><span class="small muted">Completed</span></button>
+      <button class="stat" onClick=${() => go({ name: "customers" })}><${Icon} n="users" /><b>${customers.length}</b><span class="small muted">Customers</span></button>
+    </div>
+    <div class="band">
+      <div><span class="small" style=${{ color: "#a9a498" }}>Open pipeline value</span><div class="big">${compact(pipeline)}</div><span class="tiny" style=${{ color: "#a9a498" }}>${open.length} open lead${open.length === 1 ? "" : "s"}</span></div>
+      <div class="trio"><div><b>${views}</b><span>Profile views</span></div><div><b>${quotes}</b><span>Quote requests</span></div><div><b>${engagement}</b><span>Engagement</span></div></div>
+      <p class="tiny" style=${{ color: "#a9a498" }}>Your profile generated ${quotes} quote request${quotes === 1 ? "" : "s"} this month.</p>
+    </div>
+    <div class="card"><div class="card-h"><h3>Tasks due</h3></div>${due.length ? html`<div class="list">${due.map((t) => html`<button key=${t.id} class="item" onClick=${() => go({ name: "project", id: t.project.id })}><span class="grow"><b class="truncate" style=${{ display: "block" }}>${t.title}</b><span class="tiny muted">${t.project.name}</span></span><span class="stack" style=${{ gap: 2, justifyItems: "end" }}><span class=${"tiny " + (t.due < today() ? "" : "muted")} style=${t.due < today() ? { color: "var(--red)", fontWeight: 700 } : null}>${t.due < today() ? "Overdue · " : ""}${day(t.due)}</span><${Badge} list=${PRIORITY} v=${t.priority} /></span></button>`)}</div>` : html`<p class="small muted" style=${{ padding: 16 }}>No upcoming tasks.</p>`}</div>
+    <div class="card"><div class="card-h"><h3>Recent activity</h3></div>${activity.length ? html`<div class="list">${activity.slice(0, 8).map((a) => html`<button key=${a.id} class="item small" onClick=${() => a.ref && go(a.ref)}><span class="grow">${a.text}</span><span class="tiny muted">${ago(a.at)}</span></button>`)}</div>` : html`<p class="small muted" style=${{ padding: 16 }}>Leads, projects and updates will show up here.</p>`}</div>
+  </div>`;
+}
+
+function Leads({ status: s0 }) {
+  const { leads, go } = useApp();
+  const [status, setStatus] = useState(s0 || "open");
+  const [q, setQ] = useState("");
+  const sorted = [...leads].sort((a, b) => b.createdAt - a.createdAt);
+  const vis = sorted.filter((l) => status === "all" || (status === "open" ? OPEN_LEAD.includes(l.status) : l.status === status)).filter((l) => !q || [l.name, l.phone, l.email, l.description].some((v) => (v || "").toLowerCase().includes(q.toLowerCase())));
+  const pipeline = leads.filter((l) => OPEN_LEAD.includes(l.status)).reduce((n, l) => n + Number(l.value || 0), 0);
+  return html`<div class="stack">
+    <div class="row"><div class="grow"><h1 class="h1">Leads</h1><p class="small muted">${compact(pipeline)} in open pipeline</p></div><button class="btn primary" onClick=${() => go({ name: "leadnew" })}><${Icon} n="plus" />Add lead</button></div>
+    <input class="input" type="search" id="lead-q" placeholder="Search name, phone, job…" value=${q} onInput=${(e) => setQ(e.target.value)} aria-label="Search leads" />
+    <div class="seg">${[["open", "Open"], ...LEAD_ST.map(([v, l]) => [v, l]), ["all", "All"]].map(([v, l]) => html`<button key=${v} aria-pressed=${status === v} onClick=${() => setStatus(v)}>${l} <span class="c">${v === "all" ? leads.length : v === "open" ? leads.filter((x) => OPEN_LEAD.includes(x.status)).length : leads.filter((x) => x.status === v).length}</span></button>`)}</div>
+    ${vis.length === 0 ? html`<${Empty} icon="clipboard" title=${leads.length ? "No leads here" : "No leads yet"} text=${leads.length ? "Try another stage." : "Quote requests from your public profile land here automatically. You can also add leads from calls and referrals."} />`
+      : vis.map((l) => html`<button key=${l.id} class="card item" style=${{ display: "grid", gap: 6, padding: 14 }} onClick=${() => go({ name: "lead", id: l.id })}>
+        <span class="row"><b class="grow truncate">${l.name}</b><${Badge} list=${LEAD_ST} v=${l.status} /></span>
+        ${l.description && html`<span class="small muted" style=${{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>${l.description}</span>`}
+        <span class="row wrap tiny muted"><b class="num" style=${{ color: "var(--fg)" }}>${money(l.value)}</b><span class=${"badge" + (l.source === "buildflow" ? " t-orange" : "")}>${label(SOURCES, l.source)[1]}</span><span>${ago(l.createdAt)}</span></span>
+      </button>`)}
+  </div>`;
+}
+
+function LeadForm({ lead }) {
+  const { act, go, biz } = useApp();
+  const [f, setF] = useState(lead ? { ...lead } : { name: "", phone: "", email: "", description: "", location: "", service: biz.primary || "", value: "", source: "phone", status: "new" });
+  const [err, setErr] = useState("");
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  async function save(e) { e.preventDefault(); if (!f.name.trim()) return setErr("Name is required."); const id = await act.saveLead(f, lead); if (id) go({ name: "lead", id }); else setErr("Couldn't save."); }
+  return html`<form class="stack" onSubmit=${save} noValidate>
+    <${Back} to=${lead ? { name: "lead", id: lead.id } : { name: "leads" }}>${lead ? lead.name : "Leads"}<//>
+    <h1 class="h1">${lead ? "Edit lead" : "Add lead"}</h1>
+    ${err && html`<div class="notice" role="alert">${err}</div>`}
+    <div class="card pad stack">
+      <${Field} label="Name" id="l-name"><input id="l-name" class="input" value=${f.name} onInput=${set("name")} autoFocus=${!lead} /><//>
+      <div class="grid2"><${Field} label="Phone" id="l-ph" opt><input id="l-ph" class="input" type="tel" value=${f.phone} onInput=${set("phone")} /><//><${Field} label="Email" id="l-em" opt><input id="l-em" class="input" type="email" value=${f.email} onInput=${set("email")} /><//></div>
+      <${Field} label="What do they need?" id="l-d" opt><textarea id="l-d" class="input" value=${f.description} onInput=${set("description")}></textarea><//>
+      <div class="grid2"><${Field} label="Service" id="l-s" opt><${Select} id="l-s" value=${f.service} onChange=${(v) => setF({ ...f, service: v })} placeholder="—" options=${SERVICES.map((s) => [s.id, s.name])} /><//><${Field} label="Location" id="l-loc" opt><input id="l-loc" class="input" value=${f.location} onInput=${set("location")} /><//></div>
+      <div class="grid2"><${Field} label="Estimated value" id="l-v" opt><input id="l-v" class="input" inputmode="decimal" value=${f.value} onInput=${(e) => setF({ ...f, value: e.target.value.replace(/[^0-9.]/g, "") })} placeholder="0" /><//><${Field} label="Source" id="l-src"><${Select} id="l-src" value=${f.source} onChange=${(v) => setF({ ...f, source: v })} options=${SOURCES} /><//></div>
+    </div>
+    <button class="btn primary lg block">Save lead</button>
+  </form>`;
+}
+
+function Notes({ notes, onAdd }) {
+  const [t, setT] = useState("");
+  const { profiles } = useApp();
+  return html`<div class="stack" style=${{ gap: 10 }}>
+    <form class="stack" style=${{ gap: 8 }} onSubmit=${async (e) => { e.preventDefault(); if (t.trim() && await onAdd(t.trim())) setT(""); }}>
+      <textarea class="input" id="note" style=${{ minHeight: 64 }} placeholder="Add a note: call outcome, site visit, measurements…" value=${t} onInput=${(e) => setT(e.target.value)} aria-label="New note"></textarea>
+      <div style=${{ textAlign: "right" }}><button class="btn primary sm" disabled=${!t.trim()}>Add note</button></div>
+    </form>
+    ${(notes || []).length === 0 ? html`<p class="small muted">No notes yet.</p>` : [...notes].reverse().map((n) => html`<div key=${n.at} style=${{ background: "var(--sunk)", borderRadius: 10, padding: 10 }}><p class="small" style=${{ whiteSpace: "pre-line" }}>${n.body}</p><p class="tiny muted">${(profiles[n.by] || {}).name || "Team member"} · ${ago(n.at)}</p></div>`)}
+  </div>`;
+}
+
+function LeadDetail({ id }) {
+  const { leads, go, act, customers, projects, toast } = useApp();
+  const l = leads.find((x) => x.id === id);
+  if (!l) return html`<${Empty} title="Lead not found" action=${html`<button class="btn outline" onClick=${() => go({ name: "leads" })}>All leads</button>`} />`;
+  const cust = customers.find((c) => c.id === l.customerId);
+  const linked = projects.filter((p) => p.leadId === l.id);
+  return html`<div class="stack">
+    <${Back} to=${{ name: "leads" }}>Leads<//>
+    <div class="stack" style=${{ gap: 6 }}><h1 class="h1">${l.name}</h1><div class="row wrap"><${Badge} list=${LEAD_ST} v=${l.status} /><span class=${"badge" + (l.source === "buildflow" ? " t-orange" : "")}>via ${label(SOURCES, l.source)[1]}</span><span class="tiny muted">Added ${ago(l.createdAt)}</span></div></div>
+    <div class="row wrap">${l.phone && html`<span class="btn dark sm" style=${{ userSelect: "all" }}><${Icon} n="phone" size=${16} />${l.phone}</span>`}${l.email && html`<span class="btn outline sm" style=${{ userSelect: "all" }}><${Icon} n="mail" size=${16} />${l.email}</span>`}<button class="btn outline sm" onClick=${() => go({ name: "leadedit", id })}>Edit</button></div>
+    <div class="card pad stack" style=${{ gap: 10 }}><b>Pipeline stage</b><${StagePicker} list=${LEAD_ST} value=${l.status} onPick=${(v) => act.leadStatus(l, v).then((ok) => ok && toast("Moved to " + label(LEAD_ST, v)[1]))} /></div>
+    <div class="card pad stack" style=${{ gap: 10 }}>
+      <b>Details</b>
+      ${l.description && html`<p class="small" style=${{ whiteSpace: "pre-line" }}>${l.description}</p>`}
+      <div class="grid2 small"><div><span class="tiny muted">Estimated value</span><br/><b class="num" style=${{ fontSize: 18 }}>${money(l.value)}</b></div><div><span class="tiny muted">Service</span><br/><b>${(svc(l.service) || {}).name || "—"}</b></div><div><span class="tiny muted">Location</span><br/><b>${l.location || "—"}</b></div></div>
+    </div>
+    <div class="card pad stack" style=${{ gap: 8 }}>
+      <b>Next steps</b>
+      ${cust && html`<button class="item" style=${{ background: "var(--green-soft)", borderRadius: 10, color: "var(--green)", fontWeight: 650 }} onClick=${() => go({ name: "customer", id: cust.id })}><${Icon} n="users" />Customer: ${cust.name}</button>`}
+      ${linked.map((p) => html`<button key=${p.id} class="item" style=${{ background: "var(--sunk)", borderRadius: 10, fontWeight: 650 }} onClick=${() => go({ name: "project", id: p.id })}><${Icon} n="briefcase" />${p.name}</button>`)}
+      ${!cust && html`<button class="btn primary block" onClick=${async () => { const cid = await act.convertLead(l); if (cid) go({ name: "customer", id: cid, converted: true }); }}><${Icon} n="users" />Convert to customer</button>`}
+      <button class=${"btn block " + (cust ? "primary" : "outline")} onClick=${() => go({ name: "projnew", leadId: l.id, customerId: l.customerId })}><${Icon} n="briefcase" />Create project</button>
+      <button class="btn danger block" onClick=${async () => { if (await act.remove("leads", l)) go({ name: "leads" }); }}><${Icon} n="trash" size=${16} />Delete lead</button>
+    </div>
+    <div class="card pad stack" style=${{ gap: 10 }}><b>Notes</b><${Notes} notes=${l.notes} onAdd=${(t) => act.addNote("leads", l, t)} /></div>
+  </div>`;
+}
+
+function Customers() {
+  const { customers, projects, go } = useApp();
+  const [q, setQ] = useState("");
+  const vis = [...customers].sort((a, b) => b.createdAt - a.createdAt).filter((c) => !q || [c.name, c.phone, c.email, c.city].some((v) => (v || "").toLowerCase().includes(q.toLowerCase())));
+  return html`<div class="stack">
+    <div class="row"><div class="grow"><h1 class="h1">Customers</h1><p class="small muted">${customers.length} customer${customers.length === 1 ? "" : "s"}</p></div><button class="btn primary" onClick=${() => go({ name: "custnew" })}><${Icon} n="plus" />Add</button></div>
+    <input class="input" type="search" id="cust-q" placeholder="Search name, phone, email, area…" value=${q} onInput=${(e) => setQ(e.target.value)} aria-label="Search customers" />
+    ${vis.length === 0 ? html`<${Empty} icon="users" title=${q ? "No matches" : "No customers yet"} text="Add customers yourself, or convert a lead when you win the job." />`
+      : html`<div class="card list">${vis.map((c) => { const n = projects.filter((p) => p.customerId === c.id).length; return html`<button key=${c.id} class="item" onClick=${() => go({ name: "customer", id: c.id })}><span class="avatar round" style=${{ width: 36, height: 36, fontSize: 12 }}>${initials(c.name)}</span><span class="grow"><b class="truncate" style=${{ display: "block" }}>${c.name}</b><span class="tiny muted">${c.phone || c.email || "No contact details"} · ${n} project${n === 1 ? "" : "s"}</span></span></button>`; })}</div>`}
+  </div>`;
+}
+
+function CustomerForm({ c }) {
+  const { act, go } = useApp();
+  const [f, setF] = useState(c ? { ...c } : { name: "", phone: "", email: "", address: "", city: "", notesText: "" });
+  const [err, setErr] = useState("");
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  async function save(e) { e.preventDefault(); if (!f.name.trim()) return setErr("Name is required."); const id = await act.saveCustomer(f, c); if (id) go({ name: "customer", id }); }
+  return html`<form class="stack" onSubmit=${save} noValidate>
+    <${Back} to=${c ? { name: "customer", id: c.id } : { name: "customers" }}>${c ? c.name : "Customers"}<//>
+    <h1 class="h1">${c ? "Edit customer" : "Add customer"}</h1>
+    ${err && html`<div class="notice" role="alert">${err}</div>`}
+    <div class="card pad stack">
+      <${Field} label="Name" id="c-n"><input id="c-n" class="input" value=${f.name} onInput=${set("name")} autoFocus=${!c} /><//>
+      <div class="grid2"><${Field} label="Phone" id="c-p" opt><input id="c-p" class="input" type="tel" value=${f.phone} onInput=${set("phone")} /><//><${Field} label="Email" id="c-e" opt><input id="c-e" class="input" type="email" value=${f.email} onInput=${set("email")} /><//></div>
+      <div class="grid2"><${Field} label="Address" id="c-a" opt><input id="c-a" class="input" value=${f.address} onInput=${set("address")} /><//><${Field} label="City / area" id="c-c" opt><input id="c-c" class="input" value=${f.city} onInput=${set("city")} /><//></div>
+      <${Field} label="Notes" id="c-no" opt><textarea id="c-no" class="input" value=${f.notesText} onInput=${set("notesText")} placeholder="Gate code, best time to call…"></textarea><//>
+    </div>
+    <button class="btn primary lg block">Save customer</button>
+  </form>`;
+}
+
+function CustomerDetail({ id, converted }) {
+  const { customers, projects, leads, go, act } = useApp();
+  const c = customers.find((x) => x.id === id);
+  if (!c) return html`<${Empty} title="Customer not found" />`;
+  const cp = projects.filter((p) => p.customerId === c.id);
+  const cl = leads.filter((l) => l.customerId === c.id);
+  return html`<div class="stack">
+    ${converted && html`<div class="notice ok">Lead converted to a customer. Create a project when you're ready to start.</div>`}
+    <${Back} to=${{ name: "customers" }}>Customers<//>
+    <h1 class="h1">${c.name}</h1>
+    <div class="row wrap">${c.phone && html`<span class="btn dark sm" style=${{ userSelect: "all" }}><${Icon} n="phone" size=${16} />${c.phone}</span>`}${c.email && html`<span class="btn outline sm" style=${{ userSelect: "all" }}><${Icon} n="mail" size=${16} />${c.email}</span>`}<button class="btn outline sm" onClick=${() => go({ name: "custedit", id })}>Edit</button></div>
+    <button class="btn primary" onClick=${() => go({ name: "projnew", customerId: c.id })}><${Icon} n="plus" />New project for ${c.name.split(" ")[0]}</button>
+    ${(c.address || c.city || c.notesText) && html`<div class="card pad small stack" style=${{ gap: 6 }}>${(c.address || c.city) && html`<span class="row"><${Icon} n="pin" size=${16} />${[c.address, c.city].filter(Boolean).join(", ")}</span>`}${c.notesText && html`<p style=${{ whiteSpace: "pre-line" }}>${c.notesText}</p>`}</div>`}
+    <h2 style=${{ fontSize: 18 }}>Projects <span class="muted small">· ${money(cp.reduce((n, p) => n + Number(p.budget || 0), 0))} total</span></h2>
+    ${cp.length ? cp.map((p) => html`<${ProjectCard} key=${p.id} p=${p} />`) : html`<p class="small muted">No projects yet for this customer.</p>`}
+    ${cl.length > 0 && html`<div class="card list"><div class="card-h"><h3>Lead history</h3></div>${cl.map((l) => html`<button key=${l.id} class="item" onClick=${() => go({ name: "lead", id: l.id })}><span class="grow small">${ago(l.createdAt)} · ${money(l.value)}</span><${Badge} list=${LEAD_ST} v=${l.status} /></button>`)}</div>`}
+    <div class="card pad stack" style=${{ gap: 10 }}><b>Notes</b><${Notes} notes=${c.notes} onAdd=${(t) => act.addNote("customers", c, t)} /></div>
+    <button class="btn danger" onClick=${async () => { if (await act.remove("customers", c)) go({ name: "customers" }); }}><${Icon} n="trash" size=${16} />Delete customer</button>
+  </div>`;
+}
+
+function ProjectCard({ p }) {
+  const { go, customers } = useApp();
+  const t = p.tasks || [], d = t.filter((x) => x.status === "done").length;
+  const c = customers.find((x) => x.id === p.customerId);
+  return html`<button class="card item" style=${{ display: "grid", gap: 8, padding: 14 }} onClick=${() => go({ name: "project", id: p.id })}>
+    <span class="row" style=${{ alignItems: "flex-start" }}><b class="grow">${p.name}</b><${Badge} list=${PROJ_ST} v=${p.status} /></span>
+    <span class="small muted">${[c && c.name, p.location].filter(Boolean).join(" · ") || "No customer yet"}</span>
+    <span class="row small"><b class="num grow">${money(p.budget)}</b>${t.length > 0 && html`<span class="row tiny muted" style=${{ gap: 6 }}><span class="progress" style=${{ width: 80 }}><i style=${{ width: (d / t.length) * 100 + "%" }}></i></span>${d}/${t.length} tasks</span>`}</span>
+  </button>`;
+}
+
+function Projects({ status: s0 }) {
+  const { projects, go } = useApp();
+  const [status, setStatus] = useState(s0 || "active");
+  const vis = [...projects].sort((a, b) => b.createdAt - a.createdAt).filter((p) => status === "all" || (status === "active" ? ACTIVE_PROJ.includes(p.status) : p.status === status));
+  return html`<div class="stack">
+    <div class="row"><h1 class="h1 grow">Projects</h1><button class="btn primary" onClick=${() => go({ name: "projnew" })}><${Icon} n="plus" />New</button></div>
+    <div class="seg">${[["active", "Active"], ...PROJ_ST.map(([v, l]) => [v, l]), ["all", "All"]].map(([v, l]) => html`<button key=${v} aria-pressed=${status === v} onClick=${() => setStatus(v)}>${l} <span class="c">${v === "all" ? projects.length : v === "active" ? projects.filter((p) => ACTIVE_PROJ.includes(p.status)).length : projects.filter((p) => p.status === v).length}</span></button>`)}</div>
+    ${vis.length ? vis.map((p) => html`<${ProjectCard} key=${p.id} p=${p} />`) : html`<${Empty} icon="briefcase" title=${projects.length ? "Nothing in this view" : "No projects yet"} text="Create a project for each job: budget, timeline, tasks and site photos." />`}
+  </div>`;
+}
+
+function ProjectForm({ p, leadId, customerId }) {
+  const { act, go, customers, leads } = useApp();
+  const lead = leads.find((l) => l.id === leadId);
+  const [f, setF] = useState(p ? { ...p } : { name: lead ? lead.name.replace(/\s*\(.*\)$/, "") + " project" : "", customerId: customerId || (lead && lead.customerId) || "", description: lead ? lead.description || "" : "", location: lead ? lead.location || "" : "", start: "", end: "", status: "planning", budget: lead ? lead.value || "" : "", leadId: leadId || "" });
+  const [err, setErr] = useState("");
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  async function save(e) { e.preventDefault(); if (!f.name.trim()) return setErr("Project name is required."); if (f.start && f.end && f.end < f.start) return setErr("Completion date must be after the start date."); const id = await act.saveProject(f, p); if (id) go({ name: "project", id }); }
+  return html`<form class="stack" onSubmit=${save} noValidate>
+    <${Back} to=${p ? { name: "project", id: p.id } : { name: "projects" }}>${p ? p.name : "Projects"}<//>
+    <h1 class="h1">${p ? "Edit project" : "New project"}</h1>
+    ${lead && !p && html`<p class="small muted">From lead: ${lead.name}</p>`}
+    ${err && html`<div class="notice" role="alert">${err}</div>`}
+    <div class="card pad stack">
+      <${Field} label="Project name" id="p-n"><input id="p-n" class="input" value=${f.name} onInput=${set("name")} autoFocus=${!p} placeholder="e.g. Campbell bathroom remodel" /><//>
+      <${Field} label="Customer" id="p-c" opt><${Select} id="p-c" value=${f.customerId} onChange=${(v) => setF({ ...f, customerId: v })} placeholder="No customer" options=${customers.map((c) => [c.id, c.name])} /><//>
+      <${Field} label="Description" id="p-d" opt><textarea id="p-d" class="input" value=${f.description} onInput=${set("description")}></textarea><//>
+      <${Field} label="Location" id="p-l" opt><input id="p-l" class="input" value=${f.location} onInput=${set("location")} /><//>
+      <div class="grid2"><${Field} label="Start" id="p-s" opt><input id="p-s" class="input" type="date" value=${f.start} onInput=${set("start")} /><//><${Field} label="Expected completion" id="p-e" opt><input id="p-e" class="input" type="date" value=${f.end} onInput=${set("end")} /><//></div>
+      <div class="grid2"><${Field} label="Status" id="p-st"><${Select} id="p-st" value=${f.status} onChange=${(v) => setF({ ...f, status: v })} options=${PROJ_ST} /><//><${Field} label="Budget" id="p-b" opt><input id="p-b" class="input" inputmode="decimal" value=${f.budget} onInput=${(e) => setF({ ...f, budget: e.target.value.replace(/[^0-9.]/g, "") })} placeholder="0" /><//></div>
+    </div>
+    <button class="btn primary lg block">${p ? "Save changes" : "Create project"}</button>
+  </form>`;
+}
+
+function ProjectDetail({ id }) {
+  const { projects, customers, posts, go, act, toast } = useApp();
+  const p = projects.find((x) => x.id === id);
+  const [t, setT] = useState({ title: "", due: "", priority: "medium" });
+  if (!p) return html`<${Empty} title="Project not found" />`;
+  const c = customers.find((x) => x.id === p.customerId);
+  const tasks = [...(p.tasks || [])].sort((a, b) => (a.status === "done") - (b.status === "done") || (a.due || "9").localeCompare(b.due || "9"));
+  const done = tasks.filter((x) => x.status === "done").length;
+  const posted = posts.some((x) => x.projectId === p.id);
+  return html`<div class="stack">
+    <${Back} to=${{ name: "projects" }}>Projects<//>
+    <div class="stack" style=${{ gap: 6 }}><h1 class="h1">${p.name}</h1><div class="row"><${Badge} list=${PROJ_ST} v=${p.status} /><button class="btn outline sm" onClick=${() => go({ name: "projedit", id })}>Edit</button></div></div>
+    ${p.status === "completed" && html`<div class="card pad stack" style=${{ borderColor: "var(--safety)", background: "var(--safety-soft)", gap: 8 }}><b>${posted ? "This project is on your profile." : "Job done! Show it off."}</b><p class="small">${posted ? "Post an update or a before/after to keep it fresh." : "Completed work is the best way to win your next customer."}</p><button class="btn primary" onClick=${() => go({ name: "newpost", projectId: p.id })}><${Icon} n="megaphone" />Showcase this project</button></div>`}
+    <div class="card pad stack" style=${{ gap: 10 }}><b>Status</b><${StagePicker} list=${PROJ_ST} value=${p.status} onPick=${(v) => act.projectStatus(p, v).then((ok) => ok && toast(p.name + " is now " + label(PROJ_ST, v)[1]))} /></div>
+    <div class="stats">
+      ${[["users", "Customer", c ? c.name : "—"], ["file", "Budget", money(p.budget)], ["briefcase", "Timeline", `${day(p.start)} → ${day(p.end)}`], ["pin", "Location", p.location || "—"]].map(([ic, l, v]) => html`<div key=${l} class="card" style=${{ padding: 12 }}><span class="tiny muted row" style=${{ gap: 4 }}><${Icon} n=${ic} size=${14} />${l}</span><b class="truncate" style=${{ display: "block" }}>${v}</b></div>`)}
+    </div>
+    ${p.description && html`<div class="card pad small" style=${{ whiteSpace: "pre-line" }}>${p.description}</div>`}
+    <div class="card">
+      <div class="card-h"><h3>Tasks</h3><span class="tiny muted">${done} of ${tasks.length} done</span></div>
+      ${tasks.length > 0 && html`<div class="progress" style=${{ borderRadius: 0 }}><i style=${{ width: (done / tasks.length) * 100 + "%" }}></i></div>`}
+      <div class="list">${tasks.map((x) => html`<div key=${x.id} class="row" style=${{ padding: "10px 14px", alignItems: "flex-start" }}>
+        <button class=${"check" + (x.status === "done" ? " done" : "")} aria-label=${x.status === "done" ? "Mark not done" : "Mark done"} onClick=${() => act.taskStatus(p, x, x.status === "done" ? "todo" : "done")}>${x.status === "done" && html`<${Icon} n="check" size=${16} />`}</button>
+        <div class="grow"><p class=${x.status === "done" ? "strike" : ""} style=${{ fontWeight: 650 }}>${x.title}</p><div class="row wrap tiny muted"><${Badge} list=${PRIORITY} v=${x.priority} />${x.status === "in_progress" && html`<span class="badge t-orange">In progress</span>`}${x.due && html`<span style=${x.status !== "done" && x.due < today() ? { color: "var(--red)", fontWeight: 700 } : null}>Due ${day(x.due)}</span>`}</div></div>
+        ${x.status === "todo" && html`<button class="btn ghost sm" onClick=${() => act.taskStatus(p, x, "in_progress")}>Start</button>`}
+        <button class="icon-btn" aria-label="Delete task" onClick=${() => act.deleteTask(p, x)}><${Icon} n="trash" size=${16} /></button>
+      </div>`)}</div>
+      <form class="stack" style=${{ padding: 14, gap: 8, borderTop: "1px solid var(--line)" }} onSubmit=${async (e) => { e.preventDefault(); if (!t.title.trim()) return; if (await act.addTask(p, t)) { setT({ title: "", due: "", priority: "medium" }); toast("Task added"); } }}>
+        <input class="input" id="task-t" placeholder="New task, e.g. Order cement & blocks" value=${t.title} onInput=${(e) => setT({ ...t, title: e.target.value })} aria-label="Task name" />
+        <div class="row"><input class="input" id="task-d" type="date" value=${t.due} onInput=${(e) => setT({ ...t, due: e.target.value })} aria-label="Due date" /><${Select} id="task-p" value=${t.priority} onChange=${(v) => setT({ ...t, priority: v })} options=${PRIORITY} /><button class="btn primary" disabled=${!t.title.trim()}>Add</button></div>
+      </form>
+    </div>
+    <div class="card pad stack" style=${{ gap: 10 }}><b>Notes</b><${Notes} notes=${p.notes} onAdd=${(txt) => act.addNote("projects", p, txt)} /></div>
+    <button class="btn danger" onClick=${async () => { if (await act.remove("projects", p)) go({ name: "projects" }); }}><${Icon} n="trash" size=${16} />Delete project</button>
+  </div>`;
+}
+
+function NewPost({ projectId }) {
+  const { act, go, biz, projects, assets } = useApp();
+  const proj = projects.find((x) => x.id === projectId);
+  const [f, setF] = useState({ type: proj ? (proj.status === "completed" ? "completed_project" : "work_in_progress") : "completed_project", caption: "", service: biz.primary || "", location: proj ? proj.location || "" : [biz.city, biz.parish].filter(Boolean).join(", "), projectId: projectId || "" });
+  const [scenes, setScenes] = useState(["house", "house"]);
+  const [files, setFiles] = useState([null, null]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const ba = f.type === "before_after";
+  const slots = ba ? [0, 1] : [0];
+  async function publish(e) {
+    e.preventDefault(); setBusy(true); setErr("");
+    const media = [];
+    for (const i of slots) {
+      if (files[i] && assets) {
+        try { const r = await assets.upload(files[i]); media.push({ asset: r.id }); }
+        catch (x) { setBusy(false); return setErr(x && x.code === "too_large" ? "That photo is too big (20 MB max)." : x && x.code === "unsupported_type" ? "Use a JPG, PNG or WEBP photo." : "Photo upload failed. Try again or use an illustration."); }
+      } else media.push({ scene: scenes[i] });
+    }
+    const id = await act.createPost({ ...f, media });
+    setBusy(false);
+    if (id) go({ name: "post", id }); else setErr("Couldn't publish.");
+  }
+  return html`<form class="stack" onSubmit=${publish}>
+    <${Back} to=${{ name: "dash" }}>Dashboard<//>
+    <div><h1 class="h1">Showcase your work</h1><p class="small muted">Posts appear on your public profile and in Explore.</p></div>
+    ${err && html`<div class="notice" role="alert">${err}</div>`}
+    <div class="pills" role="radiogroup" aria-label="Post type">${POST_TYPES.map(([v, l]) => html`<button type="button" key=${v} class="pill" aria-pressed=${f.type === v} onClick=${() => setF({ ...f, type: v })}>${l}</button>`)}</div>
+    <div class=${"grid2"}>${slots.map((i) => html`<div key=${i} class="card" style=${{ overflow: "hidden" }}>
+      <div class="media" style=${{ position: "relative" }}>${files[i] ? html`<img src=${URL.createObjectURL(files[i])} alt="Selected photo" />` : html`<${Scene} kind=${scenes[i]} />`}${ba && html`<span class="lbl">${i ? "After" : "Before"}</span>`}</div>
+      <div class="stack" style=${{ padding: 10, gap: 8 }}>
+        ${assets ? html`<label class="btn outline sm" style=${{ cursor: "pointer" }}><${Icon} n="camera" size=${16} />${files[i] ? "Change photo" : "Upload a photo"}<input type="file" accept="image/jpeg,image/png,image/webp" style=${{ display: "none" }} onChange=${(e) => { const fl = e.target.files[0]; if (fl) { const n = [...files]; n[i] = fl; setFiles(n); } }} /></label>`
+          : html`<p class="tiny muted">Photo uploads are available to people who can edit this demo. Pick an illustration instead:</p>`}
+        ${!files[i] && html`<${Select} id=${"scene" + i} value=${scenes[i]} onChange=${(v) => { const n = [...scenes]; n[i] = v; setScenes(n); }} options=${SCENES} />`}
+      </div></div>`)}</div>
+    <div class="card pad stack">
+      <${Field} label="Caption" id="np-c" opt><textarea id="np-c" class="input" maxlength="2200" value=${f.caption} onInput=${(e) => setF({ ...f, caption: e.target.value })} placeholder="What was the job? Materials, timeline, what the client wanted…"></textarea><//>
+      <div class="grid2"><${Field} label="Service" id="np-s" opt><${Select} id="np-s" value=${f.service} onChange=${(v) => setF({ ...f, service: v })} placeholder="—" options=${SERVICES.map((s) => [s.id, s.name])} /><//><${Field} label="Location" id="np-l" opt><input id="np-l" class="input" value=${f.location} onInput=${(e) => setF({ ...f, location: e.target.value })} /><//></div>
+      ${projects.length > 0 && html`<${Field} label="Link to project" id="np-p" opt><${Select} id="np-p" value=${f.projectId} onChange=${(v) => setF({ ...f, projectId: v })} placeholder="None" options=${projects.map((x) => [x.id, x.name])} /><//>`}
+    </div>
+    <button class="btn primary lg block" disabled=${busy}>${busy ? "Publishing…" : "Publish post"}</button>
+  </form>`;
+}
+
+function EditProfile() {
+  const { biz, act, go, toast } = useApp();
+  const [f, setF] = useState({ name: biz.name, tagline: biz.tagline || "", description: biz.description || "", phone: biz.phone || "", email: biz.email || "", city: biz.city || "", parish: biz.parish || "", area: biz.area || "", years: biz.years ?? "", primary: biz.primary || "", services: biz.services || [] });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  async function save(e) { e.preventDefault(); const services = Array.from(new Set([f.primary, ...f.services].filter(Boolean))); if (await act.updateBusiness({ ...f, services, years: f.years === "" ? null : Number(f.years) })) { toast("Profile saved"); go({ name: "biz", id: biz.id }); } }
+  return html`<form class="stack" onSubmit=${save}>
+    <${Back} to=${{ name: "dash" }}>Dashboard<//>
+    <h1 class="h1">Business profile</h1>
+    <div class="card pad stack">
+      <${Field} label="Business name" id="e-n"><input id="e-n" class="input" value=${f.name} onInput=${set("name")} /><//>
+      <${Field} label="Tagline" id="e-t" opt><input id="e-t" class="input" maxlength="140" value=${f.tagline} onInput=${set("tagline")} /><//>
+      <${Field} label="About" id="e-d" opt><textarea id="e-d" class="input" value=${f.description} onInput=${set("description")}></textarea><//>
+      <div class="grid2"><${Field} label="Phone" id="e-p" opt><input id="e-p" class="input" value=${f.phone} onInput=${set("phone")} /><//><${Field} label="Email" id="e-e" opt><input id="e-e" class="input" value=${f.email} onInput=${set("email")} /><//></div>
+      <div class="grid2"><${Field} label="Parish" id="e-pa"><${Select} id="e-pa" value=${f.parish} onChange=${(v) => setF({ ...f, parish: v })} options=${PARISHES.map((x) => [x, x])} /><//><${Field} label="City / area" id="e-c" opt><input id="e-c" class="input" value=${f.city} onInput=${set("city")} /><//></div>
+      <div class="grid2"><${Field} label="Areas served" id="e-a" opt><input id="e-a" class="input" value=${f.area} onInput=${set("area")} /><//><${Field} label="Years in business" id="e-y" opt><input id="e-y" class="input" type="number" min="0" max="200" value=${f.years} onInput=${set("years")} /><//></div>
+      <${Field} label="Main trade" id="e-pr"><${Select} id="e-pr" value=${f.primary} onChange=${(v) => setF({ ...f, primary: v })} options=${SERVICES.map((s) => [s.id, s.name])} /><//>
+      <fieldset style=${{ border: 0, padding: 0, margin: 0 }}><legend class="small" style=${{ fontWeight: 650, marginBottom: 6 }}>All services you offer</legend><div class="row wrap">${SERVICES.map((s) => { const on = f.services.includes(s.id); return html`<button type="button" key=${s.id} class="pill" aria-pressed=${on} onClick=${() => setF({ ...f, services: on ? f.services.filter((x) => x !== s.id) : [...f.services, s.id] })}>${s.name}</button>`; })}</div></fieldset>
+    </div>
+    <button class="btn primary lg block">Save profile</button>
+  </form>`;
+}
+
+/* ───────────────────────── App shell ───────────────────────── */
+function App() {
+  const [db, setDb] = useState(null);
+  const [assets, setAssets] = useState(null);
+  const [user, setUser] = useState(null);
+  const [me, setMe] = useState(null);
+  const [meName, setMeName] = useState("");
+  const [status, setStatus] = useState("loading"); // loading | ready | nodb
+  const [readOnly, setReadOnly] = useState(false);
+  const [mode, setModeRaw] = useState(() => { try { return localStorage.getItem("bf-mode") || "customer"; } catch { return "customer"; } });
+  const [actingAs, setActingAsRaw] = useState(() => { try { return localStorage.getItem("bf-biz") || ""; } catch { return ""; } });
+  const [route, setRoute] = useState({ name: "home" });
+  const [toastMsg, setToastMsg] = useState("");
+  const [profiles, setProfiles] = useState({});
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const [d, u, a] = await Promise.all([window.claude?.use("db"), window.claude?.use("user"), window.claude?.use("assets")].map((p) => Promise.resolve(p).catch(() => null)));
+      if (!alive) return;
+      setDb(d || null); setUser(u || null); setAssets(a || null);
+      if (u) { const m = await u.me(); setMe(m.id); setMeName(m.name || ""); const w = await u.can("data.write"); if (w === false) setReadOnly(true); }
+      setStatus(d ? "ready" : "nodb");
+    })();
+    const t = setTimeout(() => setStatus((s) => (s === "loading" ? "nodb" : s)), 11000);
+    return () => { alive = false; clearTimeout(t); };
+  }, []);
+
+  const businesses = useQuery(db, (d) => d.collection("businesses"), []) || [];
+  const posts = (useQuery(db, (d) => d.collection("posts").orderBy("createdAt", "desc").limit(300), []) || []);
+  const savedDoc = useDoc(db, me ? `data/users/${me}/saved` : null);
+  const saved = (savedDoc && savedDoc.postIds) || [];
+  const biz = businesses.find((b) => b.id === actingAs);
+  const scoped = (col) => (d) => (biz ? d.collection(col).where("businessId", "==", biz.id) : null);
+  const leads = useQuery(db, scoped("leads"), [biz && biz.id]) || [];
+  const customers = useQuery(db, scoped("customers"), [biz && biz.id]) || [];
+  const projects = useQuery(db, scoped("projects"), [biz && biz.id]) || [];
+  const activityRaw = useQuery(db, scoped("activity"), [biz && biz.id]) || [];
+  const events = useQuery(db, scoped("events"), [biz && biz.id]) || [];
+  const activity = useMemo(() => [...activityRaw].sort((a, b) => b.at - a.at), [activityRaw]);
+
+  // Resolve names for people referenced in comments and notes (ids only are stored).
+  const peopleIds = useMemo(() => Array.from(new Set([me, ...leads.flatMap((l) => (l.notes || []).map((n) => n.by)), ...customers.flatMap((c) => (c.notes || []).map((n) => n.by)), ...projects.flatMap((p) => (p.notes || []).map((n) => n.by))].filter(Boolean))), [me, leads, customers, projects]);
+  const [commentAuthors, setCommentAuthors] = useState([]);
+  useEffect(() => { if (user && peopleIds.length + commentAuthors.length) user.profiles([...peopleIds, ...commentAuthors]).then((p) => setProfiles((old) => ({ ...old, ...p }))); }, [user, peopleIds.join(","), commentAuthors.join(",")]);
+
+  const toast = useCallback((m) => { setToastMsg(m); clearTimeout(window.__bfT); window.__bfT = setTimeout(() => setToastMsg(""), 2600); }, []);
+  const setMode = (m) => { setModeRaw(m); try { localStorage.setItem("bf-mode", m); } catch {} setRoute({ name: m === "contractor" ? "dash" : "home" }); window.scrollTo(0, 0); };
+  const setActingAs = (id) => { setActingAsRaw(id); try { localStorage.setItem("bf-biz", id); } catch {} };
+  const go = (r) => { setRoute(r); window.scrollTo(0, 0); };
+
+  // All writes go through here: one place for errors and the read-only state.
+  async function w(fn, okMsg) {
+    if (!db) return false;
+    try { const r = await fn(); if (okMsg) toast(okMsg); return r === undefined ? true : r; }
+    catch (e) {
+      if (e && e.code === "invalid_argument") { setReadOnly(true); toast("You have view-only access to this demo"); }
+      else if (e && e.code === "quota_exceeded") toast("The demo database is full");
+      else toast("Something went wrong. Try again.");
+      return false;
+    }
+  }
+  const log = (text, ref) => biz && db.collection("activity").add({ businessId: biz.id, text, ref: ref || null, at: Date.now() });
+  const notifyMissingBiz = () => { toast("Pick a business first"); return false; };
+
+  const act = {
+    toggleLike: (p) => !me ? toast("Sign in to like posts") : w(() => db.doc("posts/" + p.id).update({ likedBy: (p.likedBy || []).includes(me) ? p.likedBy.filter((x) => x !== me) : [...(p.likedBy || []), me] })),
+    toggleSave: (id) => me ? w(() => db.doc(`data/users/${me}/saved`).set({ postIds: saved.includes(id) ? saved.filter((x) => x !== id) : [...saved, id] }), saved.includes(id) ? "Removed from saved" : "Saved") : toast("Sign in to save"),
+    toggleFollow: (b) => !me ? toast("Sign in to follow") : w(() => db.doc("businesses/" + b.id).update({ followers: (b.followers || []).includes(me) ? b.followers.filter((x) => x !== me) : [...(b.followers || []), me] })),
+    trackView: (bid, pid) => { if (!db || !me || (mode === "contractor" && actingAs === bid)) return; const id = `${bid}__${pid || "profile"}__${me}__${today()}`.replace(/[^A-Za-z0-9_\-.~:@+]/g, "-"); db.doc("events/" + id).set({ businessId: bid, type: pid ? "post_view" : "profile_view", postId: pid || null, at: Date.now() }).catch(() => {}); },
+    addComment: (p, body) => !me ? toast("Sign in to comment") : w(async () => { await db.collection("comments").add({ postId: p.id, authorId: me, body, createdAt: Date.now() }); await db.doc("posts/" + p.id).update({ commentCount: (p.commentCount || 0) + 1 }); }),
+    deleteComment: (p, c) => w(async () => { await db.doc("comments/" + c.id).delete(); await db.doc("posts/" + p.id).update({ commentCount: Math.max(0, (p.commentCount || 1) - 1) }); }),
+    submitQuote: (b, f) => w(async () => {
+      const description = [f.description.trim(), f.budget && "Budget: " + f.budget, f.timeline && "Timeline: " + f.timeline].filter(Boolean).join("\n");
+      const ref = await db.collection("leads").add({ businessId: b.id, name: f.name.trim(), phone: f.phone.trim(), email: f.email.trim(), service: f.service || null, location: f.location.trim(), description, status: "new", source: "buildflow", value: null, kind: f.kind, requesterId: me, notes: [], customerId: null, createdAt: Date.now() });
+      await db.collection("activity").add({ businessId: b.id, text: (f.kind === "quote" ? "Quote request from " : "Message from ") + f.name.trim(), ref: { name: "lead", id: ref.id }, at: Date.now() });
+    }),
+    createBusiness: (f) => w(async () => {
+      const id = slugify(f.name) + "-" + uid().slice(0, 4);
+      await db.doc("businesses/" + id).set({ name: f.name.trim(), slug: slugify(f.name), primary: f.primary, services: [f.primary], parish: f.parish, city: f.city.trim(), tagline: f.tagline.trim(), description: "", area: "", years: null, verified: false, demo: false, ownerId: me, followers: [], completed: 0, coverScene: "house", createdAt: Date.now() });
+      return id;
+    }),
+    updateBusiness: (f) => !biz ? notifyMissingBiz() : w(() => db.doc("businesses/" + biz.id).update({ ...f, slug: slugify(f.name) })),
+    saveLead: (f, lead) => !biz ? notifyMissingBiz() : w(async () => {
+      const body = { name: f.name.trim(), phone: f.phone || "", email: f.email || "", description: f.description || "", location: f.location || "", service: f.service || null, value: f.value === "" ? null : Number(f.value), source: f.source };
+      if (lead) { await db.doc("leads/" + lead.id).update(body); return lead.id; }
+      const ref = await db.collection("leads").add({ ...body, businessId: biz.id, status: "new", notes: [], customerId: null, createdAt: Date.now() });
+      await log("Added lead " + body.name, { name: "lead", id: ref.id }); return ref.id;
+    }),
+    leadStatus: (l, s) => w(async () => { await db.doc("leads/" + l.id).update({ status: s }); await log(`Moved ${l.name} to ${label(LEAD_ST, s)[1]}`, { name: "lead", id: l.id }); }),
+    convertLead: (l) => w(async () => {
+      const ref = await db.collection("customers").add({ businessId: biz.id, name: l.name, phone: l.phone || "", email: l.email || "", address: l.location || "", city: "", notesText: l.description || "", notes: [], createdAt: Date.now() });
+      await db.doc("leads/" + l.id).update({ customerId: ref.id, status: ["won", "lost"].includes(l.status) ? l.status : "won" });
+      await log("Converted lead " + l.name + " into a customer", { name: "customer", id: ref.id }); return ref.id;
+    }),
+    saveCustomer: (f, c) => !biz ? notifyMissingBiz() : w(async () => {
+      const body = { name: f.name.trim(), phone: f.phone || "", email: f.email || "", address: f.address || "", city: f.city || "", notesText: f.notesText || "" };
+      if (c) { await db.doc("customers/" + c.id).update(body); return c.id; }
+      const ref = await db.collection("customers").add({ ...body, businessId: biz.id, notes: [], createdAt: Date.now() });
+      await log("Added customer " + body.name, { name: "customer", id: ref.id }); return ref.id;
+    }),
+    saveProject: (f, p) => !biz ? notifyMissingBiz() : w(async () => {
+      const body = { name: f.name.trim(), customerId: f.customerId || null, description: f.description || "", location: f.location || "", start: f.start || "", end: f.end || "", status: f.status, budget: f.budget === "" ? null : Number(f.budget) };
+      if (p) { await db.doc("projects/" + p.id).update(body); await syncCompleted(); return p.id; }
+      const ref = await db.collection("projects").add({ ...body, businessId: biz.id, leadId: f.leadId || null, tasks: [], notes: [], createdAt: Date.now() });
+      if (f.leadId) { const l = leads.find((x) => x.id === f.leadId); if (l && l.status !== "won") await db.doc("leads/" + l.id).update({ status: "won" }); }
+      await log("Created project " + body.name, { name: "project", id: ref.id }); if (body.status === "completed") await syncCompleted(); return ref.id;
+    }),
+    projectStatus: (p, s) => w(async () => { await db.doc("projects/" + p.id).update({ status: s }); await log(`${p.name} is now ${label(PROJ_ST, s)[1]}`, { name: "project", id: p.id }); await syncCompleted(p.id, s); }),
+    addTask: (p, t) => w(async () => { await db.doc("projects/" + p.id).update({ tasks: [...(p.tasks || []), { id: uid(), title: t.title.trim(), due: t.due || "", priority: t.priority, status: "todo" }] }); }),
+    taskStatus: (p, task, s) => w(async () => { await db.doc("projects/" + p.id).update({ tasks: (p.tasks || []).map((x) => (x.id === task.id ? { ...x, status: s } : x)) }); if (s === "done") await log(`Completed "${task.title}"`, { name: "project", id: p.id }); }),
+    deleteTask: (p, task) => w(() => db.doc("projects/" + p.id).update({ tasks: (p.tasks || []).filter((x) => x.id !== task.id) })),
+    addNote: (col, rec, body) => w(async () => { await db.doc(col + "/" + rec.id).update({ notes: [...(rec.notes || []), { body, by: me, at: Date.now() }] }); }, "Note added"),
+    remove: (col, rec) => w(async () => { await db.doc(col + "/" + rec.id).delete(); if (col === "projects") await syncCompleted(); }, "Deleted"),
+    createPost: (f) => !biz ? notifyMissingBiz() : w(async () => {
+      const ref = await db.collection("posts").add({ businessId: biz.id, authorId: me, type: f.type, caption: f.caption.trim(), service: f.service || null, location: f.location || "", projectId: f.projectId || null, media: f.media, likedBy: [], commentCount: 0, createdAt: Date.now() });
+      await log("Published a new post", { name: "post", id: ref.id }); return ref.id;
+    }),
+  };
+  // completed-jobs figure on the public profile, recomputed from the projects themselves (no counters).
+  async function syncCompleted(changedId, newStatus) {
+    if (!biz) return;
+    const n = projects.filter((p) => (p.id === changedId ? newStatus : p.status) === "completed").length;
+    if (n !== biz.completed) await db.doc("businesses/" + biz.id).update({ completed: n });
+  }
+
+  const app = { db, assets: readOnly ? null : assets, me, meName, mode, setMode, actingAs, setActingAs, biz, businesses, posts, saved, leads, customers, projects, events, activity, go, act, toast, profiles, setCommentAuthors, readOnly };
+
+  // Comment authors for the open post (so names resolve).
+  const commentsForRoute = useQuery(db, (d) => (route.name === "post" ? d.collection("comments").where("postId", "==", route.id) : null), [route.name, route.id]);
+  useEffect(() => { if (commentsForRoute) setCommentAuthors(Array.from(new Set(commentsForRoute.map((c) => c.authorId)))); }, [commentsForRoute]);
+
+  let screen;
+  if (status === "loading") screen = html`<div class="stack"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>`;
+  else if (status === "nodb") screen = html`<${Empty} icon="store" title="Open BuildFlow in Claude to use it" text="This demo keeps its data in a shared database that needs you to be signed in to Claude. Open the artifact link while signed in, or ask the owner to share it with you." />`;
+  else if (status === "ready" && businesses.length === 0) screen = html`<${Empty} icon="store" title="Setting up the demo" text="No contractors yet. Switch to Contractor mode to create the first business." />`;
+  else {
+    const r = route;
+    if (mode === "contractor" && !biz && !["biz", "post"].includes(r.name)) screen = html`<${PickBusiness} />`;
+    else ({
+      home: () => (screen = html`<${Home} />`),
+      explore: () => (screen = html`<${Explore} />`),
+      search: () => (screen = html`<${Explore} focus=${true} />`),
+      saved: () => (screen = html`<${Saved} />`),
+      biz: () => (screen = html`<${BizProfile} key=${r.id} id=${r.id} quote=${r.quote} />`),
+      post: () => (screen = html`<${PostDetail} key=${r.id} id=${r.id} />`),
+      pick: () => (screen = html`<${PickBusiness} />`),
+      dash: () => (screen = html`<${Dashboard} welcome=${r.welcome} />`),
+      leads: () => (screen = html`<${Leads} key=${r.status || "x"} status=${r.status} />`),
+      lead: () => (screen = html`<${LeadDetail} id=${r.id} />`),
+      leadnew: () => (screen = html`<${LeadForm} />`),
+      leadedit: () => (screen = html`<${LeadForm} lead=${leads.find((l) => l.id === r.id)} />`),
+      customers: () => (screen = html`<${Customers} />`),
+      customer: () => (screen = html`<${CustomerDetail} id=${r.id} converted=${r.converted} />`),
+      custnew: () => (screen = html`<${CustomerForm} />`),
+      custedit: () => (screen = html`<${CustomerForm} c=${customers.find((c) => c.id === r.id)} />`),
+      projects: () => (screen = html`<${Projects} key=${r.status || "x"} status=${r.status} />`),
+      project: () => (screen = html`<${ProjectDetail} id=${r.id} />`),
+      projnew: () => (screen = html`<${ProjectForm} leadId=${r.leadId} customerId=${r.customerId} />`),
+      projedit: () => (screen = html`<${ProjectForm} p=${projects.find((p) => p.id === r.id)} />`),
+      newpost: () => (screen = html`<${NewPost} projectId=${r.projectId} />`),
+      editprofile: () => (screen = html`<${EditProfile} />`),
+    }[r.name] || (() => (screen = html`<${Home} />`)))();
+  }
+
+  const custTabs = [["home", "Home", "home"], ["explore", "Explore", "compass"], ["search", "Search", "search"], ["saved", "Saved", "bookmark"]];
+  const proTabs = [["dash", "Home", "home"], ["leads", "Leads", "clipboard"], ["projects", "Projects", "briefcase"], ["customers", "Customers", "users"], ["mybiz", "Profile", "store"]];
+  const tabs = mode === "contractor" ? proTabs : custTabs;
+  const activeTab = { lead: "leads", leadnew: "leads", leadedit: "leads", project: "projects", projnew: "projects", projedit: "projects", customer: "customers", custnew: "customers", custedit: "customers", post: mode === "customer" ? "explore" : "mybiz", biz: mode === "customer" ? "explore" : "mybiz", newpost: "dash", editprofile: "mybiz", pick: "dash" }[route.name] || route.name;
+
+  return html`<${Ctx.Provider} value=${app}>
+    <header class="top"><div class="col">
+      <button class="logo" onClick=${() => go({ name: mode === "contractor" ? "dash" : "home" })} aria-label="BuildFlow home"><${LogoMark} /><span>BUILD<b>Flow</b></span></button>
+      <div class="mode" role="group" aria-label="View as"><button aria-pressed=${mode === "customer"} onClick=${() => setMode("customer")}>Customer</button><button aria-pressed=${mode === "contractor"} onClick=${() => setMode("contractor")}>Contractor</button></div>
+    </div>
+    ${mode === "contractor" && biz && html`<div class="col row small" style=${{ minHeight: 38, borderTop: "1px solid var(--line)" }}><span class="muted">Working as</span><b class="grow truncate">${biz.name}</b><button class="btn ghost sm" onClick=${() => { setActingAs(""); go({ name: "pick" }); }}>Switch</button></div>`}
+    </header>
+    <main class="screen col">
+      ${readOnly && html`<div class="notice" style=${{ marginBottom: 14 }}>You have view-only access, so changes won't save. Ask the owner for Contributor access to try everything.</div>`}
+      ${screen}
+    </main>
+    <nav class="tabs" aria-label="Main"><div class="inner">${tabs.map(([r, l, ic]) => html`<button key=${r} aria-current=${activeTab === r ? "page" : undefined} onClick=${() => (r === "mybiz" ? (biz ? go({ name: "biz", id: biz.id }) : go({ name: "pick" })) : go({ name: r }))}><${Icon} n=${ic} />${l}</button>`)}</div></nav>
+    ${toastMsg && html`<div class="toast" role="status">${toastMsg}</div>`}
+  <//>`;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);
+</script>
+</body></html>
