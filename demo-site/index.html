@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c2127"><meta name="description" content="BuildFlow: run your construction business, showcase your work, win more jobs. Clickable demo."><meta property="og:title" content="BuildFlow demo"><meta property="og:description" content="Clickable demo of the BuildFlow construction CRM and contractor marketplace."><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%231c2127%27/%3E%3Crect x=%277%27 y=%277%27 width=%2712%27 height=%275%27 rx=%271%27 fill=%27%23f26b1d%27/%3E%3Crect x=%277%27 y=%2713.5%27 width=%2716%27 height=%275%27 rx=%271%27 fill=%27%23ff8a3d%27/%3E%3Crect x=%277%27 y=%2720%27 width=%2718%27 height=%275%27 rx=%271%27 fill=%27%23efede8%27/%3E%3C/svg%3E"><title>BuildFlow demo</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#14181c"><meta name="description" content="BuildFlow: run your construction business, showcase your work, win more jobs. Clickable demo."><meta property="og:title" content="BuildFlow demo"><meta property="og:description" content="Clickable demo of the BuildFlow construction CRM and contractor marketplace."><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%2314181c%27/%3E%3Crect x=%277%27 y=%277%27 width=%2712%27 height=%275%27 rx=%271%27 fill=%27%23f26b1d%27/%3E%3Crect x=%277%27 y=%2713.5%27 width=%2716%27 height=%275%27 rx=%271%27 fill=%27%23ff8a3d%27/%3E%3Crect x=%277%27 y=%2720%27 width=%2718%27 height=%275%27 rx=%271%27 fill=%27%23efede8%27/%3E%3C/svg%3E"><title>BuildFlow demo</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -6,12 +6,13 @@
 <style>
 /* Layout: phone-first app shell — sticky top bar, one scrolling column (max 760px), fixed bottom tab bar; sheets slide up for forms. */
 :root {
-  --bg: #f7f6f3; --surface: #ffffff; --sunk: #efede8; --line: #e2dfd7; --line-strong: #cfcbc0;
-  --fg: #1c2127; --muted: #59626d; --ink: #1c2127; --on-ink: #f7f6f3;
+  --bg: #f0f1ee; --surface: #ffffff; --sunk: #e6e8e4; --line: #dadcd6; --line-strong: #c3c7bf;
+  --fg: #14181c; --muted: #565e68; --ink: #14181c; --on-ink: #f0f1ee;
   --safety: #f26b1d; --safety-strong: #d65611; --safety-soft: #fff1e6; --on-safety: #ffffff;
   --blue: #2c5d8f; --blue-soft: #e8f0f8; --green: #2f7d4f; --green-soft: #e7f3ec; --red: #b83a2e; --red-soft: #fbeceb; --amber: #8a6600; --amber-soft: #fbf3dc; --violet: #6a3fb0; --violet-soft: #f0eafa;
   --shadow: 0 1px 2px rgba(20,24,28,.06), 0 1px 1px rgba(20,24,28,.04);
   --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
   --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
@@ -169,6 +170,80 @@ textarea.input { min-height: 88px; resize: vertical; }
 .hero h1 { font-size: 28px; font-weight: 850; font-stretch: 92%; line-height: 1.05; }
 .hero em { font-style: normal; color: #ff8a3d; }
 .skeleton { background: var(--sunk); border-radius: 14px; height: 120px; }
+
+/* ── BuildFlow signature: the block course (running-bond bricks), hazard stripe, site-sign labels ── */
+.eyebrow { font: 700 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.eyebrow.hot { color: var(--safety); }
+.hazard { height: 7px; background: repeating-linear-gradient(-45deg, #f26b1d 0 10px, #14181c 10px 20px); }
+.bricks { display: inline-grid; gap: 3px; }
+.bricks .course { display: flex; gap: 3px; }
+.bricks .course.odd { padding-left: 12px; }
+.bricks i { width: 22px; height: 11px; border-radius: 2px; background: var(--sunk); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.bricks i.on { background: var(--safety); box-shadow: inset 0 -2px 0 rgba(0,0,0,.18); }
+.bricks.ink i.on { background: var(--ink); box-shadow: none; }
+.tabs button[aria-current="page"]::before { content: ""; position: absolute; top: 0; width: 26px; height: 4px; border-radius: 0 0 3px 3px; background: var(--safety); }
+.tabs button { position: relative; }
+.h1 { font-stretch: 88%; letter-spacing: -0.015em; }
+.btn { border-radius: 9px; }
+.btn.primary { box-shadow: inset 0 -3px 0 rgba(0,0,0,.18); }
+
+/* Explore: image-first */
+.find { background: #14181c; color: #f0f1ee; border-radius: 16px; overflow: hidden; }
+.find .in { padding: 18px 16px 16px; display: grid; gap: 12px; }
+.find h1 { font: 850 30px/1.02 var(--display); font-stretch: 84%; letter-spacing: -.01em; }
+.find h1 em { font-style: normal; color: #ff8a3d; }
+.find .searchbox { position: relative; }
+.find .searchbox .input { padding-left: 42px; border: 0; min-height: 50px; background: #fff; color: #14181c; font-size: 16px; }
+.find .searchbox span { position: absolute; left: 14px; top: 0; bottom: 0; display: flex; align-items: center; color: #565e68; }
+.find .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+.find .chips::-webkit-scrollbar { display: none; }
+.find .chips button { flex: none; min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); background: transparent; color: #f0f1ee; font-size: 13px; font-weight: 650; cursor: pointer; }
+.find .chips button[aria-pressed="true"] { background: #ff8a3d; border-color: #ff8a3d; color: #14181c; }
+.trades { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px 6px; scroll-snap-type: x proximity; }
+.trades::-webkit-scrollbar { display: none; }
+.trade { flex: none; width: 128px; scroll-snap-align: start; border: 0; padding: 0; background: none; text-align: left; cursor: pointer; display: grid; gap: 6px; }
+.trade .pic { aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; position: relative; background: var(--sunk); outline: 2px solid transparent; outline-offset: 2px; }
+.trade[aria-pressed="true"] .pic { outline-color: var(--safety); }
+.trade .pic svg { width: 100%; height: 100%; display: block; object-fit: cover; }
+.trade b { font-size: 13px; line-height: 1.2; }
+.masonry { column-count: 2; column-gap: 10px; }
+.tile { position: relative; display: block; width: 100%; break-inside: avoid; margin: 0 0 10px; padding: 0; border: 0; border-radius: 12px; overflow: hidden; background: var(--sunk); cursor: pointer; text-align: left; }
+.tile svg, .tile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.tile::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,13,16,.92) 0%, rgba(10,13,16,.7) 34%, rgba(10,13,16,.12) 62%, transparent 78%); }
+.tile .chip { position: absolute; z-index: 2; top: 8px; left: 8px; background: rgba(20,24,28,.78); color: #fff; font: 700 10px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: 5px 7px; border-radius: 5px; }
+.tile .cap { text-shadow: 0 1px 2px rgba(0,0,0,.5); position: absolute; z-index: 2; left: 10px; right: 10px; bottom: 9px; color: #fff; display: grid; gap: 2px; }
+.tile .cap b { font-size: 12px; opacity: .95; }
+.tile .cap span { font-size: 12.5px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; opacity: .9; }
+@media (min-width: 640px) { .masonry { column-count: 3; } }
+.pro { display: grid; gap: 0; overflow: hidden; text-align: left; padding: 0; cursor: pointer; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+.pro .thumbs { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; height: 140px; background: var(--sunk); }
+.pro .thumbs > div { position: relative; overflow: hidden; }
+.pro .thumbs > div:first-child { grid-row: 1 / 3; }
+.pro .thumbs svg, .pro .thumbs img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.pro .body { padding: 12px 14px 14px; display: grid; gap: 4px; }
+
+/* Profile: spec plate + portfolio */
+.cover { height: 190px; }
+.cover::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,13,16,.55), transparent 55%); }
+.plate { display: grid; grid-template-columns: repeat(4, 1fr); background: #14181c; color: #f0f1ee; border-radius: 12px; overflow: hidden; }
+.plate > div { padding: 12px 6px 11px; text-align: center; border-left: 1px solid rgba(255,255,255,.12); }
+.plate > div:first-child { border-left: 0; }
+.plate b { display: block; font: 850 24px/1.05 var(--display); font-stretch: 88%; font-variant-numeric: tabular-nums; color: #ff8a3d; }
+.plate span { font: 700 9.5px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: #a7adb4; }
+.work-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.work-grid .tile { margin: 0; aspect-ratio: 1; }
+.work-grid .tile:first-child { grid-column: 1 / 3; aspect-ratio: 16 / 10; }
+.work-grid .tile .cap span { -webkit-line-clamp: 1; }
+
+/* Pipeline wall */
+.wall { display: grid; gap: 9px; }
+.wall .r { display: grid; grid-template-columns: 92px 1fr auto; gap: 10px; align-items: center; min-height: 28px; }
+.wall .r > span:first-child { font-size: 13px; font-weight: 650; }
+.wall .r .v { font: 700 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.post .media .chip { position: absolute; top: 10px; left: 10px; z-index: 2; background: rgba(20,24,28,.78); color: #fff; font: 700 10px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: 5px 7px; border-radius: 5px; }
+.hero { border-radius: 16px; overflow: hidden; padding: 0; gap: 0; }
+.hero .in { padding: 20px; display: grid; gap: 10px; }
+
 @media (prefers-reduced-motion: no-preference) { .sheet { animation: up .22s ease-out; } @keyframes up { from { transform: translateY(24px); opacity: .6; } } }
 </style>
 
@@ -206,7 +281,6 @@ const seed = {
   "activity/demo-act-1": { businessId: "kingston-pro-builders", text: "Quote request from Kerry-Ann Douglas (Demo)", ref: { name: "lead", id: "demo-lead-1" }, at: now - 5 * H },
   "activity/demo-act-2": { businessId: "kingston-pro-builders", text: "Williams Home Extension (Demo) is now In progress", ref: { name: "project", id: "demo-proj-1" }, at: now - 2 * D },
 };
-
 
 (() => {
   // Standalone stand-in for the Claude runtime: same db/user API, data kept in this browser's localStorage.
@@ -349,7 +423,7 @@ function PostCard({ p, compact: hideHead }) {
     <button style=${{ all: "unset", display: "block", cursor: "pointer", width: "100%" }} aria-label="Open post" onClick=${() => go({ name: "post", id: p.id })}>
       ${p.type === "before_after" && media.length >= 2
         ? html`<div class="media pair">${media.slice(0, 2).map((m, i) => html`<div class="cell" key=${i}><${Photo} m=${m} /><span class="lbl">${i ? "After" : "Before"}</span></div>`)}</div>`
-        : html`<div class="media"><${Photo} m=${media[0]} /></div>`}
+        : html`<div class="media"><${Photo} m=${media[0]} /><span class="chip">${label(POST_TYPES, p.type)[1]}</span></div>`}
     </button>
     <div class="acts">
       <button class=${"icon-btn" + (liked ? " on" : "")} aria-pressed=${liked} aria-label="Like" onClick=${() => act.toggleLike(p)}><${Icon} n="heart" fill=${liked} />${(p.likedBy || []).length || ""}</button>
@@ -375,8 +449,26 @@ function parseSearch(q) {
   return { parish, service, name: rest.replace(/\b(in|near|contractors?|the)\b/g, " ").replace(/\s+/g, " ").trim() };
 }
 
+const TRADE_SCENE = { "general-contractor": "house", electrician: "panel", plumber: "kitchen", mason: "wall", tiler: "tile-after", carpenter: "house", painter: "house", roofer: "roof", landscaper: "driveway", hvac: "panel", renovation: "kitchen", welder: "wall" };
+function Bricks({ done, total, ink }) {
+  const n = Math.min(total, 24), f = total > 24 ? Math.round((done / total) * 24) : done;
+  const rows = []; for (let i = 0; i < n; i += 8) rows.push(Array.from({ length: Math.min(8, n - i) }, (_, k) => i + k));
+  return html`<span class=${"bricks" + (ink ? " ink" : "")} role="img" aria-label=${done + " of " + total}>${rows.map((r, ri) => html`<span key=${ri} class=${"course" + (ri % 2 ? " odd" : "")}>${r.map((i) => html`<i key=${i} class=${i < f ? "on" : ""}></i>`)}</span>`)}</span>`;
+}
+function Tile({ p, i, fixed }) {
+  const { businesses, go } = useApp();
+  const b = businesses.find((x) => x.id === p.businessId);
+  const m = p.media || [];
+  const ratios = ["4 / 5", "1 / 1", "4 / 3", "3 / 4", "5 / 4"];
+  return html`<button class="tile" style=${fixed ? null : { aspectRatio: ratios[i % ratios.length] }} onClick=${() => go({ name: "post", id: p.id })} aria-label=${"Open: " + (p.caption || "project")}>
+    <${Photo} m=${p.type === "before_after" ? m[1] : m[0]} />
+    <span class="chip">${label(POST_TYPES, p.type)[1]}</span>
+    <span class="cap"><b>${b ? b.name : ""}</b><span>${p.caption || p.location || ""}</span></span>
+  </button>`;
+}
+
 function Explore({ focus }) {
-  const { posts, businesses, go } = useApp();
+  const { posts, businesses } = useApp();
   const [q, setQ] = useState("");
   const [service, setService] = useState("");
   const [parish, setParish] = useState("");
@@ -388,37 +480,40 @@ function Explore({ focus }) {
     && (!name || [b.name, b.tagline, b.city, b.area].some((v) => (v || "").toLowerCase().includes(name))));
   const ids = new Set(visibleBiz.map((b) => b.id));
   const feed = posts.filter((p) => ids.has(p.businessId) && (!S || p.service === S || (businesses.find((b) => b.id === p.businessId)?.services || []).includes(S)));
-  const heading = S || Pa ? `${S ? svc(S).plural : "Contractors"}${Pa ? " in " + Pa : ""}` : "Explore";
-  return html`<div class="stack">
-    <div><h1 class="h1">${heading}</h1><p class="muted small">Find contractors through the work they've done.</p></div>
-    <div class="row" style=${{ position: "relative" }}>
-      <span style=${{ position: "absolute", left: 12, color: "var(--muted)", display: "flex" }}><${Icon} n="search" /></span>
-      <input class="input" style=${{ paddingLeft: 40 }} id="search" type="search" placeholder='Try "electricians in Kingston"' value=${q} autoFocus=${!!focus} onInput=${(e) => setQ(e.target.value)} aria-label="Search contractors, trades or places" />
-    </div>
-    <div class="grid2">
-      <${Select} id="svc" value=${service} onChange=${setService} placeholder="All services" options=${SERVICES.map((s) => [s.id, s.plural])} />
-      <${Select} id="parish" value=${parish} onChange=${setParish} placeholder="All parishes" options=${PARISHES.map((p) => [p, p])} />
-    </div>
-    <div class="pills">${SERVICES.slice(0, 8).map((s) => html`<button key=${s.id} class="pill" aria-pressed=${S === s.id} onClick=${() => setService(service === s.id ? "" : s.id)}>${s.plural}</button>`)}</div>
-    <div class="seg"><button aria-pressed=${tab === "work"} onClick=${() => setTab("work")}>Work</button><button aria-pressed=${tab === "contractors"} onClick=${() => setTab("contractors")}>Contractors <span class="c">${visibleBiz.length}</span></button></div>
+  const heading = S || Pa ? `${S ? svc(S).plural : "Contractors"}${Pa ? " in " + Pa : ""}` : null;
+  return html`<div class="stack" style=${{ gap: 16 }}>
+    <section class="find">
+      <div class="hazard"></div>
+      <div class="in">
+        <span class="eyebrow hot">Find a pro</span>
+        <h1>${heading || html`Hire the crew that's <em>already built it.</em>`}</h1>
+        <div class="searchbox"><span><${Icon} n="search" /></span><input class="input" id="search" type="search" placeholder='Try "electricians in Kingston"' value=${q} autoFocus=${!!focus} onInput=${(e) => setQ(e.target.value)} aria-label="Search contractors, trades or places" /></div>
+        <div class="chips" aria-label="Parish">${PARISHES.slice(0, 9).map((x) => html`<button key=${x} aria-pressed=${Pa === x} onClick=${() => setParish(parish === x ? "" : x)}>${x}</button>`)}</div>
+      </div>
+    </section>
+    <section class="stack" style=${{ gap: 8 }}>
+      <span class="eyebrow">Browse by trade</span>
+      <div class="trades">${SERVICES.map((s) => html`<button key=${s.id} class="trade" aria-pressed=${S === s.id} onClick=${() => setService(service === s.id ? "" : s.id)}><span class="pic"><${Scene} kind=${TRADE_SCENE[s.id] || "house"} /></span><b>${s.plural}</b></button>`)}</div>
+    </section>
+    <div class="seg"><button aria-pressed=${tab === "work"} onClick=${() => setTab("work")}>Work <span class="c">${feed.length}</span></button><button aria-pressed=${tab === "contractors"} onClick=${() => setTab("contractors")}>Pros <span class="c">${visibleBiz.length}</span></button></div>
     ${tab === "work"
-      ? (feed.length ? feed.map((p) => html`<${PostCard} key=${p.id} p=${p} />`) : html`<${Empty} icon="compass" title="No work posted here yet" text="Try another trade or parish, or browse contractors." />`)
+      ? (feed.length ? html`<div class="masonry">${feed.map((p, i) => html`<${Tile} key=${p.id} p=${p} i=${i} />`)}</div>` : html`<${Empty} icon="compass" title="No work posted here yet" text="Try another trade or parish, or browse the pros." />`)
       : (visibleBiz.length ? visibleBiz.map((b) => html`<${BizCard} key=${b.id} b=${b} />`) : html`<${Empty} icon="search" title="No contractors found" text="Try a broader search, like just the trade or just the parish." />`)}
   </div>`;
 }
 
 function BizCard({ b }) {
   const { go, posts } = useApp();
-  const n = posts.filter((p) => p.businessId === b.id).length;
-  return html`<button class="card item" style=${{ alignItems: "flex-start", padding: 14 }} onClick=${() => go({ name: "biz", id: b.id })}>
-    <${Avatar} b=${b} />
-    <span class="grow stack" style=${{ gap: 3 }}>
-      <b class="row" style=${{ gap: 4 }}>${b.name}${b.verified && html`<span style=${{ color: "var(--blue)" }}><${Icon} n="verified" size=${16} /></span>`}</b>
-      <span class="small" style=${{ color: "var(--safety-strong)", fontWeight: 650 }}>${(svc(b.primary) || {}).name || "Construction"}</span>
-      <span class="small muted row" style=${{ gap: 4 }}><${Icon} n="pin" size=${14} />${[b.city, b.parish].filter(Boolean).join(", ")}</span>
-      ${b.tagline && html`<span class="small">${b.tagline}</span>`}
-      <span class="tiny muted">${b.completed || 0} jobs done · ${n} posts · ${(b.followers || []).length} followers</span>
-    </span>
+  const mine = posts.filter((p) => p.businessId === b.id);
+  const thumbs = [0, 1, 2].map((i) => (mine[i] ? (mine[i].media || []).slice(-1)[0] : { scene: i === 0 ? b.coverScene || "house" : ["wall", "kitchen"][i - 1] }));
+  return html`<button class="pro" onClick=${() => go({ name: "biz", id: b.id })}>
+    <div class="thumbs">${thumbs.map((m, i) => html`<div key=${i}><${Photo} m=${m} /></div>`)}</div>
+    <div class="body">
+      <b class="row" style=${{ gap: 5, fontSize: 16 }}><span class="truncate">${b.name}</span>${b.verified && html`<span style=${{ color: "var(--blue)", display: "flex" }}><${Icon} n="verified" size=${16} /></span>`}</b>
+      <span class="small" style=${{ color: "var(--safety-strong)", fontWeight: 700 }}>${(svc(b.primary) || {}).name || "Construction"} <span class="muted" style=${{ fontWeight: 500 }}>· ${[b.city, b.parish].filter(Boolean).join(", ")}</span></span>
+      ${b.tagline && html`<span class="small muted">${b.tagline}</span>`}
+      <span class="eyebrow" style=${{ marginTop: 4 }}>${b.completed || 0} jobs done · ${mine.length} posts · ${(b.followers || []).length} followers</span>
+    </div>
   </button>`;
 }
 
@@ -483,11 +578,9 @@ function BizProfile({ id, quote }) {
           <div class="row"><button class=${"btn " + (following ? "outline" : "outline")} aria-pressed=${following} onClick=${() => act.toggleFollow(b)}><${Icon} n=${following ? "check" : "plus"} />${following ? "Following" : "Follow"}</button><button class="btn ghost" onClick=${copy}><${Icon} n="link" />Share</button></div>
           <div class="grid2"><button class="btn primary lg" onClick=${() => setSheet("quote")}><${Icon} n="file" />Request a quote</button><button class="btn outline lg" onClick=${() => setSheet("contact")}><${Icon} n="chat" />Contact</button></div>
         </div>`}
-    <div class="stats four">
-      ${[["hammer", b.completed || 0, "Jobs completed"], ["camera", bp.length, "Posts"], ["users", (b.followers || []).length, "Followers"], ["briefcase", b.years ?? "—", "Years in business"]].map(([ic, v, l]) => html`<div key=${l} class="stat" style=${{ cursor: "default" }}><span style=${{ color: "var(--safety)" }}><${Icon} n=${ic} size=${18} /></span><b>${v}</b><span class="tiny muted">${l}</span></div>`)}
-    </div>
-    <section class="stack" style=${{ gap: 8 }}><h2 style=${{ fontSize: 19 }}>Portfolio</h2>
-      ${showcase.length ? html`<div class="portfolio">${showcase.slice(0, 9).map((p) => html`<button key=${p.id} onClick=${() => go({ name: "post", id: p.id })} aria-label="Open project"><${Photo} m=${(p.media || []).slice(-1)[0]} /></button>`)}</div>`
+    <div class="plate">${[[b.completed || 0, "Jobs done"], [bp.length, "Posts"], [(b.followers || []).length, "Followers"], [b.years ?? "—", "Yrs in biz"]].map(([v, l]) => html`<div key=${l}><b>${v}</b><span>${l}</span></div>`)}</div>
+    <section class="stack" style=${{ gap: 10 }}><div class="row"><h2 class="grow" style=${{ fontSize: 21, fontStretch: "88%" }}>Recent work</h2>${showcase.length > 0 && html`<span class="eyebrow">${showcase.length} project${showcase.length === 1 ? "" : "s"}</span>`}</div>
+      ${showcase.length ? html`<div class="work-grid">${showcase.slice(0, 7).map((p, i) => html`<${Tile} key=${p.id} p=${p} i=${i} fixed=${true} />`)}</div>`
         : html`<${Empty} icon="camera" title="No completed projects posted yet" text=${own ? "Post your best finished jobs. It's the first thing customers look at." : "Ask for photos of past work when you request a quote."} />`}
     </section>
     <div class="card pad stack" style=${{ gap: 10 }}>
@@ -546,11 +639,11 @@ function Saved() {
 function Home() {
   const { go, setMode, businesses } = useApp();
   return html`<div class="stack">
-    <div class="hero">
-      <h1>Run your construction business. <em>Showcase your work.</em> Win more jobs.</h1>
+    <div class="hero"><div class="hazard"></div><div class="in">
+      <span class="eyebrow hot">BuildFlow</span><h1>Run your construction business. <em>Showcase your work.</em> Win more jobs.</h1>
       <p style=${{ color: "#a9a498" }}>This is a clickable demo of BuildFlow. Request a quote as a homeowner, then switch to Contractor mode and watch it arrive as a lead. Changes are saved in this browser only.</p>
       <div class="row wrap"><button class="btn primary" onClick=${() => go({ name: "explore" })}>Explore contractors</button><button class="btn" style=${{ background: "transparent", color: "#efede8", border: "1px solid rgba(255,255,255,.3)" }} onClick=${() => setMode("contractor")}>I'm a contractor</button></div>
-    </div>
+    </div></div>
     <div class="card pad stack" style=${{ gap: 8 }}>
       <b>Try the full loop in 2 minutes</b>
       <ol class="small" style=${{ margin: 0, paddingLeft: 20, display: "grid", gap: 4 }}>
@@ -628,6 +721,10 @@ function Dashboard({ welcome }) {
       <div><span class="small" style=${{ color: "#a9a498" }}>Open pipeline value</span><div class="big">${compact(pipeline)}</div><span class="tiny" style=${{ color: "#a9a498" }}>${open.length} open lead${open.length === 1 ? "" : "s"}</span></div>
       <div class="trio"><div><b>${views}</b><span>Profile views</span></div><div><b>${quotes}</b><span>Quote requests</span></div><div><b>${engagement}</b><span>Engagement</span></div></div>
       <p class="tiny" style=${{ color: "#a9a498" }}>Your profile generated ${quotes} quote request${quotes === 1 ? "" : "s"} this month.</p>
+    </div>
+    <div class="card pad stack" style=${{ gap: 12 }}>
+      <div class="row"><b class="grow" style=${{ fontFamily: "var(--display)", fontSize: 17 }}>Pipeline</b><span class="eyebrow">One block per lead</span></div>
+      <div class="wall">${LEAD_ST.filter(([v]) => OPEN_LEAD.includes(v)).map(([v, l]) => { const rows = leads.filter((x) => x.status === v); const val = rows.reduce((n, x) => n + Number(x.value || 0), 0); return html`<button key=${v} class="r" style=${{ all: "unset", cursor: "pointer", display: "grid", gridTemplateColumns: "92px 1fr auto", gap: 10, alignItems: "center", minHeight: 28 }} onClick=${() => go({ name: "leads", status: v })}><span style=${{ fontSize: 13, fontWeight: 650 }}>${l}</span>${rows.length ? html`<${Bricks} done=${rows.length} total=${rows.length} />` : html`<span class="tiny muted">—</span>`}<span class="v" style=${{ font: "700 12px var(--mono)", color: "var(--muted)" }}>${val ? compact(val) : ""}</span></button>`; })}</div>
     </div>
     <div class="card"><div class="card-h"><h3>Tasks due</h3></div>${due.length ? html`<div class="list">${due.map((t) => html`<button key=${t.id} class="item" onClick=${() => go({ name: "project", id: t.project.id })}><span class="grow"><b class="truncate" style=${{ display: "block" }}>${t.title}</b><span class="tiny muted">${t.project.name}</span></span><span class="stack" style=${{ gap: 2, justifyItems: "end" }}><span class=${"tiny " + (t.due < today() ? "" : "muted")} style=${t.due < today() ? { color: "var(--red)", fontWeight: 700 } : null}>${t.due < today() ? "Overdue · " : ""}${day(t.due)}</span><${Badge} list=${PRIORITY} v=${t.priority} /></span></button>`)}</div>` : html`<p class="small muted" style=${{ padding: 16 }}>No upcoming tasks.</p>`}</div>
     <div class="card"><div class="card-h"><h3>Recent activity</h3></div>${activity.length ? html`<div class="list">${activity.slice(0, 8).map((a) => html`<button key=${a.id} class="item small" onClick=${() => a.ref && go(a.ref)}><span class="grow">${a.text}</span><span class="tiny muted">${ago(a.at)}</span></button>`)}</div>` : html`<p class="small muted" style=${{ padding: 16 }}>Leads, projects and updates will show up here.</p>`}</div>
@@ -775,7 +872,7 @@ function ProjectCard({ p }) {
   return html`<button class="card item" style=${{ display: "grid", gap: 8, padding: 14 }} onClick=${() => go({ name: "project", id: p.id })}>
     <span class="row" style=${{ alignItems: "flex-start" }}><b class="grow">${p.name}</b><${Badge} list=${PROJ_ST} v=${p.status} /></span>
     <span class="small muted">${[c && c.name, p.location].filter(Boolean).join(" · ") || "No customer yet"}</span>
-    <span class="row small"><b class="num grow">${money(p.budget)}</b>${t.length > 0 && html`<span class="row tiny muted" style=${{ gap: 6 }}><span class="progress" style=${{ width: 80 }}><i style=${{ width: (d / t.length) * 100 + "%" }}></i></span>${d}/${t.length} tasks</span>`}</span>
+    <span class="row small"><b class="num grow">${money(p.budget)}</b>${t.length > 0 && html`<span class="row tiny muted" style=${{ gap: 8 }}><${Bricks} done=${d} total=${t.length} />${d}/${t.length}</span>`}</span>
   </button>`;
 }
 
@@ -833,8 +930,8 @@ function ProjectDetail({ id }) {
     </div>
     ${p.description && html`<div class="card pad small" style=${{ whiteSpace: "pre-line" }}>${p.description}</div>`}
     <div class="card">
-      <div class="card-h"><h3>Tasks</h3><span class="tiny muted">${done} of ${tasks.length} done</span></div>
-      ${tasks.length > 0 && html`<div class="progress" style=${{ borderRadius: 0 }}><i style=${{ width: (done / tasks.length) * 100 + "%" }}></i></div>`}
+      <div class="card-h"><h3>Tasks</h3><span class="eyebrow">${done} of ${tasks.length} laid</span></div>
+      ${tasks.length > 0 && html`<div style=${{ padding: "12px 16px", borderBottom: "1px solid var(--line)" }}><${Bricks} done=${done} total=${tasks.length} /></div>`}
       <div class="list">${tasks.map((x) => html`<div key=${x.id} class="row" style=${{ padding: "10px 14px", alignItems: "flex-start" }}>
         <button class=${"check" + (x.status === "done" ? " done" : "")} aria-label=${x.status === "done" ? "Mark not done" : "Mark done"} onClick=${() => act.taskStatus(p, x, x.status === "done" ? "todo" : "done")}>${x.status === "done" && html`<${Icon} n="check" size=${16} />`}</button>
         <div class="grow"><p class=${x.status === "done" ? "strike" : ""} style=${{ fontWeight: 650 }}>${x.title}</p><div class="row wrap tiny muted"><${Badge} list=${PRIORITY} v=${x.priority} />${x.status === "in_progress" && html`<span class="badge t-orange">In progress</span>`}${x.due && html`<span style=${x.status !== "done" && x.due < today() ? { color: "var(--red)", fontWeight: 700 } : null}>Due ${day(x.due)}</span>`}</div></div>
@@ -843,7 +940,7 @@ function ProjectDetail({ id }) {
       </div>`)}</div>
       <form class="stack" style=${{ padding: 14, gap: 8, borderTop: "1px solid var(--line)" }} onSubmit=${async (e) => { e.preventDefault(); if (!t.title.trim()) return; if (await act.addTask(p, t)) { setT({ title: "", due: "", priority: "medium" }); toast("Task added"); } }}>
         <input class="input" id="task-t" placeholder="New task, e.g. Order cement & blocks" value=${t.title} onInput=${(e) => setT({ ...t, title: e.target.value })} aria-label="Task name" />
-        <div class="row"><input class="input" id="task-d" type="date" value=${t.due} onInput=${(e) => setT({ ...t, due: e.target.value })} aria-label="Due date" /><${Select} id="task-p" value=${t.priority} onChange=${(v) => setT({ ...t, priority: v })} options=${PRIORITY} /><button class="btn primary" disabled=${!t.title.trim()}>Add</button></div>
+        <div class="row wrap"><div style=${{ flex: "1 1 150px", minWidth: 0 }}><input class="input" id="task-d" type="date" value=${t.due} onInput=${(e) => setT({ ...t, due: e.target.value })} aria-label="Due date" /></div><div style=${{ flex: "1 1 110px", minWidth: 0 }}><${Select} id="task-p" value=${t.priority} onChange=${(v) => setT({ ...t, priority: v })} options=${PRIORITY} /></div><button class="btn primary" disabled=${!t.title.trim()}>Add</button></div>
       </form>
     </div>
     <div class="card pad stack" style=${{ gap: 10 }}><b>Notes</b><${Notes} notes=${p.notes} onAdd=${(txt) => act.addNote("projects", p, txt)} /></div>
