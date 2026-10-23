@@ -286,6 +286,8 @@ V1's `like_count`, `comment_count`, the `comments` subcollection, `users/*/likes
 | `status` | `"active"` \| `"revoked"` | |
 | `expires_at` | Timestamp \| null | Null while the project is open; 180 days after completion |
 | `created_by`, `created_at`, `last_opened_at` | | `last_opened_at` written at most once per hour |
+| `last_message` | `{at, preview ≤ 120, from: "client" \| "member"}` \| null | Inbox thread list (owner: `postMessage` service, same batch as the `activity` entry) |
+| `unread_for_business` | bool | Set when the client writes; cleared when a member opens the thread |
 
 The token is 32 random bytes, base64url in the URL `/c/{token}`. Only its SHA-256 is a document id. The raw token is stored only on the tenant-private quote/project so members can re-share it.
 
@@ -376,11 +378,13 @@ Tenant subcollections use `COLLECTION` scope; the index applies to that subcolle
 | 35 | reviews | C | `status` ↑, `created_at` ↓ | Q-P3 profile reviews |
 | 36 | invitations | C | `business_id` ↑, `status` ↑, `created_at` ↓ | Q-TM2 |
 | 37 | reports | C | `status` ↑, `created_at` ↓ | Q-AD1 (**missing in V1**) |
+| 38 | client_links | C | `business_id` ↑, `status` ↑, `last_message.at` ↓ | Q-IN1 Inbox threads |
 
 **Queries that need no composite index** (single-field or equality-only): `customers` by `name_lower` range; `customers` by `phone_e164` / `email_lower`; `leads` by `next_follow_up_at` within a business; `members` by `role`; `notifications` by `created_at` and `read_at == null`; `quotes`/`invoices` by `project_id` or `lead_id` equality; `admin_audit` by `created_at`.
 
 ### 5.2 Field overrides
 - **Collection-group single-field index:** `leads.next_follow_up_at` (ascending) for Q-J1, the reminder job across businesses.
+- **Collection-group single-field index:** `customers.email_lower` for Q-FJ1 ("Find my job": rate-limited, the response never reveals whether a match exists).
 - **Exempt from indexing** (cuts write cost and index entries; these fields are never queried): `posts.caption`, `posts.media`, `posts.business`, `quotes.lines`, `quotes.terms`, `quotes.notes_to_client`, `invoices.lines`, `activity.body`, `leads.request`, `updates.note`, `updates.media`, `businesses.description`, `businesses.services`, `customers.address`, `reviews.body`, `stats.days`.
 
 ### 5.3 TTL policies
@@ -422,6 +426,7 @@ The emulator does not enforce composite indexes. That is how V1 shipped two miss
 | Contractor profile | business 1, Q-P2 12, Q-P3 5 | 18, **ISR** |
 | Search | Q-S1..6 20 | 20 |
 | Notifications | 20 | 20 |
+| Inbox threads | Q-IN1 20 | 20 |
 | Admin reports | Q-AD1 25 | 25 |
 
 For comparison, V1's Explore read ~530 documents per view and its analytics page up to 50,000.
@@ -466,6 +471,8 @@ Each repo query has an id used above and in §5.
 | Q-TM1 | members | all (≤ 50) | none |
 | Q-TM2 | invitations | `business_id==B, status=="pending"` / `created_at desc` | 36 |
 | Q-AD1 | reports | `status=="open"` / `created_at desc` | 37 |
+| Q-IN1 | client_links | `business_id==B, status=="active"` / `last_message.at desc` (links without messages have no `last_message.at` and are excluded) | 38 |
+| Q-FJ1 | customers (CG) | `email_lower==E`, limit 20 → then `client_links` `customer_id==C, status=="active"` per match | field override |
 | Q-J1 | leads (CG) | `next_follow_up_at <= now` / `next_follow_up_at`, limit 500 per run | field override |
 | Q-J2 | quotes (CG) | `status in ["sent","viewed"], valid_until < today` | 19 |
 | Q-J3 | tasks (CG) | `status in ["todo","in_progress"], due_date == today` | 26 |
@@ -491,6 +498,7 @@ Each service runs in one transaction or batch. "Reads" are the documents read in
 | `deletePost` | `post.delete` | post 1 | post delete 1, business counter 1; delete public objects |
 | `completeProject` | `project.complete` | project 1 | project 1, business `completed_project_count`/`rank` 1, activity 1, stats 1; review request email async |
 | `submitReview` (client) | link scope + project completed | link 1, project 1, review 0 (create-only) | review 1, business aggregate 1, project 1, activity 1, notifications ≤ 3 |
+| `postMessage` (client or member) | link scope / `message.send` | link 1 | activity 1 (`message_in`/`message_out`, `client_visible`), client_link `last_message` + `unread_for_business` 1, notifications ≤ 3 (client → team) or customer email (member → client) |
 | `updateCustomer` | `customer.update` | customer 1, leads/projects/quotes ≤ 50 (ids only) | customer 1 + bounded fan-out (§4) |
 | `inviteMember` / `acceptInvite` | `team.invite` / invite token | subscription 1, members `count()` / invitation 1 | invitation 1 / member 1, user 1, invitation 1; then claims + revoke |
 | `updateProfile` | `business.update` | business 1 | business 1; `businessFanout` updates posts async |

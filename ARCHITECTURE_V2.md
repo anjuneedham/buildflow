@@ -211,7 +211,7 @@ Per request:
 - The affected user signs in again on their next request. For the invite-acceptance case the user is already in a sign-in flow, so it is seamless.
 - Suspension also disables the Auth user.
 
-**Email verification is enforced** (audit D6) on: publishing to portfolio, sending quotes, accepting invites, enabling the public profile. Unverified contractors can still set up their account and draft, so activation is not blocked.
+**Email verification is enforced** (audit D6) on: publishing to portfolio, **emails sent by BuildFlow** to customers (quotes, updates, review requests), accepting invites, and being listed in search. Unverified contractors can set up, draft, and **share a quote link through their own WhatsApp**, so the activation moment (first quote sent) is never blocked (`UX_ARCHITECTURE_V2.md` §3.6). Sharing via the contractor's own phone carries their identity, which is why it is exempt.
 
 **Platform admins:** must have MFA enrolled (Identity Platform). **[verify]** that this needs the Identity Platform upgrade and its pricing.
 
@@ -433,7 +433,7 @@ Each check has an owner document and must pass on paper, then in CI.
 | 4 | Lead inbox + follow-up | `leads`, `activity`, `notifications` | `/app/leads`, `remindersTick` |
 | 5 | Quotes | `quotes`, `private/config` (numbering, tax) | `/app/quotes`, `/c/[token]` |
 | 6 | Client link | `client_links`, `quotes`, `projects`, `updates`, `activity` | `/c/[token]` |
-| 7 | Project hub | `projects`, `tasks`, `updates`, `media`, `invoices`, `payments`, `activity` | `/app/projects/[id]` |
+| 7 | Project hub ("Job" in the UI) | `projects`, `tasks`, `updates`, `media`, `invoices`, `payments`, `activity` | `/app/jobs/[id]` (V1 `/app/projects/*` redirects) |
 | 8 | Site updates | `updates`, `media` | project hub, `/api/v1/sync` |
 | 9 | Tasks with assignment | `tasks` | `/app/tasks`, project hub |
 | 10 | Payments + invoice | `invoices`, `payments`, project money totals | project hub, `/c/[token]` |
