@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { syncClaims } from "@/server/claims";
+import { defaultBusinessConfig } from "@/lib/data/business";
 import { z } from "zod";
 import { db } from "@/lib/firebase/admin";
 import { now } from "@/lib/data/db";
@@ -65,6 +67,8 @@ export async function createBusiness(_: ActionState, fd: FormData): Promise<Acti
           follower_count: 0, post_count: 0, completed_project_count: 0, created_at: ts, updated_at: ts,
         });
         tx.set(bizRef.collection("members").doc(s.user.id), { role: "owner", full_name: ownerName, avatar_url: s.profile?.avatar_url ?? null, created_at: ts });
+        // Private settings (FIRESTORE_SCHEMA_V2.md §3.3): never rendered publicly.
+        tx.set(bizRef.collection("private").doc("config"), defaultBusinessConfig());
         tx.set(db().collection("subscriptions").doc(bizRef.id), {
           business_id: bizRef.id, plan_id: plan.id, status: "trialing", seats: 1,
           trial_ends_at: new Date(Date.now() + 14 * 864e5).toISOString(), current_period_end: null, cancel_at_period_end: false,
@@ -79,6 +83,8 @@ export async function createBusiness(_: ActionState, fd: FormData): Promise<Acti
     }
   }
   if (d.ownerName) await userRef.set({ full_name: d.ownerName }, { merge: true });
+  // The current session falls back to Firestore until the next sign-in picks up the claims.
+  await syncClaims(s.user.id).catch((e) => console.error("claims sync failed", e));
   redirect("/onboarding?step=3");
 }
 

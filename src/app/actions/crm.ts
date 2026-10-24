@@ -4,13 +4,15 @@ import { z } from "zod";
 import { db } from "@/lib/firebase/admin";
 import { isId, now } from "@/lib/data/db";
 import { addActivity, addEvent, addNotification, logActivity, tenant } from "@/lib/data/tenant";
-import { requireBusiness } from "@/lib/session";
+import { requireBusiness, requirePermission } from "@/lib/session";
+import { canAccessProject } from "@/server/policy";
 import { LEAD_STATUSES, optionFor, values } from "@/lib/constants";
 import { customerSchema, leadSchema, noteSchema, parseForm, type ActionState } from "@/lib/validation";
 
+// Leads, customers and their notes: owner and admin only (crew are redirected).
 async function ctx() {
-  const s = await requireBusiness();
-  return { t: tenant(s.business.id), businessId: s.business.id, userId: s.user.id, userName: s.profile?.full_name ?? null, isOwner: s.isOwner };
+  const s = await requirePermission("crm");
+  return { t: tenant(s.business.id), businessId: s.business.id, userId: s.user.id, userName: s.profile?.full_name ?? null, canDelete: s.can("records.delete") };
 }
 
 async function isMember(businessId: string, userId: string | undefined) {
@@ -94,8 +96,8 @@ export async function setLeadStatus(id: string, status: string) {
 }
 
 export async function deleteLead(id: string) {
-  const { t, businessId, isOwner } = await ctx();
-  if (!isOwner) return { ok: false, error: "Only the business owner can delete leads." };
+  const { t, businessId, canDelete } = await ctx();
+  if (!canDelete) return { ok: false, error: "You don't have permission to delete leads." };
   if (!isId(id)) return { ok: false, error: "Lead not found." };
   await t.doc("leads", id).delete();
   await deleteNotesFor(businessId, id);
@@ -168,8 +170,8 @@ export async function updateCustomer(id: string, _: ActionState, fd: FormData): 
 }
 
 export async function deleteCustomer(id: string) {
-  const { t, businessId, isOwner } = await ctx();
-  if (!isOwner) return { ok: false, error: "Only the business owner can delete customers." };
+  const { t, businessId, canDelete } = await ctx();
+  if (!canDelete) return { ok: false, error: "You don't have permission to delete customers." };
   if (!isId(id)) return { ok: false, error: "Customer not found." };
   const [projects, leads] = await Promise.all([t.col("projects").where("customer_id", "==", id).get(), t.col("leads").where("customer_id", "==", id).get()]);
   const batch = db().batch();
@@ -184,23 +186,36 @@ export async function deleteCustomer(id: string) {
 // ---------------- Notes ----------------
 const NOTE_PARENT = { lead: "leads", customer: "customers", project: "projects" } as const;
 
+// Notes on jobs are open to crew assigned to that job; notes on leads and
+// customers need CRM access.
+async function noteCtx(entityType: keyof typeof NOTE_PARENT, entityId: string) {
+  const s = await requireBusiness();
+  const t = tenant(s.business.id);
+  const parent = await t.doc(NOTE_PARENT[entityType], entityId).get();
+  const allowed = parent.exists && (entityType === "project"
+    ? canAccessProject(s.role, s.user.id, { member_ids: parent.get("member_ids") })
+    : s.can("crm"));
+  return allowed ? { t, businessId: s.business.id, userId: s.user.id, userName: s.profile?.full_name ?? null, canDelete: s.can("records.delete") } : null;
+}
+
 export async function addNote(_: ActionState, fd: FormData): Promise<ActionState> {
-  const { t, businessId, userId, userName } = await ctx();
   const parsed = parseForm(noteSchema, fd);
   if (!parsed.data) return parsed.state;
   const { entityType, entityId, body } = parsed.data;
-  if (!(await t.doc(NOTE_PARENT[entityType], entityId).get()).exists) return { ok: false, error: "Record not found." };
+  const c = await noteCtx(entityType, entityId);
+  if (!c) return { ok: false, error: "Record not found." };
+  const { t, businessId, userId, userName } = c;
   await t.col("notes").add({ entity_type: entityType, entity_id: entityId, body, author_id: userId, author_name: userName, created_at: now() });
   await logActivity(businessId, { actorId: userId, actorName: userName, entityType, entityId, action: "note_added", summary: "Added a note" });
   return { ok: true, message: "Note added" };
 }
 
 export async function deleteNote(id: string) {
-  const { t, userId, isOwner } = await ctx();
+  const s = await requireBusiness();
   if (!isId(id)) return { ok: false };
-  const ref = t.doc("notes", id);
+  const ref = tenant(s.business.id).doc("notes", id);
   const note = await ref.get();
-  if (note.exists && (note.get("author_id") === userId || isOwner)) await ref.delete();
+  if (note.exists && (note.get("author_id") === s.user.id || s.can("records.delete"))) await ref.delete();
   return { ok: true };
 }
 

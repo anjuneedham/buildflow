@@ -10,6 +10,9 @@ import { requireBusiness, requireUser } from "@/lib/session";
 import { uploadImage, validImage } from "@/lib/storage";
 import { businessProfileSchema, docId, inviteSchema, parseForm, type ActionState } from "@/lib/validation";
 import { env } from "@/lib/env";
+import { syncClaims } from "@/server/claims";
+import { isEmailVerified, VERIFY_EMAIL_MESSAGE } from "@/server/email-verification";
+import { assignableRoles, normalizeRole, type Role } from "@/server/policy";
 
 async function syncSeats(businessId: string) {
   const n = (await tenant(businessId).col("members").count().get()).data().count;
@@ -18,7 +21,7 @@ async function syncSeats(businessId: string) {
 
 export async function updateBusinessProfile(_: ActionState, fd: FormData): Promise<ActionState> {
   const s = await requireBusiness();
-  if (!s.isOwner) return { ok: false, error: "Only the owner can edit the business profile." };
+  if (!s.can("profile.edit")) return { ok: false, error: "You don't have permission to edit the business profile." };
   const parsed = parseForm(businessProfileSchema, fd);
   if (!parsed.data) return parsed.state;
   const d = parsed.data;
@@ -58,16 +61,19 @@ export async function updateBusinessProfile(_: ActionState, fd: FormData): Promi
 // Invites live at invitations/{token} so the link alone identifies them.
 export async function inviteMember(_: ActionState, fd: FormData): Promise<ActionState> {
   const s = await requireBusiness();
-  if (!s.isOwner) return { ok: false, error: "Only the owner can invite team members." };
+  if (!s.can("team.manage")) return { ok: false, error: "You don't have permission to invite team members." };
   const parsed = parseForm(inviteSchema, fd);
   if (!parsed.data) return parsed.state;
+  if (!assignableRoles(s.role).includes(parsed.data.role)) return { ok: false, error: "You can't invite someone with that role." };
   const email = parsed.data.email.toLowerCase();
   const existing = await db().collection("invitations").where("business_id", "==", s.business.id).where("email", "==", email).where("accepted_at", "==", null).limit(1).get();
   const token = existing.empty ? crypto.randomUUID() : existing.docs[0].id;
   if (existing.empty) {
     await db().collection("invitations").doc(token).set({
-      business_id: s.business.id, business_name: s.business.name, email, role: "member", invited_by: s.user.id, accepted_at: null, created_at: now(),
+      business_id: s.business.id, business_name: s.business.name, email, role: parsed.data.role, invited_by: s.user.id, accepted_at: null, created_at: now(),
     });
+  } else {
+    await existing.docs[0].ref.update({ role: parsed.data.role });
   }
   // Email delivery is a V1.x item; the owner shares this link directly.
   return { ok: true, message: `Invite created. Share this link: ${env.siteUrl}/invite/${token}` };
@@ -75,7 +81,7 @@ export async function inviteMember(_: ActionState, fd: FormData): Promise<Action
 
 export async function revokeInvite(token: string) {
   const s = await requireBusiness();
-  if (!s.isOwner) return { ok: false };
+  if (!s.can("team.manage")) return { ok: false };
   const ref = db().collection("invitations").doc(token);
   const inv = await ref.get();
   if (inv.exists && inv.get("business_id") === s.business.id) await ref.delete();
@@ -84,7 +90,7 @@ export async function revokeInvite(token: string) {
 
 export async function removeMember(userId: string) {
   const s = await requireBusiness();
-  if (!s.isOwner) return { ok: false, error: "Only the owner can remove members." };
+  if (!s.can("team.manage")) return { ok: false, error: "You don't have permission to remove members." };
   if (!isId(userId) || userId === s.user.id) return { ok: false, error: "You can't remove yourself." };
   const member = tenant(s.business.id).doc("members", userId);
   const snap = await member.get();
@@ -92,8 +98,31 @@ export async function removeMember(userId: string) {
   const batch = db().batch();
   batch.delete(member);
   batch.set(db().collection("users").doc(userId), { business_id: null, business_role: null }, { merge: true });
+  // Unassign from jobs so they don't linger on crew lists.
+  const jobs = await tenant(s.business.id).col("projects").where("member_ids", "array-contains", userId).get();
+  jobs.docs.forEach((j) => batch.update(j.ref, { member_ids: (j.get("member_ids") as string[]).filter((m) => m !== userId) }));
   await batch.commit();
+  // Revoking ends their session now, not when the cookie expires.
+  await syncClaims(userId, { revoke: true });
   await syncSeats(s.business.id);
+  return { ok: true };
+}
+
+export async function setMemberRole(userId: string, role: string) {
+  const s = await requireBusiness();
+  if (!s.can("team.manage")) return { ok: false, error: "You don't have permission to change roles." };
+  const next = role as Role;
+  if (!isId(userId) || userId === s.user.id) return { ok: false, error: "You can't change your own role." };
+  if (!assignableRoles(s.role).includes(next)) return { ok: false, error: "That role can't be assigned." };
+  const member = tenant(s.business.id).doc("members", userId);
+  const snap = await member.get();
+  if (!snap.exists || snap.get("role") === "owner") return { ok: false, error: "Member not found." };
+  if (normalizeRole(snap.get("role")) === next) return { ok: true };
+  const batch = db().batch();
+  batch.update(member, { role: next });
+  batch.set(db().collection("users").doc(userId), { business_role: next }, { merge: true });
+  await batch.commit();
+  await syncClaims(userId, { revoke: true });
   return { ok: true };
 }
 
@@ -102,6 +131,7 @@ export async function acceptInvite(token: string) {
   const fail = (msg: string) => redirect(`/invite/${token}?error=${encodeURIComponent(msg)}`);
   if (!z.string().uuid().safeParse(token).success) fail("This invite is no longer valid.");
   if (s.membership) fail("You already belong to a business on BuildFlow.");
+  if (!(await isEmailVerified(s.user.id))) fail(VERIFY_EMAIL_MESSAGE);
   const ref = db().collection("invitations").doc(token);
   let businessId = "";
   try {
@@ -118,6 +148,7 @@ export async function acceptInvite(token: string) {
     fail(e instanceof Error ? e.message : "This invite is no longer valid.");
   }
   await syncSeats(businessId);
+  await syncClaims(s.user.id).catch((e) => console.error("claims sync failed", e));
   redirect("/app");
 }
 

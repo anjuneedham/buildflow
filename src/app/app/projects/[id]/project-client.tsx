@@ -28,11 +28,10 @@ export function DeleteProject({ id }: { id: string }) {
   );
 }
 
-export function TaskList({ projectId, tasks, team }: { projectId: string; tasks: Task[]; team: TeamMember[] }) {
+export function TaskList({ projectId, tasks, team, canDelete, today }: { projectId: string; tasks: Task[]; team: TeamMember[]; canDelete: boolean; today: string }) {
   const [adding, setAdding] = useState(tasks.length === 0);
   const [pending, run] = useServerAction();
   const names = new Map(team.map((m) => [m.user_id, m.full_name]));
-  const today = new Date().toISOString().slice(0, 10);
   return (
     <div className="space-y-3">
       {tasks.length > 0 && (
@@ -59,7 +58,7 @@ export function TaskList({ projectId, tasks, team }: { projectId: string; tasks:
                   {t.status === "todo" && (
                     <button disabled={pending} onClick={() => run(() => setTaskStatus(t.id, "in_progress"))} className="min-h-9 rounded-lg px-2 text-xs font-semibold text-ink-500 hover:bg-concrete-100">Start</button>
                   )}
-                  <button disabled={pending} onClick={() => run(() => deleteTask(t.id))} aria-label="Delete task" className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-500 hover:text-site-red"><Trash2 className="h-4 w-4" /></button>
+                  {canDelete && <button disabled={pending} onClick={() => run(() => deleteTask(t.id))} aria-label="Delete task" className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-500 hover:text-site-red"><Trash2 className="h-4 w-4" /></button>}
                 </div>
               </li>
             );

@@ -4,14 +4,14 @@ import { CustomerForm } from "@/components/crm/customer-form";
 import { Card, PageHeader } from "@/components/ui";
 import { fromDoc, isId } from "@/lib/data/db";
 import { tenant } from "@/lib/data/tenant";
-import { requireBusiness } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import type { Customer } from "@/lib/types";
 
 export const metadata = { title: "Edit customer" };
 
 export default async function EditCustomerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const s = await requireBusiness();
+  const s = await requirePermission("crm");
   const data = isId(id) ? fromDoc<Customer>(await tenant(s.business.id).doc("customers", id).get()) : null;
   if (!data) notFound();
   return (

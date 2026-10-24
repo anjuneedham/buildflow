@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, Briefcase, Camera, CheckCircle2, ClipboardList, Eye, FileText, Heart, MailWarning, Plus, Users } from "lucide-react";
+import { ArrowRight, Briefcase, Camera, CheckCircle2, ClipboardList, Eye, FileText, Heart, Plus, Users } from "lucide-react";
 import { ButtonLink, Card, CardHeader, EmptyState, StatusBadge } from "@/components/ui";
 import { FormSuccess } from "@/components/ui/input";
+import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
+import { isEmailVerified } from "@/server/email-verification";
 import { count, list } from "@/lib/data/db";
 import { tenant } from "@/lib/data/tenant";
 import { requireBusiness } from "@/lib/session";
@@ -16,7 +18,10 @@ type ActivityRow = { id: string; summary: string; created_at: string; entity_typ
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const s = await requireBusiness();
   const { welcome } = await searchParams;
+  if (!s.can("crm")) return <CrewToday businessId={s.business.id} userId={s.user.id} firstName={s.profile?.full_name?.split(" ")[0]} />;
   const t = tenant(s.business.id);
+  // The cookie's flag can be stale after the user clicks the link; confirm only when it says "no".
+  const emailVerified = s.user.emailVerified || (await isEmailVerified(s.user.id));
   const month = startOfMonthISO();
   const weekAhead = dateInDays(7);
   const monthEvents = (type: string) => count(t.col("events").where("type", "==", type).where("created_at", ">=", month));
@@ -47,13 +52,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <div className="space-y-5">
       {welcome && <FormSuccess message="Welcome to BuildFlow! Your profile is live. Post your best work to start getting discovered." />}
-      {!s.user.emailVerified && (
-        <p className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          <MailWarning className="h-4 w-4 shrink-0" />Please verify your email. We sent a link to {s.user.email}.
-        </p>
-      )}
+      {!emailVerified && <VerifyEmailBanner email={s.user.email} />}
       <div>
-        <p className="text-sm font-semibold text-ink-500">{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
+        <p className="text-sm font-semibold text-ink-500">{formatDate(new Date(), { weekday: "long", month: "long", day: "numeric" })}</p>
         <h1 className="font-display text-2xl font-extrabold md:text-3xl">How&apos;s business{s.profile?.full_name ? `, ${s.profile.full_name.split(" ")[0]}` : ""}?</h1>
       </div>
 
@@ -133,6 +134,57 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           )}
         </Card>
       </div>
+    </div>
+  );
+}
+
+/** Today for crew: their tasks and the jobs they're on. No CRM data (ARCHITECTURE_V2.md §5.3). */
+async function CrewToday({ businessId, userId, firstName }: { businessId: string; userId: string; firstName?: string }) {
+  const t = tenant(businessId);
+  const [tasks, jobs] = await Promise.all([
+    list<TaskRow>(t.col("tasks").where("assigned_to", "==", userId).limit(100)),
+    list<{ id: string; name: string; status: string; customer_name: string | null }>(
+      t.col("projects").where("member_ids", "array-contains", userId).where("status", "in", ACTIVE_PROJECT_STATUSES).limit(20)),
+  ]);
+  const today = dateInDays(0);
+  const open = tasks.filter((x) => x.status !== "done").sort((a, b) => (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999"));
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="text-sm font-semibold text-ink-500">{formatDate(new Date(), { weekday: "long", month: "long", day: "numeric" })}</p>
+        <h1 className="font-display text-2xl font-extrabold md:text-3xl">Hi{firstName ? ` ${firstName}` : ""}, here&apos;s your day</h1>
+      </div>
+      <Card>
+        <CardHeader title="My tasks" />
+        {open.length === 0 ? <EmptyState className="m-4 border-0" icon={CheckCircle2} title="No open tasks" description="Tasks assigned to you show up here." /> : (
+          <ul className="divide-y divide-concrete-200">
+            {open.slice(0, 20).map((task) => {
+              const overdue = task.due_date && task.due_date < today;
+              return (
+                <li key={task.id}>
+                  <Link href={`/app/projects/${task.project_id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-concrete-50">
+                    <span className="min-w-0"><span className="block truncate font-semibold">{task.title}</span><span className="block truncate text-xs text-ink-500">{task.project_name}</span></span>
+                    {task.due_date && <span className={`shrink-0 text-xs font-bold ${overdue ? "text-site-red" : "text-ink-500"}`}>{overdue ? "Overdue · " : ""}{formatDate(task.due_date, { month: "short", day: "numeric" })}</span>}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
+      <Card>
+        <CardHeader title="My jobs" />
+        {jobs.length === 0 ? <EmptyState className="m-4 border-0" icon={Briefcase} title="No active jobs" description="When you're added to a job, it shows up here." /> : (
+          <ul className="divide-y divide-concrete-200">
+            {jobs.map((j) => (
+              <li key={j.id}><Link href={`/app/projects/${j.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-concrete-50">
+                <span className="min-w-0"><span className="block truncate font-semibold">{j.name}</span>{j.customer_name && <span className="block truncate text-xs text-ink-500">{j.customer_name}</span>}</span>
+                <StatusBadge kind="project" value={j.status} />
+              </Link></li>
+            ))}
+          </ul>
+        )}
+      </Card>
     </div>
   );
 }

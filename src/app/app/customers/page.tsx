@@ -2,14 +2,14 @@ import { Plus, Search, Users } from "lucide-react";
 import { ButtonLink, DataTable, EmptyState, PageHeader, StatusBadge } from "@/components/ui";
 import { list } from "@/lib/data/db";
 import { tenant } from "@/lib/data/tenant";
-import { requireBusiness } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import { formatDate } from "@/lib/utils";
 import type { Customer } from "@/lib/types";
 
 export const metadata = { title: "Customers" };
 
 export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const s = await requireBusiness();
+  const s = await requirePermission("crm");
   const { q } = await searchParams;
   const t = tenant(s.business.id);
   const [all, projects] = await Promise.all([

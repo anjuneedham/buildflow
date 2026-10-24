@@ -3,17 +3,18 @@
 
 export type Tone = "neutral" | "blue" | "orange" | "green" | "red" | "yellow" | "purple";
 
+// Five stages (UX_ARCHITECTURE_V2.md §3.5). "Won" means a job was started.
 export const LEAD_STATUSES = [
   { value: "new", label: "New", tone: "orange" },
   { value: "contacted", label: "Contacted", tone: "blue" },
-  { value: "qualified", label: "Qualified", tone: "purple" },
-  { value: "quote_sent", label: "Quote sent", tone: "yellow" },
-  { value: "negotiation", label: "Negotiation", tone: "yellow" },
+  { value: "quote_sent", label: "Quoted", tone: "yellow" },
   { value: "won", label: "Won", tone: "green" },
   { value: "lost", label: "Lost", tone: "red" },
 ] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number]["value"];
-export const OPEN_LEAD_STATUSES: LeadStatus[] = ["new", "contacted", "qualified", "quote_sent", "negotiation"];
+export const OPEN_LEAD_STATUSES: LeadStatus[] = ["new", "contacted", "quote_sent"];
+
+export const LOST_REASONS = ["Too expensive", "Went with someone else", "No reply", "Not a job we do", "Other"] as const;
 
 export const LEAD_SOURCES = [
   { value: "buildflow", label: "BuildFlow" },
@@ -50,7 +51,9 @@ export const TASK_PRIORITIES = [
 ] as const;
 export type TaskPriority = (typeof TASK_PRIORITIES)[number]["value"];
 
+// prospect → active (a job started) → past (all jobs finished). Set automatically.
 export const CUSTOMER_STATUSES = [
+  { value: "prospect", label: "Prospect", tone: "orange" },
   { value: "active", label: "Active", tone: "green" },
   { value: "inactive", label: "Inactive", tone: "neutral" },
   { value: "past", label: "Past client", tone: "blue" },
@@ -86,6 +89,11 @@ export const values = <T extends readonly { value: string }[]>(list: T) =>
 
 export const UPLOAD = {
   maxBytes: 10 * 1024 * 1024,
+  maxFileBytes: 20 * 1024 * 1024,
   maxImagesPerPost: 10,
-  allowedTypes: ["image/jpeg", "image/png", "image/webp", "image/heic"],
+  maxFilesPerUpload: 10,
+  // Checked against the file's real bytes, not the browser-reported type.
+  allowedTypes: ["image/jpeg", "image/png", "image/webp"],
+  imageAccept: "image/jpeg,image/png,image/webp",
+  fileAccept: "application/pdf,image/jpeg,image/png,image/webp",
 };

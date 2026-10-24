@@ -7,7 +7,7 @@ import { ButtonLink, Card, CardBody, CardHeader, PageHeader, StatusBadge } from 
 import { FormSuccess } from "@/components/ui/input";
 import { fromDoc, isId, list } from "@/lib/data/db";
 import { tenant } from "@/lib/data/tenant";
-import { requireBusiness } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import { formatAmount, formatDate } from "@/lib/utils";
 import type { Customer, Lead, NoteRow, Project } from "@/lib/types";
 import { DeleteCustomer } from "./delete-customer";
@@ -17,7 +17,7 @@ export const metadata = { title: "Customer" };
 export default async function CustomerPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ converted?: string }> }) {
   const { id } = await params;
   const { converted } = await searchParams;
-  const s = await requireBusiness();
+  const s = await requirePermission("crm");
   const t = tenant(s.business.id);
   const c = isId(id) ? fromDoc<Customer>(await t.doc("customers", id).get()) : null;
   if (!c) notFound();
@@ -35,7 +35,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
         subtitle={<span className="flex items-center gap-2"><StatusBadge kind="customer" value={c.status} />Customer since {formatDate(c.created_at)}</span>}
         actions={<>
           <ButtonLink href={`/app/customers/${id}/edit`} variant="outline" size="sm"><Pencil className="h-4 w-4" />Edit</ButtonLink>
-          {s.isOwner && <DeleteCustomer id={id} />}
+          {s.can("records.delete") && <DeleteCustomer id={id} />}
         </>} />
       <div className="grid grid-cols-2 gap-2 sm:flex">
         {c.phone && <ButtonLink href={`tel:${c.phone}`} variant="dark"><Phone className="h-4 w-4" />Call</ButtonLink>}

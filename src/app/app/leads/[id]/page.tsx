@@ -6,7 +6,7 @@ import { Notes } from "@/components/crm/notes";
 import { Badge, ButtonLink, Card, CardBody, CardHeader, PageHeader, StatusBadge } from "@/components/ui";
 import { fromDoc, isId, list } from "@/lib/data/db";
 import { tenant } from "@/lib/data/tenant";
-import { requireBusiness } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import { getTeam } from "@/lib/team";
 import { LEAD_SOURCES, optionFor } from "@/lib/constants";
 import { formatAmount, formatDate } from "@/lib/utils";
@@ -17,7 +17,7 @@ export const metadata = { title: "Lead" };
 
 export default async function LeadPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const s = await requireBusiness();
+  const s = await requirePermission("crm");
   const t = tenant(s.business.id);
   const lead = isId(id) ? fromDoc<Lead>(await t.doc("leads", id).get()) : null;
   if (!lead) notFound();
@@ -71,7 +71,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
               {projects.map((p) => (
                 <Link key={p.id} href={`/app/projects/${p.id}`} className="flex items-center gap-2 rounded-lg bg-concrete-50 p-3 text-sm font-semibold"><Briefcase className="h-4 w-4" />{p.name}</Link>
               ))}
-              <LeadActions id={id} hasCustomer={Boolean(lead.customer_id)} customerId={lead.customer_id ?? undefined} isOwner={s.isOwner} />
+              <LeadActions id={id} hasCustomer={Boolean(lead.customer_id)} customerId={lead.customer_id ?? undefined} isOwner={s.can("records.delete")} />
             </CardBody>
           </Card>
           <Card><CardHeader title="Activity" /><CardBody><ActivityList items={activity} /></CardBody></Card>

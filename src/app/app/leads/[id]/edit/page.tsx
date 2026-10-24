@@ -5,7 +5,7 @@ import { Card, PageHeader } from "@/components/ui";
 import { fromDoc, isId } from "@/lib/data/db";
 import { tenant } from "@/lib/data/tenant";
 import { getServices } from "@/lib/queries";
-import { requireBusiness } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import { getTeam } from "@/lib/team";
 import type { Lead } from "@/lib/types";
 
@@ -13,7 +13,7 @@ export const metadata = { title: "Edit lead" };
 
 export default async function EditLeadPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const s = await requireBusiness();
+  const s = await requirePermission("crm");
   const lead = isId(id) ? fromDoc<Lead>(await tenant(s.business.id).doc("leads", id).get()) : null;
   if (!lead) notFound();
   const [services, team] = await Promise.all([getServices(), getTeam(s.business.id)]);

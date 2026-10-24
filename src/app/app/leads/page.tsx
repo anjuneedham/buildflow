@@ -3,7 +3,7 @@ import { LeadCard } from "@/components/cards/lead-card";
 import { ButtonLink, EmptyState, PageHeader, Tabs } from "@/components/ui";
 import { list } from "@/lib/data/db";
 import { tenant } from "@/lib/data/tenant";
-import { requireBusiness } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import { getTeam } from "@/lib/team";
 import { LEAD_STATUSES, OPEN_LEAD_STATUSES } from "@/lib/constants";
 import { compactAmount } from "@/lib/utils";
@@ -12,7 +12,7 @@ import type { Lead } from "@/lib/types";
 export const metadata = { title: "Leads" };
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
-  const s = await requireBusiness();
+  const s = await requirePermission("crm");
   const { status = "open", q } = await searchParams;
   const [leads, team] = await Promise.all([
     list<Lead>(tenant(s.business.id).col("leads").orderBy("created_at", "desc").limit(500)),

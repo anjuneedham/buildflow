@@ -4,13 +4,13 @@ import { Card, PageHeader } from "@/components/ui";
 import { fromDoc, isId, list } from "@/lib/data/db";
 import { tenant } from "@/lib/data/tenant";
 import type { Lead } from "@/lib/types";
-import { requireBusiness } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import { getTeam } from "@/lib/team";
 
 export const metadata = { title: "New project" };
 
 export default async function NewProjectPage({ searchParams }: { searchParams: Promise<{ customerId?: string; leadId?: string }> }) {
-  const s = await requireBusiness();
+  const s = await requirePermission("projects.manage");
   const sp = await searchParams;
   const t = tenant(s.business.id);
   const [customers, team, lead] = await Promise.all([

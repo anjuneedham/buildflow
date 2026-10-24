@@ -1,5 +1,5 @@
 import "server-only";
-import { FieldValue, type WriteBatch } from "firebase-admin/firestore";
+import { FieldValue, type Transaction, type WriteBatch } from "firebase-admin/firestore";
 import { db } from "@/lib/firebase/admin";
 import { now } from "./db";
 
@@ -9,7 +9,7 @@ import { now } from "./db";
 // document id from the client can therefore only ever address a document
 // inside the caller's own business.
 export type TenantCollection =
-  | "customers" | "leads" | "projects" | "tasks" | "notes" | "activity" | "photos"
+  | "customers" | "leads" | "projects" | "tasks" | "notes" | "activity" | "photos" | "media"
   | "quote_requests" | "events" | "members" | "invitations";
 
 export function tenant(businessId: string) {
@@ -30,13 +30,26 @@ export function addEvent(batch: WriteBatch, businessId: string, type: EventType,
   batch.set(tenant(businessId).col("events").doc(), { type, created_at: now(), ...extra });
 }
 
-export function addActivity(batch: WriteBatch, businessId: string, entry: {
+export type ActivityEntry = {
   actorId: string | null; actorName?: string | null; entityType: string; entityId?: string | null; action: string; summary: string;
-}) {
-  batch.set(tenant(businessId).col("activity").doc(), {
+  /** Every record this entry belongs to, so each one's timeline shows it. */
+  customerId?: string | null; leadId?: string | null; projectId?: string | null;
+  body?: string | null; media?: { id: string; path: string; name?: string | null }[];
+};
+
+export function activityDoc(entry: ActivityEntry) {
+  return {
     actor_id: entry.actorId, actor_name: entry.actorName ?? null, entity_type: entry.entityType, entity_id: entry.entityId ?? null,
-    action: entry.action, summary: entry.summary, created_at: now(),
-  });
+    action: entry.action, summary: entry.summary, body: entry.body ?? null, media: entry.media ?? [],
+    customer_id: entry.customerId ?? null, lead_id: entry.leadId ?? null, project_id: entry.projectId ?? null, created_at: now(),
+  };
+}
+
+/** Appends a timeline entry; works on a batch or inside a transaction. */
+export function addActivity(writer: WriteBatch | Transaction, businessId: string, entry: ActivityEntry) {
+  const ref = tenant(businessId).col("activity").doc();
+  (writer as WriteBatch).set(ref, activityDoc(entry));
+  return ref;
 }
 
 export type NotificationType = "quote_request" | "new_lead" | "comment" | "follower" | "project_assigned" | "task_assigned" | "system";

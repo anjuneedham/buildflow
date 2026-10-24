@@ -6,6 +6,7 @@ import { isId, newId, now } from "@/lib/data/db";
 import { isVisible, recountPosts } from "@/lib/data/business";
 import { addActivity, addEvent, addNotification, inc, ownerIds, tenant } from "@/lib/data/tenant";
 import { getSession, requireBusiness } from "@/lib/session";
+import { isEmailVerified, VERIFY_EMAIL_MESSAGE } from "@/server/email-verification";
 import { rateLimit } from "@/lib/rate-limit";
 import { uploadImage, validImage } from "@/lib/storage";
 import { UPLOAD } from "@/lib/constants";
@@ -29,6 +30,9 @@ async function visiblePost(postId: string) {
 // ---------------- Posts ----------------
 export async function createPost(_: ActionState, fd: FormData): Promise<ActionState> {
   const s = await requireBusiness();
+  if (!s.can("profile.edit")) return { ok: false, error: "You don't have permission to publish posts." };
+  // Publishing is public: require a verified email (ARCHITECTURE_V2.md §5.1).
+  if (!(await isEmailVerified(s.user.id))) return { ok: false, error: VERIFY_EMAIL_MESSAGE };
   const parsed = parseForm(postSchema, fd);
   if (!parsed.data) return parsed.state;
   const d = parsed.data;
@@ -67,7 +71,7 @@ export async function deletePost(postId: string) {
   if (!isId(postId)) return { ok: false, error: "Post not found" };
   const ref = db().collection("posts").doc(postId);
   const post = await ref.get();
-  if (!post.exists || post.get("business_id") !== s.business.id || (!s.isOwner && post.get("author_id") !== s.user.id)) return { ok: false, error: "You can't delete this post." };
+  if (!post.exists || post.get("business_id") !== s.business.id || (!s.can("profile.edit") && post.get("author_id") !== s.user.id)) return { ok: false, error: "You can't delete this post." };
   const comments = await ref.collection("comments").get();
   const batch = db().batch();
   comments.docs.forEach((c) => batch.delete(c.ref));

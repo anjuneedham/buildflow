@@ -5,13 +5,27 @@ import { db, bucket } from "@/lib/firebase/admin";
 import { isId, now } from "@/lib/data/db";
 import { addActivity, addEvent, addNotification, inc, tenant } from "@/lib/data/tenant";
 import { requireBusiness } from "@/lib/session";
+import { canAccessProject } from "@/server/policy";
 import { uploadImage, validImage } from "@/lib/storage";
 import { PROJECT_STATUSES, TASK_STATUSES, optionFor, values } from "@/lib/constants";
 import { docId, parseForm, projectSchema, taskSchema, type ActionState } from "@/lib/validation";
 
 async function ctx() {
   const s = await requireBusiness();
-  return { t: tenant(s.business.id), businessId: s.business.id, userId: s.user.id, userName: s.profile?.full_name ?? null, isOwner: s.isOwner };
+  return {
+    t: tenant(s.business.id), businessId: s.business.id, userId: s.user.id, userName: s.profile?.full_name ?? null,
+    role: s.role, canManage: s.can("projects.manage"), canDelete: s.can("records.delete"),
+  };
+}
+
+const FORBIDDEN = { ok: false, error: "You don't have permission to do that." } as const;
+
+/** Loads a job the caller may work on (crew: only jobs they're assigned to). */
+async function accessibleProject(c: Awaited<ReturnType<typeof ctx>>, projectId: string) {
+  if (!isId(projectId)) return null;
+  const snap = await c.t.doc("projects", projectId).get();
+  if (!snap.exists || !canAccessProject(c.role, c.userId, { member_ids: snap.get("member_ids") })) return null;
+  return snap;
 }
 
 /** Only ids of real members survive; prevents assigning outsiders. */
@@ -40,7 +54,8 @@ const projectFields = (d: z.infer<typeof projectSchema>) => ({
 });
 
 export async function createProject(_: ActionState, fd: FormData): Promise<ActionState> {
-  const { t, businessId, userId, userName } = await ctx();
+  const { t, businessId, userId, userName, canManage } = await ctx();
+  if (!canManage) return FORBIDDEN;
   const parsed = parseForm(projectSchema, fd);
   if (!parsed.data) return parsed.state;
   const d = parsed.data;
@@ -70,7 +85,8 @@ export async function createProject(_: ActionState, fd: FormData): Promise<Actio
 }
 
 export async function updateProject(id: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  const { t, businessId, userId, userName } = await ctx();
+  const { t, businessId, userId, userName, canManage } = await ctx();
+  if (!canManage) return FORBIDDEN;
   if (!isId(id)) return { ok: false, error: "Project not found." };
   const parsed = parseForm(projectSchema, fd);
   if (!parsed.data) return parsed.state;
@@ -97,7 +113,8 @@ export async function updateProject(id: string, _: ActionState, fd: FormData): P
 }
 
 export async function setProjectStatus(id: string, status: string) {
-  const { t, businessId, userId, userName } = await ctx();
+  const { t, businessId, userId, userName, canManage } = await ctx();
+  if (!canManage) return FORBIDDEN;
   const parsed = z.enum(values(PROJECT_STATUSES)).safeParse(status);
   if (!parsed.success || !isId(id)) return { ok: false, error: "Invalid status" };
   const ref = t.doc("projects", id);
@@ -115,8 +132,8 @@ export async function setProjectStatus(id: string, status: string) {
 }
 
 export async function deleteProject(id: string) {
-  const { t, businessId, isOwner } = await ctx();
-  if (!isOwner) return { ok: false, error: "Only the business owner can delete projects." };
+  const { t, businessId, canDelete } = await ctx();
+  if (!canDelete) return { ok: false, error: "You don't have permission to delete jobs." };
   if (!isId(id)) return { ok: false, error: "Project not found." };
   const [tasks, photos, notes, posts] = await Promise.all([
     t.col("tasks").where("project_id", "==", id).get(),
@@ -136,13 +153,13 @@ export async function deleteProject(id: string) {
 
 // ---------------- Tasks ----------------
 export async function createTask(projectId: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  const { t, businessId, userId, userName } = await ctx();
-  if (!isId(projectId)) return { ok: false, error: "Project not found." };
+  const c = await ctx();
+  const { t, businessId, userId, userName } = c;
   const parsed = parseForm(taskSchema, fd);
   if (!parsed.data) return parsed.state;
   const d = parsed.data;
-  const project = await t.doc("projects", projectId).get();
-  if (!project.exists) return { ok: false, error: "Project not found." };
+  const project = await accessibleProject(c, projectId);
+  if (!project) return { ok: false, error: "Project not found." };
   if (d.assignedTo && !(await memberIds(businessId, [d.assignedTo])).length) return { ok: false, error: "That person isn't on your team." };
   const ts = now();
   const ref = t.col("tasks").doc();
@@ -159,7 +176,8 @@ export async function createTask(projectId: string, _: ActionState, fd: FormData
 }
 
 export async function setTaskStatus(taskId: string, status: string) {
-  const { t, userId, userName } = await ctx();
+  const c = await ctx();
+  const { t, userId, userName } = c;
   const parsed = z.enum(values(TASK_STATUSES)).safeParse(status);
   if (!parsed.success || !isId(taskId)) return { ok: false, error: "Invalid status" };
   const ref = t.doc("tasks", taskId);
@@ -169,6 +187,8 @@ export async function setTaskStatus(taskId: string, status: string) {
       const task = await tx.get(ref);
       if (!task.exists) throw new Error("nf");
       projectId = task.get("project_id");
+      const project = await tx.get(t.doc("projects", projectId));
+      if (!project.exists || !canAccessProject(c.role, c.userId, { member_ids: project.get("member_ids") })) throw new Error("nf");
       const was = task.get("status");
       if (was === parsed.data) return;
       tx.update(ref, { status: parsed.data, completed_at: parsed.data === "done" ? now() : null, updated_at: now() });
@@ -185,7 +205,8 @@ export async function setTaskStatus(taskId: string, status: string) {
 }
 
 export async function deleteTask(taskId: string) {
-  const { t } = await ctx();
+  const { t, canManage } = await ctx();
+  if (!canManage) return FORBIDDEN;
   if (!isId(taskId)) return { ok: false };
   const ref = t.doc("tasks", taskId);
   let projectId = "";
@@ -201,8 +222,9 @@ export async function deleteTask(taskId: string) {
 
 // ---------------- Photos ----------------
 export async function uploadProjectPhotos(projectId: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  const { t, businessId, userId, userName } = await ctx();
-  if (!isId(projectId) || !(await t.doc("projects", projectId).get()).exists) return { ok: false, error: "Project not found." };
+  const c = await ctx();
+  const { t, businessId, userId, userName } = c;
+  if (!(await accessibleProject(c, projectId))) return { ok: false, error: "Project not found." };
   const files = fd.getAll("photos").filter(validImage).slice(0, 10);
   if (files.length === 0) return { ok: false, error: "Choose at least one photo." };
   const caption = String(fd.get("caption") ?? "").trim().slice(0, 300) || null;

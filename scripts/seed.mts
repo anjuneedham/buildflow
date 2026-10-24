@@ -143,7 +143,7 @@ async function demo() {
     ["Kerry-Ann Douglas (Demo)", "Two-bedroom extension on existing house.", "general-contractor", "new", "buildflow", 4200000, null],
     ["Garfield Morris (Demo)", "Perimeter wall, about 60 ft.", "mason", "contacted", "referral", 650000, "demo-crew-kpb"],
     ["Nadine Scott (Demo)", "Kitchen remodel with new cabinets.", "renovation", "quote_sent", "social_media", 1800000, null],
-    ["Ocean View Apartments (Demo)", "Repaint and repair 12 units.", "painter", "negotiation", "website", 3100000, null],
+    ["Ocean View Apartments (Demo)", "Repaint and repair 12 units.", "painter", "quote_sent", "website", 3100000, null],
     ["Dwayne Clarke (Demo)", "Garage conversion.", null, "lost", "phone", 900000, null],
   ] as const;
   for (const [i, [name, description, service, status, source, value, assigned]] of leads.entries()) {

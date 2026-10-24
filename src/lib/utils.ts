@@ -24,10 +24,32 @@ export function initials(name: string | null | undefined) {
   return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase() || "?";
 }
 
+/**
+ * All BuildFlow businesses are in Jamaica for now. Calendar dates
+ * (due dates, follow-ups, "today") are computed in this zone, never in the
+ * server's zone or UTC, so a task due today is not "overdue" at 8 pm.
+ * Becomes a per-business setting (private/config.timezone) with multi-country.
+ */
+export const BUSINESS_TZ = "America/Jamaica";
+
+const isDateOnly = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
+
 export function formatDate(value: string | Date | null | undefined, opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" }) {
   if (!value) return "—";
-  const d = typeof value === "string" ? new Date(value.length === 10 ? value + "T00:00:00" : value) : value;
-  return d.toLocaleDateString("en-US", opts);
+  // Date-only strings are calendar dates: render them as-is (UTC midnight, UTC formatting).
+  if (typeof value === "string" && isDateOnly(value)) return new Date(value + "T00:00:00Z").toLocaleDateString("en-US", { ...opts, timeZone: "UTC" });
+  const d = typeof value === "string" ? new Date(value) : value;
+  return d.toLocaleDateString("en-US", { ...opts, timeZone: BUSINESS_TZ });
+}
+
+/** "Today", "Tomorrow", "Yesterday", weekday within a week, else a short date. */
+export function relativeDay(date: string, today: string) {
+  const diff = Math.round((Date.parse(date + "T00:00:00Z") - Date.parse(today + "T00:00:00Z")) / 864e5);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Tomorrow";
+  if (diff === -1) return "Yesterday";
+  if (diff > 1 && diff < 7) return formatDate(date, { weekday: "long" });
+  return formatDate(date, { month: "short", day: "numeric" });
 }
 
 export function timeAgo(value: string | Date) {
@@ -67,12 +89,37 @@ export function daysUntil(iso: string) {
   return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 864e5));
 }
 
-/** YYYY-MM-DD for today + n days. */
-export function dateInDays(n: number) {
-  return new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+/** YYYY-MM-DD in the business timezone for an instant. */
+export function localDate(at: Date = new Date(), tz = BUSINESS_TZ) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
 }
 
-export function startOfMonthISO() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+/** YYYY-MM-DD (business timezone) for today + n days. */
+export function dateInDays(n: number, tz = BUSINESS_TZ) {
+  const today = localDate(new Date(), tz);
+  return new Date(Date.parse(today + "T00:00:00Z") + n * 864e5).toISOString().slice(0, 10);
+}
+
+/** First instant of the current month in the business timezone, as ISO. */
+export function startOfMonthISO(tz = BUSINESS_TZ) {
+  const [y, m] = localDate(new Date(), tz).split("-").map(Number);
+  // Jamaica has no DST: a fixed offset is exact. Derive it rather than hard-code.
+  const probe = new Date(Date.UTC(y, m - 1, 1, 12));
+  const local = new Date(probe.toLocaleString("en-US", { timeZone: tz }));
+  const offsetMs = probe.getTime() - local.getTime() - probe.getTimezoneOffset() * 6e4;
+  return new Date(Date.UTC(y, m - 1, 1) + offsetMs).toISOString();
+}
+
+/** Digits only, for matching phone numbers typed in different formats. */
+export function phoneDigits(phone: string | null | undefined) {
+  const d = (phone ?? "").replace(/\D/g, "");
+  if (d.length < 7) return null;
+  // Jamaican numbers are often typed without the country code: 876-555-1234.
+  return d.length === 10 && d.startsWith("876") ? "1" + d : d;
+}
+
+export function whatsappLink(phone: string | null | undefined, text?: string) {
+  const d = phoneDigits(phone);
+  if (!d) return null;
+  return `https://wa.me/${d}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
 }

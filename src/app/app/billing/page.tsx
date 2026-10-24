@@ -4,7 +4,7 @@ import { db } from "@/lib/firebase/admin";
 import { count } from "@/lib/data/db";
 import { tenant } from "@/lib/data/tenant";
 import { getPlan } from "@/lib/plans.server";
-import { requireBusiness } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import { billingMode } from "@/lib/billing";
 import { formatMoney, seatPriceBreakdown } from "@/lib/plans";
 import { daysUntil, formatDate } from "@/lib/utils";
@@ -12,7 +12,7 @@ import { daysUntil, formatDate } from "@/lib/utils";
 export const metadata = { title: "Billing" };
 
 export default async function BillingPage() {
-  const s = await requireBusiness();
+  const s = await requirePermission("billing.manage");
   const [subSnap, members] = await Promise.all([
     db().collection("subscriptions").doc(s.business.id).get(),
     count(tenant(s.business.id).col("members")),

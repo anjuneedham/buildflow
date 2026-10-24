@@ -147,7 +147,10 @@ export const reportSchema = z.object({
   details: optText(1000),
 });
 
-export const inviteSchema = z.object({ email: z.string().trim().email("Enter a valid email") });
+export const inviteSchema = z.object({
+  email: z.string().trim().email("Enter a valid email"),
+  role: z.enum(["admin", "field"]).default("field"),
+});
 
 export type ActionState = {
   ok?: boolean;

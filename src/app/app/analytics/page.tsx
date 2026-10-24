@@ -1,7 +1,7 @@
 import { Card, CardBody, CardHeader, PageHeader } from "@/components/ui";
 import { list } from "@/lib/data/db";
 import { tenant } from "@/lib/data/tenant";
-import { requireBusiness } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import { LEAD_SOURCES } from "@/lib/constants";
 
 export const metadata = { title: "Analytics" };
@@ -21,7 +21,7 @@ const METRICS = [
 ] as const;
 
 export default async function AnalyticsPage() {
-  const s = await requireBusiness();
+  const s = await requirePermission("analytics.view");
   const t = tenant(s.business.id);
   const now = new Date();
   const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);

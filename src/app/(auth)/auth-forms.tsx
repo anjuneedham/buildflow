@@ -6,7 +6,7 @@ import { useState, type FormEvent } from "react";
 import { HardHat, Home, Loader2 } from "lucide-react";
 import { FirebaseError } from "firebase/app";
 import {
-  createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile,
+  createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile, type User,
 } from "firebase/auth";
 import { establishSession } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,18 @@ function Submit({ pending, children, pendingText }: { pending: boolean; children
   return <Button type="submit" block size="lg" disabled={pending} aria-busy={pending}>{pending && <Loader2 className="h-4 w-4 animate-spin" />}{pending ? pendingText : children}</Button>;
 }
 
+/**
+ * Exchanges the signed-in Firebase user for a server session. If the server
+ * updated the user's claims, refresh the ID token once so the session cookie
+ * carries them.
+ */
+async function startSession(user: User, extra: Omit<Parameters<typeof establishSession>[0], "idToken"> = {}) {
+  let r = await establishSession({ idToken: await user.getIdToken(), ...extra });
+  if (!r.ok && "refreshToken" in r) r = await establishSession({ idToken: await user.getIdToken(true), ...extra });
+  if (!r.ok) throw new Error("error" in r ? r.error : "Couldn't sign you in. Please try again.");
+  return r;
+}
+
 export function LoginForm({ next }: { next?: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -40,8 +52,7 @@ export function LoginForm({ next }: { next?: string }) {
     setPending(true); setError(undefined);
     try {
       const cred = await signInWithEmailAndPassword(clientAuth(), String(fd.get("email")).trim(), String(fd.get("password")));
-      const r = await establishSession({ idToken: await cred.user.getIdToken(), next });
-      if (!r.ok) throw new Error(r.error);
+      const r = await startSession(cred.user, { next });
       router.replace(r.next);
       router.refresh();
     } catch (err) {
@@ -89,8 +100,7 @@ export function SignUpForm({ defaultType }: { defaultType: "contractor" | "custo
       const cred = await createUserWithEmailAndPassword(clientAuth(), email, password);
       await updateProfile(cred.user, { displayName: fullName });
       await sendEmailVerification(cred.user).catch(() => {});
-      const r = await establishSession({ idToken: await cred.user.getIdToken(), fullName, accountType: type });
-      if (!r.ok) throw new Error(r.error);
+      const r = await startSession(cred.user, { fullName, accountType: type });
       router.replace(r.next);
       router.refresh();
     } catch (err) {

@@ -6,6 +6,8 @@ import { AccountForm } from "./account-form";
 import { Card, StatusBadge } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
 import { signOut } from "@/app/actions/auth";
+import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
+import { isEmailVerified } from "@/server/email-verification";
 
 export const metadata = { title: "Account", robots: { index: false } };
 
@@ -16,6 +18,7 @@ export default async function AccountPage() {
   return (
     <main id="main" tabIndex={-1} className="mx-auto max-w-xl space-y-6 px-4 py-6">
       <h1 className="font-display text-2xl font-extrabold">Account</h1>
+      {!(s.user.emailVerified || (await isEmailVerified(s.user.id))) && <VerifyEmailBanner email={s.user.email} />}
       <Card className="p-4">
         <AccountForm name={s.profile?.full_name ?? ""} avatar={s.profile?.avatar_url ?? null} email={s.user.email ?? ""} />
       </Card>

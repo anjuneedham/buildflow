@@ -4,7 +4,7 @@ import { ProjectForm } from "@/components/crm/project-form";
 import { Card, PageHeader } from "@/components/ui";
 import { fromDoc, isId, list } from "@/lib/data/db";
 import { tenant } from "@/lib/data/tenant";
-import { requireBusiness } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import { getTeam } from "@/lib/team";
 import type { Project } from "@/lib/types";
 
@@ -12,7 +12,7 @@ export const metadata = { title: "Edit project" };
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const s = await requireBusiness();
+  const s = await requirePermission("projects.manage");
   if (!isId(id)) notFound();
   const t = tenant(s.business.id);
   const [project, customers, team] = await Promise.all([

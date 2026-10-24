@@ -8,9 +8,10 @@ import { db } from "@/lib/firebase/admin";
 import { fromDoc, isId, list } from "@/lib/data/db";
 import { tenant } from "@/lib/data/tenant";
 import { requireBusiness } from "@/lib/session";
+import { canAccessProject } from "@/server/policy";
 import { privateMediaUrl } from "@/lib/storage";
 import { getTeam } from "@/lib/team";
-import { formatAmount, formatDate } from "@/lib/utils";
+import { dateInDays, formatAmount, formatDate } from "@/lib/utils";
 import type { ActivityRow, NoteRow, Project, Task } from "@/lib/types";
 import { DeleteProject, PhotoUpload, ProjectStatus, TaskList } from "./project-client";
 
@@ -21,7 +22,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const s = await requireBusiness();
   const t = tenant(s.business.id);
   const p = isId(id) ? fromDoc<Project>(await t.doc("projects", id).get()) : null;
-  if (!p) notFound();
+  // Same response for "doesn't exist" and "not yours" (no existence leak).
+  if (!p || !canAccessProject(s.role, s.user.id, p)) notFound();
+  const canManage = s.can("projects.manage");
   const [tasks, photos, notes, activity, posts, team] = await Promise.all([
     list<Task>(t.col("tasks").where("project_id", "==", id)),
     list<{ id: string; path: string; caption: string | null }>(t.col("photos").where("project_id", "==", id).orderBy("created_at", "desc")),
@@ -43,11 +46,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       <PageHeader title={p.name} back={{ href: "/app/projects", label: "Projects" }}
         subtitle={<StatusBadge kind="project" value={p.status} />}
         actions={<>
-          <ButtonLink href={`/app/projects/${id}/edit`} variant="outline" size="sm"><Pencil className="h-4 w-4" />Edit</ButtonLink>
-          {s.isOwner && <DeleteProject id={id} />}
+          {canManage && <ButtonLink href={`/app/projects/${id}/edit`} variant="outline" size="sm"><Pencil className="h-4 w-4" />Edit</ButtonLink>}
+          {s.can("records.delete") && <DeleteProject id={id} />}
         </>} />
 
-      {isCompleted && (
+      {isCompleted && canManage && (
         <Card className="flex flex-col gap-3 border-safety-400 bg-safety-50 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-bold text-ink">{hasPost ? "This project is on your profile." : "Job done! Show it off."}</p>
@@ -57,11 +60,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         </Card>
       )}
 
-      <Card><CardHeader title="Status" /><CardBody><ProjectStatus id={id} status={p.status} /></CardBody></Card>
+      {canManage && <Card><CardHeader title="Status" /><CardBody><ProjectStatus id={id} status={p.status} /></CardBody></Card>}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <InfoTile icon={User} label="Customer" value={p.customer_id ? <Link href={`/app/customers/${p.customer_id}`} className="underline">{p.customer_name}</Link> : "—"} />
-        <InfoTile icon={Wallet} label="Budget" value={formatAmount(p.budget)} />
+        <InfoTile icon={User} label="Customer" value={p.customer_id && s.can("crm") ? <Link href={`/app/customers/${p.customer_id}`} className="underline">{p.customer_name}</Link> : p.customer_name ?? "—"} />
+        {canManage && <InfoTile icon={Wallet} label="Budget" value={formatAmount(p.budget)} />}
         <InfoTile icon={CalendarDays} label="Timeline" value={`${formatDate(p.start_date, { month: "short", day: "numeric" })} → ${formatDate(p.expected_end_date, { month: "short", day: "numeric" })}`} />
         <InfoTile icon={MapPin} label="Location" value={p.location ?? "—"} />
       </div>
@@ -72,7 +75,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           <Card>
             <CardHeader title="Tasks" subtitle={allTasks.length ? `${done} of ${allTasks.length} done` : undefined} />
             {allTasks.length > 0 && <div className="h-1.5 bg-concrete-200"><div className="h-full bg-safety-500" style={{ width: `${(done / allTasks.length) * 100}%` }} /></div>}
-            <CardBody><TaskList projectId={id} tasks={allTasks} team={team} /></CardBody>
+            <CardBody><TaskList projectId={id} tasks={allTasks} team={team} canDelete={canManage} today={dateInDays(0)} /></CardBody>
           </Card>
           <Card>
             <CardHeader title="Site photos" subtitle="Private to your team" />
@@ -94,7 +97,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         </div>
         <div className="space-y-4">
           <Card>
-            <CardHeader title="Team" action={<Link href={`/app/projects/${id}/edit`} className="text-sm font-semibold text-safety-700">Manage</Link>} />
+            <CardHeader title="Team" action={canManage ? <Link href={`/app/projects/${id}/edit`} className="text-sm font-semibold text-safety-700">Manage</Link> : undefined} />
             <CardBody>
               {crew.length === 0 ? <p className="text-sm text-ink-500">No one assigned yet.</p> : (
                 <ul className="space-y-2">{crew.map((m) => <li key={m.user_id} className="flex items-center gap-2 text-sm"><Avatar src={m.avatar_url} name={m.full_name} size="sm" />{m.full_name}<span className="text-xs capitalize text-ink-500">{m.role}</span></li>)}</ul>

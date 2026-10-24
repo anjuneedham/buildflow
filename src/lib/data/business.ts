@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/firebase/admin";
 import type { Business, Location } from "@/lib/types";
+import { BUSINESS_TZ } from "@/lib/utils";
 
 /** Resolves service ids → denormalised {id,name,slug} for the business doc. */
 export async function resolveServices(ids: string[]) {
@@ -13,6 +14,16 @@ export async function resolveRegion(id: string | null | undefined): Promise<Busi
   if (!id) return null;
   const snap = await db().collection("locations").doc(id).get();
   return snap.exists ? { id: snap.id, name: (snap.data() as Location).name } : null;
+}
+
+/** businesses/{id}/private/config defaults (FIRESTORE_SCHEMA_V2.md §3.3). */
+export function defaultBusinessConfig() {
+  return {
+    currency: "JMD", timezone: BUSINESS_TZ,
+    tax: { label: "GCT", rate_bps: null, number: null, prices_include_tax: false },
+    quote_prefix: "Q-", next_quote_number: 1, invoice_prefix: "INV-", next_invoice_number: 1,
+    created_at: new Date().toISOString(),
+  };
 }
 
 export const isVisible = (b: Pick<Business, "is_public" | "is_suspended">) => b.is_public && !b.is_suspended;
