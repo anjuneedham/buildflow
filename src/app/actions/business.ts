@@ -154,7 +154,7 @@ export async function acceptInvite(token: string) {
 
 // ---------------- Notifications ----------------
 export async function markAllNotificationsRead() {
-  const s = await requireUser("/app/notifications");
+  const s = await requireUser("/app/inbox");
   const unread = await db().collection("users").doc(s.user.id).collection("notifications").where("read_at", "==", null).limit(400).get();
   const batch = db().batch();
   unread.docs.forEach((d) => batch.update(d.ref, { read_at: now() }));

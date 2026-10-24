@@ -77,11 +77,11 @@ export async function createProject(_: ActionState, fd: FormData): Promise<Actio
     }
   }
   if (d.status === "completed") addEvent(batch, businessId, "project_completed", { project_id: ref.id });
-  members.filter((m) => m !== userId).forEach((m) => addNotification(batch, m, { businessId, type: "project_assigned", title: `You were added to ${d.name}`, link: `/app/projects/${ref.id}` }));
+  members.filter((m) => m !== userId).forEach((m) => addNotification(batch, m, { businessId, type: "project_assigned", title: `You were added to ${d.name}`, link: `/app/jobs/${ref.id}` }));
   addActivity(batch, businessId, { actorId: userId, actorName: userName, entityType: "project", entityId: ref.id, action: "created", summary: `Created project ${d.name}` });
   await batch.commit();
   if (d.status === "completed") await refreshCompletedCount(businessId);
-  return { ok: true, redirectTo: `/app/projects/${ref.id}` };
+  return { ok: true, redirectTo: `/app/jobs/${ref.id}` };
 }
 
 export async function updateProject(id: string, _: ActionState, fd: FormData): Promise<ActionState> {
@@ -105,11 +105,11 @@ export async function updateProject(id: string, _: ActionState, fd: FormData): P
     completed_at: d.status === "completed" ? prev.get("completed_at") ?? now() : null,
   });
   if (d.status === "completed" && !wasCompleted) addEvent(batch, businessId, "project_completed", { project_id: id });
-  members.filter((m) => !before.includes(m) && m !== userId).forEach((m) => addNotification(batch, m, { businessId, type: "project_assigned", title: `You were added to ${d.name}`, link: `/app/projects/${id}` }));
+  members.filter((m) => !before.includes(m) && m !== userId).forEach((m) => addNotification(batch, m, { businessId, type: "project_assigned", title: `You were added to ${d.name}`, link: `/app/jobs/${id}` }));
   addActivity(batch, businessId, { actorId: userId, actorName: userName, entityType: "project", entityId: id, action: "updated", summary: "Updated project details" });
   await batch.commit();
   if (wasCompleted !== (d.status === "completed")) await refreshCompletedCount(businessId);
-  return { ok: true, redirectTo: `/app/projects/${id}` };
+  return { ok: true, redirectTo: `/app/jobs/${id}` };
 }
 
 export async function setProjectStatus(id: string, status: string) {
@@ -148,7 +148,7 @@ export async function deleteProject(id: string) {
   await batch.commit();
   await Promise.all(photos.docs.map((p) => bucket().file(p.get("path")).delete().catch(() => {})));
   await refreshCompletedCount(businessId);
-  return { ok: true, redirectTo: "/app/projects" };
+  return { ok: true, redirectTo: "/app/jobs" };
 }
 
 // ---------------- Tasks ----------------
@@ -169,7 +169,7 @@ export async function createTask(projectId: string, _: ActionState, fd: FormData
     due_date: d.dueDate ?? null, priority: d.priority, status: d.status, completed_at: d.status === "done" ? ts : null, created_by: userId, created_at: ts, updated_at: ts,
   });
   batch.update(project.ref, { task_total: inc(), ...(d.status === "done" ? { task_done: inc() } : {}) });
-  if (d.assignedTo && d.assignedTo !== userId) addNotification(batch, d.assignedTo, { businessId, type: "task_assigned", title: `New task: ${d.title}`, link: `/app/projects/${projectId}` });
+  if (d.assignedTo && d.assignedTo !== userId) addNotification(batch, d.assignedTo, { businessId, type: "task_assigned", title: `New task: ${d.title}`, link: `/app/jobs/${projectId}` });
   addActivity(batch, businessId, { actorId: userId, actorName: userName, entityType: "project", entityId: projectId, action: "task_added", summary: `Added task "${d.title}"` });
   await batch.commit();
   return { ok: true, message: "Task added" };

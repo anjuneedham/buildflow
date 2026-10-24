@@ -7,20 +7,20 @@ import { list } from "@/lib/data/db";
 import { requireBusiness } from "@/lib/session";
 import { cn, timeAgo } from "@/lib/utils";
 
-export const metadata = { title: "Notifications" };
+export const metadata = { title: "Inbox" };
 
 const ICONS: Record<string, typeof Bell> = { quote_request: FileText, new_lead: FileText, comment: MessageCircle, follower: UserPlus, project_assigned: Briefcase, task_assigned: ListTodo, system: Bell, like: Heart };
 
-export default async function NotificationsPage() {
+export default async function InboxPage() {
   const s = await requireBusiness();
   const items = await list<{ id: string; type: string; title: string; body: string | null; link: string | null; read_at: string | null; created_at: string }>(
     db().collection("users").doc(s.user.id).collection("notifications").orderBy("created_at", "desc").limit(100));
   const unread = items.filter((n) => !n.read_at).length;
   return (
     <div className="mx-auto max-w-2xl">
-      <PageHeader title="Notifications" subtitle={unread ? `${unread} unread` : "You're all caught up"}
+      <PageHeader title="Inbox" subtitle={unread ? `${unread} unread` : "You're all caught up"}
         actions={unread > 0 ? <MarkAllRead /> : undefined} />
-      {items.length === 0 ? <EmptyState icon={Bell} title="No notifications yet" description="Quote requests, comments, new followers and assignments will show up here." /> : (
+      {items.length === 0 ? <EmptyState icon={Bell} title="Nothing here yet" description="New quote requests, jobs and tasks assigned to you, and other updates show up here." /> : (
         <Card className="divide-y divide-concrete-200">
           {items.map((n) => {
             const Icon = ICONS[n.type] ?? Bell;

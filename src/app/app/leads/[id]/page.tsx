@@ -69,7 +69,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                 <Link href={`/app/customers/${lead.customer_id}`} className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm font-semibold text-site-green"><UserCheck className="h-4 w-4" />Customer: {lead.customer_name ?? lead.name}</Link>
               )}
               {projects.map((p) => (
-                <Link key={p.id} href={`/app/projects/${p.id}`} className="flex items-center gap-2 rounded-lg bg-concrete-50 p-3 text-sm font-semibold"><Briefcase className="h-4 w-4" />{p.name}</Link>
+                <Link key={p.id} href={`/app/jobs/${p.id}`} className="flex items-center gap-2 rounded-lg bg-concrete-50 p-3 text-sm font-semibold"><Briefcase className="h-4 w-4" />{p.name}</Link>
               ))}
               <LeadActions id={id} hasCustomer={Boolean(lead.customer_id)} customerId={lead.customer_id ?? undefined} isOwner={s.can("records.delete")} />
             </CardBody>

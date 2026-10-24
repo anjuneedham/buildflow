@@ -30,7 +30,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
 
   return (
     <div className="space-y-4">
-      {converted && <FormSuccess message="Lead converted to a customer. Create a project when you're ready to start." />}
+      {converted && <FormSuccess message="Lead converted to a customer. Start a job when you're ready." />}
       <PageHeader title={c.name} back={{ href: "/app/customers", label: "Customers" }}
         subtitle={<span className="flex items-center gap-2"><StatusBadge kind="customer" value={c.status} />Customer since {formatDate(c.created_at)}</span>}
         actions={<>
@@ -40,14 +40,14 @@ export default async function CustomerPage({ params, searchParams }: { params: P
       <div className="grid grid-cols-2 gap-2 sm:flex">
         {c.phone && <ButtonLink href={`tel:${c.phone}`} variant="dark"><Phone className="h-4 w-4" />Call</ButtonLink>}
         {c.email && <ButtonLink href={`mailto:${c.email}`} variant="outline"><Mail className="h-4 w-4" />Email</ButtonLink>}
-        <ButtonLink href={`/app/projects/new?customerId=${id}`} className="col-span-2 sm:col-auto"><Plus className="h-4 w-4" />New project</ButtonLink>
+        <ButtonLink href={`/app/jobs/new?customerId=${id}`} className="col-span-2 sm:col-auto"><Plus className="h-4 w-4" />New job</ButtonLink>
       </div>
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <div className="space-y-4">
           <section>
-            <h2 className="mb-2 font-bold">Projects <span className="font-normal text-ink-500">· {formatAmount(totalValue)} total</span></h2>
+            <h2 className="mb-2 font-bold">Jobs <span className="font-normal text-ink-500">· {formatAmount(totalValue)} total</span></h2>
             {projects.length === 0 ? (
-              <Card className="p-4 text-sm text-ink-500">No projects yet for this customer.</Card>
+              <Card className="p-4 text-sm text-ink-500">No jobs yet for this customer.</Card>
             ) : <div className="grid gap-3 sm:grid-cols-2">{projects.map((p) => <ProjectCard key={p.id} project={p} />)}</div>}
           </section>
           <Card><CardHeader title="Notes" /><CardBody><Notes entityType="customer" entityId={id} notes={notes} viewerId={s.user.id} /></CardBody></Card>

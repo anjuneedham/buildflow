@@ -7,7 +7,7 @@ import type { Lead } from "@/lib/types";
 import { requirePermission } from "@/lib/session";
 import { getTeam } from "@/lib/team";
 
-export const metadata = { title: "New project" };
+export const metadata = { title: "New job" };
 
 export default async function NewProjectPage({ searchParams }: { searchParams: Promise<{ customerId?: string; leadId?: string }> }) {
   const s = await requirePermission("projects.manage");
@@ -20,10 +20,10 @@ export default async function NewProjectPage({ searchParams }: { searchParams: P
   ]);
   return (
     <div className="mx-auto max-w-2xl">
-      <PageHeader title="New project" back={{ href: "/app/projects", label: "Projects" }} subtitle={lead ? `From lead: ${lead.name}` : undefined} />
+      <PageHeader title="New job" back={{ href: "/app/jobs", label: "Jobs" }} subtitle={lead ? `From lead: ${lead.name}` : undefined} />
       <Card className="p-4">
-        <ProjectForm action={createProject} customers={customers} team={team} members={[s.user.id]} submitLabel="Create project"
-          defaults={{ customerId: sp.customerId ?? lead?.customer_id ?? undefined, leadId: lead?.id, name: lead ? `${lead.name} project` : undefined, location: lead?.location ?? undefined, budget: lead?.estimated_value, description: lead?.description }} />
+        <ProjectForm action={createProject} customers={customers} team={team} members={[s.user.id]} submitLabel="Create job"
+          defaults={{ customerId: sp.customerId ?? lead?.customer_id ?? undefined, leadId: lead?.id, name: lead ? `${lead.name} job` : undefined, location: lead?.location ?? undefined, budget: lead?.estimated_value, description: lead?.description }} />
       </Card>
     </div>
   );

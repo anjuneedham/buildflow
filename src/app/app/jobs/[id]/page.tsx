@@ -15,7 +15,7 @@ import { dateInDays, formatAmount, formatDate } from "@/lib/utils";
 import type { ActivityRow, NoteRow, Project, Task } from "@/lib/types";
 import { DeleteProject, PhotoUpload, ProjectStatus, TaskList } from "./project-client";
 
-export const metadata = { title: "Project" };
+export const metadata = { title: "Job" };
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -43,20 +43,20 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="space-y-4">
-      <PageHeader title={p.name} back={{ href: "/app/projects", label: "Projects" }}
+      <PageHeader title={p.name} back={{ href: "/app/jobs", label: "Jobs" }}
         subtitle={<StatusBadge kind="project" value={p.status} />}
         actions={<>
-          {canManage && <ButtonLink href={`/app/projects/${id}/edit`} variant="outline" size="sm"><Pencil className="h-4 w-4" />Edit</ButtonLink>}
+          {canManage && <ButtonLink href={`/app/jobs/${id}/edit`} variant="outline" size="sm"><Pencil className="h-4 w-4" />Edit</ButtonLink>}
           {s.can("records.delete") && <DeleteProject id={id} />}
         </>} />
 
       {isCompleted && canManage && (
         <Card className="flex flex-col gap-3 border-safety-400 bg-safety-50 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="font-bold text-ink">{hasPost ? "This project is on your profile." : "Job done! Show it off."}</p>
+            <p className="font-bold text-ink">{hasPost ? "This job is on your profile." : "Job done! Show it off."}</p>
             <p className="text-sm text-ink-600">{hasPost ? "Post an update or a before/after to keep it fresh." : "Completed work is the best way to win your next customer."}</p>
           </div>
-          <ButtonLink href={`/app/posts/new?projectId=${id}`} className="shrink-0"><Megaphone className="h-4 w-4" />Showcase this project</ButtonLink>
+          <ButtonLink href={`/app/posts/new?projectId=${id}`} className="shrink-0"><Megaphone className="h-4 w-4" />Showcase this job</ButtonLink>
         </Card>
       )}
 
@@ -97,7 +97,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         </div>
         <div className="space-y-4">
           <Card>
-            <CardHeader title="Team" action={canManage ? <Link href={`/app/projects/${id}/edit`} className="text-sm font-semibold text-safety-700">Manage</Link> : undefined} />
+            <CardHeader title="Team" action={canManage ? <Link href={`/app/jobs/${id}/edit`} className="text-sm font-semibold text-safety-700">Manage</Link> : undefined} />
             <CardBody>
               {crew.length === 0 ? <p className="text-sm text-ink-500">No one assigned yet.</p> : (
                 <ul className="space-y-2">{crew.map((m) => <li key={m.user_id} className="flex items-center gap-2 text-sm"><Avatar src={m.avatar_url} name={m.full_name} size="sm" />{m.full_name}<span className="text-xs capitalize text-ink-500">{m.role}</span></li>)}</ul>

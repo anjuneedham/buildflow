@@ -71,7 +71,7 @@ export function PostForm({ projects, services, defaults }: { projects: { id: str
         <Field label="Location" htmlFor="locationText" optional><Input id="locationText" name="locationText" defaultValue={defaults.location} placeholder="e.g. Portmore, St Catherine" /></Field>
       </div>
       {projects.length > 0 && (
-        <Field label="Link to project" htmlFor="projectId" hint="Only you see the link; customers see the post." optional>
+        <Field label="Link to job" htmlFor="projectId" hint="Only you see the link; customers see the post." optional>
           <Select id="projectId" name="projectId" defaultValue={defaults.projectId ?? ""} placeholder="None" options={projects.map((p) => ({ value: p.id, label: p.name }))} />
         </Field>
       )}

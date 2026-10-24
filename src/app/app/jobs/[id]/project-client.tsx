@@ -17,14 +17,14 @@ import { cn, formatDate } from "@/lib/utils";
 import type { Task, TeamMember } from "@/lib/types";
 
 export function ProjectStatus({ id, status }: { id: string; status: string }) {
-  return <StatusChanger label="Project status" value={status} options={PROJECT_STATUSES} onChange={(v) => setProjectStatus(id, v)} />;
+  return <StatusChanger label="Job status" value={status} options={PROJECT_STATUSES} onChange={(v) => setProjectStatus(id, v)} />;
 }
 
 export function DeleteProject({ id }: { id: string }) {
   return (
-    <ConfirmationDialog title="Delete this project?" description="Tasks, site photos and notes on this project will be deleted. Posts made from it stay on your profile." confirmLabel="Delete project"
+    <ConfirmationDialog title="Delete this job?" description="Tasks, site photos and notes on this job will be deleted. Posts made from it stay on your profile." confirmLabel="Delete job"
       onConfirm={() => deleteProject(id)}
-      trigger={(open) => <Button variant="ghost" size="sm" onClick={open} aria-label="Delete project" className="text-site-red"><Trash2 className="h-4 w-4" /></Button>} />
+      trigger={(open) => <Button variant="ghost" size="sm" onClick={open} aria-label="Delete job" className="text-site-red"><Trash2 className="h-4 w-4" /></Button>} />
   );
 }
 

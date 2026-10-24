@@ -7,7 +7,7 @@ import type { Project } from "@/lib/types";
 export function ProjectCard({ project, customerName, tasks }: { project: Project; customerName?: string | null; tasks?: { total: number; done: number } }) {
   const pct = tasks && tasks.total > 0 ? Math.round((tasks.done / tasks.total) * 100) : null;
   return (
-    <Link href={`/app/projects/${project.id}`} className="block rounded-xl border border-concrete-200 bg-white p-4 shadow-card hover:border-concrete-300">
+    <Link href={`/app/jobs/${project.id}`} className="block rounded-xl border border-concrete-200 bg-white p-4 shadow-card hover:border-concrete-300">
       <div className="flex items-start justify-between gap-2">
         <h3 className="line-clamp-2 font-bold text-ink">{project.name}</h3>
         <StatusBadge kind="project" value={project.status} />

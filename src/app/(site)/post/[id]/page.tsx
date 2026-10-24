@@ -64,7 +64,7 @@ export default async function PostPage({ params, searchParams }: Props) {
           <div className="flex flex-wrap gap-1.5">
             <Badge tone="orange">{optionFor(POST_TYPES, post.type)?.label}</Badge>
             {post.service && <Link href={`/explore?service=${post.service.slug}`}><Badge>{post.service.name}</Badge></Link>}
-            {project?.exists && <Link href={`/app/projects/${project.id}`}><Badge tone="blue"><Briefcase className="h-3 w-3" />{project.get("name")}</Badge></Link>}
+            {project?.exists && <Link href={`/app/jobs/${project.id}`}><Badge tone="blue"><Briefcase className="h-3 w-3" />{project.get("name")}</Badge></Link>}
           </div>
           {post.caption && <p className="whitespace-pre-line text-ink-700">{post.caption}</p>}
           {!isOwner && <ButtonLink href={`/contractor/${post.business.slug}#quote`} block size="lg">Request a quote from {post.business.name}</ButtonLink>}

@@ -44,8 +44,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const stats = [
     { label: "New leads", value: newLeads, href: "/app/leads?status=new", icon: ClipboardList, accent: newLeads > 0 },
-    { label: "Active projects", value: activeProjects, href: "/app/projects", icon: Briefcase },
-    { label: "Completed", value: completedProjects, href: "/app/projects?status=completed", icon: CheckCircle2 },
+    { label: "Active jobs", value: activeProjects, href: "/app/jobs", icon: Briefcase },
+    { label: "Completed", value: completedProjects, href: "/app/jobs?status=completed", icon: CheckCircle2 },
     { label: "Customers", value: customers, href: "/app/customers", icon: Users },
   ];
 
@@ -59,7 +59,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </div>
 
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 no-scrollbar md:mx-0 md:grid md:grid-cols-4 md:px-0">
-        {[["/app/leads/new", "Add lead"], ["/app/customers/new", "Add customer"], ["/app/projects/new", "New project"], ["/app/posts/new", "Create post"]].map(([href, label]) => (
+        {[["/app/leads/new", "Add lead"], ["/app/customers/new", "Add customer"], ["/app/jobs/new", "New job"], ["/app/posts/new", "Create post"]].map(([href, label]) => (
           <ButtonLink key={href} href={href} variant={href === "/app/posts/new" ? "primary" : "outline"} className="shrink-0"><Plus className="h-4 w-4" />{label}</ButtonLink>
         ))}
       </div>
@@ -101,14 +101,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Tasks due this week" action={<Link href="/app/projects" className="text-sm font-semibold text-safety-700">Projects</Link>} />
+          <CardHeader title="Tasks due this week" action={<Link href="/app/jobs" className="text-sm font-semibold text-safety-700">Jobs</Link>} />
           {due.length === 0 ? <p className="p-4 text-sm text-ink-500">Nothing due in the next 7 days.</p> : (
             <ul className="divide-y divide-concrete-200">
               {due.map((task) => {
                 const overdue = task.due_date < today;
                 return (
                   <li key={task.id}>
-                    <Link href={`/app/projects/${task.project_id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-concrete-50">
+                    <Link href={`/app/jobs/${task.project_id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-concrete-50">
                       <span className="min-w-0"><span className="block truncate font-semibold">{task.title}</span><span className="block truncate text-xs text-ink-500">{task.project_name}</span></span>
                       <span className="flex shrink-0 flex-col items-end gap-1">
                         <span className={`text-xs font-bold ${overdue ? "text-site-red" : "text-ink-500"}`}>{overdue ? "Overdue · " : ""}{formatDate(task.due_date, { month: "short", day: "numeric" })}</span>
@@ -123,7 +123,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </Card>
         <Card>
           <CardHeader title="Recent activity" />
-          {activity.length === 0 ? <EmptyState className="m-4 border-0" title="No activity yet" description="Leads, projects and updates will show up here." /> : (
+          {activity.length === 0 ? <EmptyState className="m-4 border-0" title="No activity yet" description="Leads, jobs and updates will show up here." /> : (
             <ul className="divide-y divide-concrete-200">
               {activity.map((a) => {
                 const href = a.entity_id && ["lead", "customer", "project"].includes(a.entity_type) ? `/app/${a.entity_type}s/${a.entity_id}` : a.entity_type === "post" && a.entity_id ? `/post/${a.entity_id}` : null;
@@ -162,7 +162,7 @@ async function CrewToday({ businessId, userId, firstName }: { businessId: string
               const overdue = task.due_date && task.due_date < today;
               return (
                 <li key={task.id}>
-                  <Link href={`/app/projects/${task.project_id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-concrete-50">
+                  <Link href={`/app/jobs/${task.project_id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-concrete-50">
                     <span className="min-w-0"><span className="block truncate font-semibold">{task.title}</span><span className="block truncate text-xs text-ink-500">{task.project_name}</span></span>
                     {task.due_date && <span className={`shrink-0 text-xs font-bold ${overdue ? "text-site-red" : "text-ink-500"}`}>{overdue ? "Overdue · " : ""}{formatDate(task.due_date, { month: "short", day: "numeric" })}</span>}
                   </Link>
@@ -177,7 +177,7 @@ async function CrewToday({ businessId, userId, firstName }: { businessId: string
         {jobs.length === 0 ? <EmptyState className="m-4 border-0" icon={Briefcase} title="No active jobs" description="When you're added to a job, it shows up here." /> : (
           <ul className="divide-y divide-concrete-200">
             {jobs.map((j) => (
-              <li key={j.id}><Link href={`/app/projects/${j.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-concrete-50">
+              <li key={j.id}><Link href={`/app/jobs/${j.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-concrete-50">
                 <span className="min-w-0"><span className="block truncate font-semibold">{j.name}</span>{j.customer_name && <span className="block truncate text-xs text-ink-500">{j.customer_name}</span>}</span>
                 <StatusBadge kind="project" value={j.status} />
               </Link></li>

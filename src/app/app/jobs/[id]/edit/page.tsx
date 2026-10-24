@@ -8,7 +8,7 @@ import { requirePermission } from "@/lib/session";
 import { getTeam } from "@/lib/team";
 import type { Project } from "@/lib/types";
 
-export const metadata = { title: "Edit project" };
+export const metadata = { title: "Edit job" };
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,7 +23,7 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
   if (!project) notFound();
   return (
     <div className="mx-auto max-w-2xl">
-      <PageHeader title="Edit project" back={{ href: `/app/projects/${id}`, label: project.name }} />
+      <PageHeader title="Edit job" back={{ href: `/app/jobs/${id}`, label: project.name }} />
       <Card className="p-4"><ProjectForm action={updateProject.bind(null, id)} project={project} customers={customers} team={team} members={project.member_ids ?? []} submitLabel="Save changes" /></Card>
     </div>
   );

@@ -17,7 +17,7 @@ const METRICS = [
   { key: "save", label: "Saves" },
   { key: "lead_created", label: "Leads created" },
   { key: "project_won", label: "Leads won" },
-  { key: "project_completed", label: "Projects completed" },
+  { key: "project_completed", label: "Jobs completed" },
 ] as const;
 
 export default async function AnalyticsPage() {

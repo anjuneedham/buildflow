@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { signOut } from "@/app/actions/auth";
+import { LogoutButton } from "@/components/auth/logout-button";
 
 export function UserMenu({ name, avatar, links }: { name: string; avatar: ReactNode; links: { href: string; label: string }[] }) {
   const [open, setOpen] = useState(false);
@@ -23,9 +23,9 @@ export function UserMenu({ name, avatar, links }: { name: string; avatar: ReactN
           {links.map((l) => (
             <Link key={l.href} role="menuitem" href={l.href} onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm text-ink-600 hover:bg-concrete-50 hover:text-ink">{l.label}</Link>
           ))}
-          <form action={signOut} className="border-t border-concrete-200">
-            <button role="menuitem" className="w-full px-4 py-2.5 text-left text-sm text-site-red hover:bg-concrete-50">Log out</button>
-          </form>
+          <div className="border-t border-concrete-200">
+            <LogoutButton role="menuitem" className="w-full px-4 py-2.5 text-left text-sm text-site-red hover:bg-concrete-50" />
+          </div>
         </div>
       )}
     </div>

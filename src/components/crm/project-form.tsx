@@ -17,7 +17,7 @@ export function ProjectForm({ action: serverAction, project, customers, team, me
     <form action={action} className="space-y-4" noValidate>
       <FormError message={state.fieldErrors ? undefined : state.error} />
       {defaults.leadId && <input type="hidden" name="leadId" value={defaults.leadId} />}
-      <Field label="Project name" htmlFor="name" error={fe.name}><Input id="name" name="name" defaultValue={project?.name ?? defaults.name} placeholder="e.g. Campbell bathroom remodel" required autoFocus={!project} /></Field>
+      <Field label="Job name" htmlFor="name" error={fe.name}><Input id="name" name="name" defaultValue={project?.name ?? defaults.name} placeholder="e.g. Campbell bathroom remodel" required autoFocus={!project} /></Field>
       <Field label="Customer" htmlFor="customerId" optional>
         <Select id="customerId" name="customerId" defaultValue={project?.customer_id ?? defaults.customerId ?? ""} placeholder="No customer" options={customers.map((c) => ({ value: c.id, label: c.name }))} />
       </Field>

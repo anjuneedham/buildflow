@@ -37,7 +37,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           { key: "name", header: "Name", cell: (r) => r.name },
           { key: "phone", header: "Phone", cell: (r) => r.phone ?? "—" },
           { key: "city", header: "Area", cell: (r) => r.city ?? "—", hideOnMobile: true },
-          { key: "projects", header: "Projects", cell: (r) => { const n = projectCount.get(r.id) ?? 0; return `${n} project${n === 1 ? "" : "s"}`; } },
+          { key: "projects", header: "Jobs", cell: (r) => { const n = projectCount.get(r.id) ?? 0; return `${n} project${n === 1 ? "" : "s"}`; } },
           { key: "status", header: "Status", cell: (r) => <StatusBadge kind="customer" value={r.status} /> },
           { key: "created", header: "Added", cell: (r) => formatDate(r.created_at), hideOnMobile: true },
         ]}

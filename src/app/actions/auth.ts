@@ -1,7 +1,6 @@
 "use server";
 
 import { cookies, headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { adminAuth, db } from "@/lib/firebase/admin";
 import { now } from "@/lib/data/db";
@@ -75,7 +74,8 @@ export async function signOut() {
   jar.delete(SESSION_COOKIE);
   jar.delete(AUTH_HINT_COOKIE);
   if (s.user) await adminAuth().revokeRefreshTokens(s.user.id).catch(() => {});
-  redirect("/");
+  // The caller does a full page load afterwards so every client-side cache
+  // (header state, router cache) starts clean.
 }
 
 export async function resendVerificationEmail(): Promise<{ ok: boolean; message: string }> {

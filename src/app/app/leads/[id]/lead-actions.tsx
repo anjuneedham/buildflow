@@ -21,7 +21,7 @@ export function LeadActions({ id, hasCustomer, customerId, isOwner }: { id: stri
           <UserPlus className="h-4 w-4" />{pending ? "Converting…" : "Convert to customer"}
         </Button>
       )}
-      <ButtonLink href={`/app/projects/new?leadId=${id}${customerId ? `&customerId=${customerId}` : ""}`} variant={hasCustomer ? "primary" : "outline"} block>
+      <ButtonLink href={`/app/jobs/new?leadId=${id}${customerId ? `&customerId=${customerId}` : ""}`} variant={hasCustomer ? "primary" : "outline"} block>
         <Briefcase className="h-4 w-4" />Create project
       </ButtonLink>
       {isOwner && (

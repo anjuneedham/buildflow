@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/session";
 import { AccountForm } from "./account-form";
 import { Card, StatusBadge } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
-import { signOut } from "@/app/actions/auth";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { isEmailVerified } from "@/server/email-verification";
 
@@ -45,7 +45,7 @@ export default async function AccountPage() {
           </ul>
         )}
       </section>
-      <form action={signOut}><button className="font-semibold text-site-red">Log out</button></form>
+      <LogoutButton className="font-semibold text-site-red" />
     </main>
   );
 }

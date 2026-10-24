@@ -1,20 +1,17 @@
+"use client";
+
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
-import { Avatar, ButtonLink } from "@/components/ui";
-import { getSession } from "@/lib/session";
-import { db } from "@/lib/firebase/admin";
+import { Avatar } from "@/components/ui/avatar";
+import { ButtonLink } from "@/components/ui/button";
+import { CustomerBottomNav } from "./nav-sets";
 import { UserMenu } from "./user-menu";
+import { useMe } from "./use-me";
 
-export async function unreadCount(userId: string) {
-  const snap = await db().collection("users").doc(userId).collection("notifications").where("read_at", "==", null).count().get();
-  return snap.data().count;
-}
-
-/** Shared header for public pages; adapts to signed-in state. */
-export async function TopNavigation() {
-  const s = await getSession();
-  const unread = s.user ? await unreadCount(s.user.id) : 0;
+/** Shared header for public pages. Client-rendered so the pages themselves can be static. */
+export function TopNavigation() {
+  const me = useMe();
   return (
     <header className="sticky top-0 z-40 border-b border-concrete-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
@@ -25,24 +22,26 @@ export async function TopNavigation() {
           <Link href="/features" className="hover:text-ink">Features</Link>
           <Link href="/pricing" className="hover:text-ink">Pricing</Link>
         </nav>
-        <div className="flex items-center gap-2">
-          {s.user ? (
+        <div className="flex min-w-[7rem] items-center justify-end gap-2">
+          {me === null ? (
+            <span className="h-9 w-24 animate-pulse rounded-lg bg-concrete-100" aria-hidden />
+          ) : me.signedIn ? (
             <>
-              {s.membership && (
-                <Link href="/app/notifications" className="relative flex h-10 w-10 items-center justify-center rounded-lg hover:bg-concrete-100" aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`}>
+              {me.business && (
+                <Link href="/app/inbox" className="relative flex h-10 w-10 items-center justify-center rounded-lg hover:bg-concrete-100" aria-label={`Inbox${me.unread ? `, ${me.unread} unread` : ""}`}>
                   <Bell className="h-5 w-5 text-ink-600" />
-                  {unread > 0 && <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-safety-500 ring-2 ring-white" />}
+                  {me.unread > 0 && <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-action ring-2 ring-white" />}
                 </Link>
               )}
               <UserMenu
-                name={s.profile?.full_name ?? s.user.email ?? ""}
-                avatar={<Avatar src={s.profile?.avatar_url} name={s.profile?.full_name} size="sm" />}
+                name={me.name}
+                avatar={<Avatar src={me.avatarUrl} name={me.name} size="sm" />}
                 links={[
-                  ...(s.membership ? [{ href: "/app", label: "Business dashboard" }, { href: `/contractor/${s.membership.business.slug}`, label: "My public profile" }] : []),
-                  ...(!s.membership && s.profile?.account_type === "contractor" ? [{ href: "/onboarding", label: "Finish business setup" }] : []),
-                  { href: "/saved", label: "Saved & following" },
+                  ...(me.business ? [{ href: "/app", label: "Business dashboard" }, { href: `/contractor/${me.business.slug}`, label: "My public profile" }] : []),
+                  ...(me.needsOnboarding ? [{ href: "/onboarding", label: "Finish business setup" }] : []),
+                  { href: "/saved", label: "Saved" },
                   { href: "/account", label: "Account settings" },
-                  ...(s.isAdmin ? [{ href: "/admin", label: "Platform admin" }] : []),
+                  ...(me.isAdmin ? [{ href: "/admin", label: "Platform admin" }] : []),
                 ]}
               />
             </>
@@ -56,4 +55,9 @@ export async function TopNavigation() {
       </div>
     </header>
   );
+}
+
+export function SiteBottomNav() {
+  const me = useMe();
+  return <CustomerBottomNav signedIn={Boolean(me?.signedIn)} isContractor={Boolean(me?.signedIn && me.business)} />;
 }

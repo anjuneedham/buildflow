@@ -7,7 +7,7 @@ import { requireBusiness } from "@/lib/session";
 import { ACTIVE_PROJECT_STATUSES, PROJECT_STATUSES } from "@/lib/constants";
 import type { Project } from "@/lib/types";
 
-export const metadata = { title: "Projects" };
+export const metadata = { title: "Jobs" };
 
 export default async function ProjectsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const s = await requireBusiness();
@@ -20,16 +20,16 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   const n = (st: string) => all.filter((p) => p.status === st).length;
   return (
     <>
-      <PageHeader title="Projects" actions={s.can("projects.manage") ? <ButtonLink href="/app/projects/new"><Plus className="h-4 w-4" />New project</ButtonLink> : undefined} />
+      <PageHeader title="Jobs" actions={s.can("projects.manage") ? <ButtonLink href="/app/jobs/new"><Plus className="h-4 w-4" />New job</ButtonLink> : undefined} />
       <Tabs active={status} tabs={[
-        { key: "active", label: "Active", href: "/app/projects", count: all.filter((p) => ACTIVE_PROJECT_STATUSES.includes(p.status)).length },
-        ...PROJECT_STATUSES.map((x) => ({ key: x.value, label: x.label, href: `/app/projects?status=${x.value}`, count: n(x.value) })),
-        { key: "all", label: "All", href: "/app/projects?status=all", count: all.length },
+        { key: "active", label: "Active", href: "/app/jobs", count: all.filter((p) => ACTIVE_PROJECT_STATUSES.includes(p.status)).length },
+        ...PROJECT_STATUSES.map((x) => ({ key: x.value, label: x.label, href: `/app/jobs?status=${x.value}`, count: n(x.value) })),
+        { key: "all", label: "All", href: "/app/jobs?status=all", count: all.length },
       ]} />
       <div className="mt-4">
         {visible.length === 0 ? (
-          <EmptyState icon={Briefcase} title={all.length === 0 ? "No projects yet" : "Nothing in this view"} description={all.length === 0 && !s.can("projects.manage") ? "Jobs you're assigned to will show up here." : all.length === 0 ? "Create a project for each job: track the budget, timeline, tasks and site photos." : undefined}
-            action={all.length === 0 && s.can("projects.manage") ? <ButtonLink href="/app/projects/new">Create a project</ButtonLink> : undefined} />
+          <EmptyState icon={Briefcase} title={all.length === 0 ? "No jobs yet" : "Nothing in this view"} description={all.length === 0 && !s.can("projects.manage") ? "Jobs you're assigned to will show up here." : all.length === 0 ? "Create a job for each piece of work: track the timeline, tasks, crew and site photos." : undefined}
+            action={all.length === 0 && s.can("projects.manage") ? <ButtonLink href="/app/jobs/new">Create a job</ButtonLink> : undefined} />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {visible.map((p) => <ProjectCard key={p.id} project={p} customerName={p.customer_name} tasks={{ total: p.task_total ?? 0, done: p.task_done ?? 0 }} />)}
