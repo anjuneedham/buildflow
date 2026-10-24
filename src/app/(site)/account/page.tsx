@@ -14,7 +14,7 @@ export default async function AccountPage() {
   const requests = fromQuery<{ id: string; created_at: string; kind: string; description: string; business_name: string; business_slug: string }>(
     await db().collection("users").doc(s.user.id).collection("quote_requests").orderBy("created_at", "desc").limit(20).get());
   return (
-    <main className="mx-auto max-w-xl space-y-6 px-4 py-6">
+    <main id="main" tabIndex={-1} className="mx-auto max-w-xl space-y-6 px-4 py-6">
       <h1 className="font-display text-2xl font-extrabold">Account</h1>
       <Card className="p-4">
         <AccountForm name={s.profile?.full_name ?? ""} avatar={s.profile?.avatar_url ?? null} email={s.user.email ?? ""} />

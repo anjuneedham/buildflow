@@ -18,7 +18,7 @@ export function Logo({ href = "/", className, light }: { href?: string; classNam
     <Link href={href} className={cn("inline-flex items-center gap-2", className)} aria-label="BuildFlow home">
       <LogoMark />
       <span className={cn("font-display text-lg font-extrabold tracking-tight", light ? "text-white" : "text-ink")}>
-        BUILD<span className="text-safety-500">Flow</span>
+        BUILD<span className={light ? "text-safety-400" : "text-action"}>Flow</span>
       </span>
     </Link>
   );

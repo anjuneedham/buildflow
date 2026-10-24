@@ -4,7 +4,7 @@ export const metadata: Metadata = { title: "About", description: "BuildFlow is a
 
 export default function About() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12">
+    <main id="main" tabIndex={-1} className="mx-auto max-w-3xl px-4 py-12">
       <h1 className="font-display text-3xl font-extrabold md:text-4xl">About BuildFlow</h1>
       <div className="prose-legal">
         <p>Most construction businesses run on WhatsApp threads, notebooks and word of mouth. The work is excellent; the system around it isn&apos;t. Good contractors lose jobs because customers can&apos;t find them or can&apos;t see what they&apos;ve built.</p>

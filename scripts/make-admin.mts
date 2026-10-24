@@ -12,5 +12,8 @@ initializeApp({
 });
 const user = await getAuth().getUserByEmail(email);
 await getFirestore().collection("users").doc(user.uid).set({ is_platform_admin: true }, { merge: true });
+// Claims are what the session reads; revoke so the next sign-in picks them up.
+await getAuth().setCustomUserClaims(user.uid, { ...(user.customClaims ?? {}), adm: true });
+await getAuth().revokeRefreshTokens(user.uid);
 console.log(`✓ ${email} is now a platform admin`);
 process.exit(0);

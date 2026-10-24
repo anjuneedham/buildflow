@@ -18,7 +18,7 @@ export function LikeButton({ postId, liked, count }: { postId: string; liked: bo
   const toAuth = useAuthRedirect();
   const toast = useToast();
   return (
-    <button aria-pressed={state.liked} aria-label={state.liked ? "Unlike" : "Like"}
+    <button aria-pressed={state.liked} aria-label={`${state.liked ? "Unlike" : "Like"}${state.count > 0 ? ` ${state.count}` : ""}`}
       onClick={() => start(async () => {
         set({ liked: !state.liked, count: state.count + (state.liked ? -1 : 1) });
         const r = await toggleLike(postId);

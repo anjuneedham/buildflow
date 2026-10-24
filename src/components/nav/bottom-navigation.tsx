@@ -23,7 +23,7 @@ export function BottomNavigation({ items }: { items: NavItem[] }) {
           return (
             <li key={item.href}>
               <Link href={item.href} prefetch={false} aria-current={on ? "page" : undefined}
-                className={cn("flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 text-[11px] font-semibold", on ? "text-safety-600" : "text-ink-500")}>
+                className={cn("flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 text-[11px] font-semibold", on ? "text-action" : "text-ink-500")}>
                 <Icon className={cn("h-5 w-5", on && "stroke-[2.5]")} aria-hidden />
                 {item.label}
               </Link>

@@ -3,7 +3,7 @@ import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
-import { firebaseConfig } from "@/lib/env";
+import { env, firebaseConfig, serverEnvProblems } from "@/lib/env";
 
 // Admin SDK: server only. Bypasses security rules, so every query that
 // touches tenant data goes through src/lib/data/tenant.ts, which scopes it
@@ -17,8 +17,16 @@ function credential() {
 }
 
 function app(): App {
+  const existing = getApps()[0];
+  if (existing) return existing;
+  const problems = serverEnvProblems();
+  if (problems.length) {
+    const msg = `Invalid ${env.appEnv} environment:\n- ${problems.join("\n- ")}`;
+    if (env.appEnv !== "local") throw new Error(msg);
+    console.warn(msg);
+  }
   const cred = credential();
-  return getApps()[0] ?? initializeApp({
+  return initializeApp({
     ...(cred ? { credential: cred } : {}),
     projectId: firebaseConfig.projectId || process.env.GCLOUD_PROJECT,
     storageBucket: firebaseConfig.storageBucket,

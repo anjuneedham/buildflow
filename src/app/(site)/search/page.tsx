@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Search contractors" };
 export default async function SearchPage() {
   const [services, regions] = isFirebaseConfigured ? await Promise.all([getServices(), getRegions()]) : [[], []];
   return (
-    <main className="mx-auto max-w-2xl px-4 py-6">
+    <main id="main" tabIndex={-1} className="mx-auto max-w-2xl px-4 py-6">
       <h1 className="mb-4 font-display text-2xl font-extrabold">Search</h1>
       <SearchBar services={services} regions={regions} tab="contractors" autoFocus />
       <h2 className="mt-8 text-sm font-bold uppercase tracking-wide text-ink-500">Browse by trade</h2>

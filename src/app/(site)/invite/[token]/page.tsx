@@ -11,7 +11,7 @@ export default async function InvitePage({ params, searchParams }: { params: Pro
   const { error } = await searchParams;
   const s = await getSession();
   return (
-    <main className="mx-auto max-w-md px-4 py-16 text-center">
+    <main id="main" tabIndex={-1} className="mx-auto max-w-md px-4 py-16 text-center">
       <h1 className="text-2xl font-extrabold">You&apos;ve been invited to a BuildFlow team</h1>
       <p className="mt-2 text-ink-500">Join to see assigned work, update projects and add notes.</p>
       {error && <div className="mt-4"><FormError message={error} /></div>}

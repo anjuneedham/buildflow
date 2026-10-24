@@ -39,7 +39,7 @@ export default async function PostPage({ params, searchParams }: Props) {
   const project = post.project_id && isOwner ? await tenant(post.business_id).doc("projects", post.project_id).get() : null;
 
   return (
-    <main className="mx-auto max-w-2xl px-0 py-0 sm:px-4 sm:py-6">
+    <main id="main" tabIndex={-1} className="mx-auto max-w-2xl px-0 py-0 sm:px-4 sm:py-6">
       <ViewTracker businessId={post.business_id} postId={post.id} />
       {published && <div className="p-4 sm:px-0"><FormSuccess message="Your post is live! Share it with customers." /></div>}
       <Card className="overflow-hidden rounded-none sm:rounded-xl">

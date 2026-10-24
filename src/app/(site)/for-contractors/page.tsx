@@ -13,7 +13,7 @@ const steps = [
 
 export default function ForContractors() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <section className="bg-ink text-white"><div className="mx-auto max-w-5xl px-4 py-14">
         <h1 className="font-display text-3xl font-extrabold md:text-5xl">Your work sells. <span className="text-safety-400">Let it.</span></h1>
         <p className="mt-4 max-w-2xl text-lg text-concrete-300">BuildFlow is for electricians, masons, tilers, carpenters, painters, roofers, plumbers, landscapers, HVAC techs, renovation companies and general contractors who want more of the right jobs and less paperwork.</p>
@@ -23,7 +23,7 @@ export default function ForContractors() {
         <ol className="space-y-4">
           {steps.map(([t, b], i) => (
             <li key={t} className="flex gap-4 rounded-xl border border-concrete-200 bg-white p-5">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-safety-500 font-extrabold text-white">{i + 1}</span>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-action font-extrabold text-white">{i + 1}</span>
               <div><h2 className="font-bold">{t}</h2><p className="mt-1 text-ink-500">{b}</p></div>
             </li>
           ))}

@@ -32,7 +32,7 @@ export default async function ContractorLayout({ children }: { children: React.R
           <div className="flex items-center gap-1">
             <Link href="/app/notifications" className="relative flex h-10 w-10 items-center justify-center rounded-lg hover:bg-concrete-100" aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`}>
               <Bell className="h-5 w-5 text-ink-600" />
-              {unread > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-safety-500 px-1 text-[10px] font-bold text-white">{unread > 9 ? "9+" : unread}</span>}
+              {unread > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-action px-1 text-[10px] font-bold text-white">{unread > 9 ? "9+" : unread}</span>}
             </Link>
             <UserMenu name={s.profile?.full_name || s.user.email || ""} avatar={<Avatar src={s.profile?.avatar_url} name={s.profile?.full_name} size="sm" />}
               links={[
@@ -46,7 +46,7 @@ export default async function ContractorLayout({ children }: { children: React.R
               ]} />
           </div>
         </header>
-        <main className="mx-auto max-w-5xl px-4 py-5 pb-safe-nav md:pb-10">{children}</main>
+        <main id="main" tabIndex={-1} className="mx-auto max-w-5xl px-4 py-5 pb-safe-nav md:pb-10">{children}</main>
       </div>
       <ContractorBottomNav slug={b.slug} />
     </div>

@@ -3,7 +3,7 @@ import { Logo } from "@/components/brand/logo";
 
 export default function NotFound() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 px-4 text-center">
+    <main id="main" tabIndex={-1} className="flex min-h-dvh flex-col items-center justify-center gap-4 px-4 text-center">
       <Logo />
       <h1 className="text-2xl font-extrabold">We couldn&apos;t find that page</h1>
       <p className="max-w-sm text-ink-500">It may have moved, or the contractor profile is no longer public.</p>

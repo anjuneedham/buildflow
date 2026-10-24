@@ -55,11 +55,11 @@ export function PostCard({ post, liked = false, saved = false, priority, hideBus
           </Link>
         </div>
       )}
-      <Link href={`/post/${post.id}`} aria-label="Open post"><PostMediaView post={post} priority={priority} /></Link>
+      <Link href={`/post/${post.id}`}><span className="sr-only">Open post</span><PostMediaView post={post} priority={priority} /></Link>
       <div className="px-3 pb-3 pt-1">
         <div className="-mx-1 flex items-center">
           <LikeButton postId={post.id} liked={liked} count={post.like_count} />
-          <Link href={`/post/${post.id}#comments`} className="flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-ink-600 hover:bg-concrete-100" aria-label="Comments">
+          <Link href={`/post/${post.id}#comments`} className="flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-ink-600 hover:bg-concrete-100" aria-label={`Comments${post.comment_count > 0 ? ` ${post.comment_count}` : ""}`}>
             <MessageCircle className="h-5 w-5" />{post.comment_count > 0 && post.comment_count}
           </Link>
           <ShareButton path={`/post/${post.id}`} compact />

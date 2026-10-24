@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Pricing", description: "BuildFlow Ba
 export default async function PricingPage() {
   const plans = await getPlans();
   return (
-    <main className="mx-auto max-w-5xl px-4 py-12">
+    <main id="main" tabIndex={-1} className="mx-auto max-w-5xl px-4 py-12">
       <h1 className="font-display text-3xl font-extrabold md:text-4xl">Simple pricing</h1>
       <p className="mt-2 text-ink-500">One plan with everything you need. Pay for the people who use it. Free for customers.</p>
       <div className="mt-10 grid gap-6 md:grid-cols-[1.2fr_1fr]">

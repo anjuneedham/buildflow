@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </aside>
       <div className="min-w-0">
         <header className="flex h-14 items-center border-b border-concrete-200 bg-white px-4 md:hidden"><Logo href="/admin" /><span className="ml-2 text-xs font-bold uppercase text-safety-700">Admin</span></header>
-        <main className="mx-auto max-w-6xl px-4 py-5 pb-safe-nav md:pb-10">{children}</main>
+        <main id="main" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-5 pb-safe-nav md:pb-10">{children}</main>
       </div>
       <AdminBottomNav />
     </div>

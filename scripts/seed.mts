@@ -12,7 +12,8 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
 const referenceOnly = process.argv.includes("--reference");
 const usingEmulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
-if (!referenceOnly && !usingEmulator) {
+const appEnv = process.env.NEXT_PUBLIC_APP_ENV ?? "local";
+if (!referenceOnly && (!usingEmulator || appEnv !== "local")) {
   console.error("Refusing to load DEMO data outside the emulators. Use --reference for production.");
   process.exit(1);
 }

@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "For customers", description: "Find c
 
 export default function ForCustomers() {
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12">
+    <main id="main" tabIndex={-1} className="mx-auto max-w-4xl px-4 py-12">
       <h1 className="font-display text-3xl font-extrabold md:text-4xl">Hire based on real work, not guesswork</h1>
       <p className="mt-3 text-lg text-ink-500">See what a contractor has actually built before you call them. Search by trade and parish, save work you like, and request quotes in under a minute. Always free.</p>
       <div className="mt-8 grid gap-4 sm:grid-cols-3">

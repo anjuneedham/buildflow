@@ -26,7 +26,7 @@ export default async function NotificationsPage() {
             const Icon = ICONS[n.type] ?? Bell;
             const body = (
               <div className={cn("flex gap-3 px-4 py-3", !n.read_at && "bg-safety-50/60")}>
-                <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", !n.read_at ? "bg-safety-500 text-white" : "bg-concrete-100 text-ink-500")}><Icon className="h-4 w-4" /></span>
+                <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", !n.read_at ? "bg-action text-white" : "bg-concrete-100 text-ink-500")}><Icon className="h-4 w-4" /></span>
                 <div className="min-w-0 flex-1">
                   <p className={cn("text-sm", !n.read_at && "font-bold")}>{n.title}</p>
                   {n.body && <p className="line-clamp-2 text-sm text-ink-500">{n.body}</p>}

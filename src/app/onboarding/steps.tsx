@@ -193,7 +193,7 @@ export function FirstRecordStep() {
 export function FinishStep({ slug }: { slug: string }) {
   return (
     <section className="text-center">
-      <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-safety-50 text-safety-600"><PartyPopper className="h-8 w-8" /></span>
+      <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-safety-50 text-action"><PartyPopper className="h-8 w-8" /></span>
       <h1 className="mt-4 font-display text-2xl font-extrabold">You&apos;re set up!</h1>
       <p className="mx-auto mt-2 max-w-md text-ink-500">Your public profile is live at <b className="break-all text-ink">/contractor/{slug}</b>. Next: post a photo of your best work so customers can find you.</p>
       <div className="mx-auto mt-6 flex max-w-sm flex-col gap-2">

@@ -39,7 +39,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
   const viewer = await getViewerState(s.user?.id, posts.map((p) => p.id));
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6">
+    <main id="main" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-6">
       <div className="mx-auto max-w-2xl">
         <h1 className="font-display text-2xl font-extrabold md:text-3xl">{f.heading ?? "Explore"}</h1>
         <p className="mb-4 text-sm text-ink-500">Find contractors through the work they&apos;ve done.</p>
@@ -82,7 +82,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
 
 function NotConfigured() {
   return (
-    <main className="mx-auto max-w-xl px-4 py-16">
+    <main id="main" tabIndex={-1} className="mx-auto max-w-xl px-4 py-16">
       <EmptyState icon={Compass} title="Connect Firebase to explore" description="Set the NEXT_PUBLIC_FIREBASE_* variables (see README), start the emulators and run npm run seed." />
     </main>
   );

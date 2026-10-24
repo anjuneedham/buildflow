@@ -6,9 +6,9 @@ type Variant = "primary" | "secondary" | "outline" | "outlineLight" | "ghost" | 
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-lg text-center font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-safety-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 select-none";
+  "inline-flex items-center justify-center gap-2 rounded-lg text-center font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 select-none";
 const variants: Record<Variant, string> = {
-  primary: "bg-safety-500 text-white hover:bg-safety-600 active:bg-safety-700 shadow-sm",
+  primary: "bg-action text-white hover:bg-action-hover active:bg-action-active shadow-sm",
   dark: "bg-ink text-white hover:bg-ink-700",
   secondary: "bg-concrete-100 text-ink hover:bg-concrete-200",
   outline: "border border-concrete-300 bg-white text-ink hover:bg-concrete-50",

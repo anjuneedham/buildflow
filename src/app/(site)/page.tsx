@@ -23,7 +23,7 @@ const features = [
 export default function HomePage() {
   const basic = PLANS.basic;
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <section className="relative overflow-hidden bg-ink text-white">
         <div className="absolute inset-0 bg-blueprint" aria-hidden />
         <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-12 md:pb-24 md:pt-20">
@@ -75,7 +75,7 @@ export default function HomePage() {
       </section>
 
       <section className="mx-auto grid max-w-6xl gap-6 px-4 py-14 md:grid-cols-2">
-        <div className="rounded-2xl bg-safety-500 p-8 text-white">
+        <div className="rounded-2xl bg-action p-8 text-white">
           <h2 className="font-display text-2xl font-extrabold">For contractors</h2>
           <p className="mt-2 text-safety-50">Electricians, masons, tilers, roofers, plumbers, GCs: get a profile that sells for you and a simple system to run the jobs.</p>
           <ButtonLink href="/for-contractors" variant="dark" className="mt-6">How it works for you</ButtonLink>

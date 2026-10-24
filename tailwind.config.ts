@@ -9,6 +9,9 @@ const config: Config = {
         ink: { DEFAULT: "#1c2127", 900: "#14181c", 800: "#1c2127", 700: "#2a3038", 600: "#3b434d", 500: "#59626d" },
         concrete: { 50: "#f7f6f3", 100: "#efede8", 200: "#e2dfd7", 300: "#cfcbc0", 400: "#a9a498" },
         safety: { 50: "#fff4ec", 100: "#ffe3cc", 400: "#ff8a3d", 500: "#f26b1d", 600: "#d65611", 700: "#a8420d" },
+        // Accessible action colour: white text on it passes WCAG AA (5.2:1).
+        // The brighter safety-500 stays for decoration, icons and large display.
+        action: { DEFAULT: "#c2410c", hover: "#a8420d", active: "#8a360b" },
         site: { green: "#2f7d4f", blue: "#2c5d8f", yellow: "#c99a06", red: "#b83a2e" },
       },
       fontFamily: {

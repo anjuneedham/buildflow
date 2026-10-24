@@ -1,1 +1,8 @@
-{ "projects": { "default": "demo-buildflow" } }
+{
+  "projects": {
+    "default": "demo-buildflow",
+    "local": "demo-buildflow",
+    "staging": "buildflow-staging",
+    "production": "buildflow-prod"
+  }
+}

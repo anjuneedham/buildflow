@@ -34,7 +34,7 @@ export default async function SavedPage({ searchParams }: { searchParams: Promis
   }
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-6">
+    <main id="main" tabIndex={-1} className="mx-auto max-w-xl px-4 py-6">
       <h1 className="font-display text-2xl font-extrabold">Saved</h1>
       <Tabs className="mb-5 mt-2" active={tab} tabs={[{ key: "posts", label: "Saved work", href: "/saved" }, { key: "following", label: "Following", href: "/saved?tab=following" }]} />
       {content}

@@ -12,7 +12,7 @@ const groups = [
 
 export default function FeaturesPage() {
   return (
-    <main className="mx-auto max-w-5xl px-4 py-12">
+    <main id="main" tabIndex={-1} className="mx-auto max-w-5xl px-4 py-12">
       <h1 className="font-display text-3xl font-extrabold md:text-4xl">Features</h1>
       <p className="mt-2 max-w-2xl text-ink-500">The smallest set of tools that actually moves a construction business forward: find customers, convert them, deliver the job, and show it off.</p>
       <div className="mt-10 grid gap-6 md:grid-cols-2">

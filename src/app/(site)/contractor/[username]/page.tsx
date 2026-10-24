@@ -52,7 +52,7 @@ export default async function ContractorProfilePage({ params }: Props) {
   };
 
   return (
-    <main className="pb-24 md:pb-0">
+    <main id="main" tabIndex={-1} className="pb-24 md:pb-0">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <ViewTracker businessId={b.id} />
       {!b.is_public && isOwnBusiness && (

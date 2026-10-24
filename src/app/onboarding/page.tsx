@@ -44,7 +44,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
           </ol>
         </div>
       </header>
-      <main className="mx-auto max-w-2xl px-4 py-6 pb-16">
+      <main id="main" tabIndex={-1} className="mx-auto max-w-2xl px-4 py-6 pb-16">
         {step === 2 && <BusinessStep business={business} regions={regions} ownerName={s.profile?.full_name ?? ""} email={s.user.email ?? ""} />}
         {step === 3 && <ServicesStep services={services} selected={selected} primary={business?.primary_service_id ?? null} />}
         {step === 4 && business && <ServiceAreaStep business={business} regions={regions} />}
