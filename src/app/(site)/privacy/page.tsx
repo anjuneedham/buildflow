@@ -42,10 +42,10 @@ export default function Privacy() {
       <p>We send service messages (such as verification, password reset and billing notices). If we send marketing emails, you can unsubscribe at any time.</p>
 
       <h2>5. Data storage and third-party services</h2>
-      <p>We use trusted providers to run the Service, which may include Google Firebase (database, authentication and file storage), Vercel (hosting), payment providers such as Google Play Billing, and an email delivery provider. These providers process data on our behalf under their own security and privacy commitments. Data may be stored on servers located outside your country.</p>
+      <p>We use trusted providers to run the Service, which may include Google Firebase (database, authentication and file storage) and Vercel (hosting). These providers process data on our behalf under their own security and privacy commitments. Data may be stored on servers located outside your country. Payments (§6) and a separate email delivery provider are not live yet; this policy will be updated before either launches.</p>
 
       <h2>6. Payments</h2>
-      <p>Payments are processed by our payment provider. We do not store full card numbers. We receive limited billing information such as the last four digits, card brand, billing country and payment status.</p>
+      <p>Paid subscriptions are not yet available; BuildFlow currently runs on free trial access only. Once payments launch (through Google Play Billing or another provider), they will be processed by that provider, we will not store full card numbers, and we will receive only limited billing information such as the last four digits, card brand, billing country and payment status. This section will be updated at that time.</p>
 
       <h2>7. Sharing</h2>
       <p>We share information only: with contractors when you contact them; publicly, for content you choose to make public; with service providers who help us run BuildFlow; when required by law or to protect rights and safety; and as part of a business transfer such as a merger, subject to this policy.</p>

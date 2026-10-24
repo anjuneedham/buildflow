@@ -33,7 +33,7 @@ export default function Terms() {
       <p>The Service, including its software, design and branding, belongs to {L.companyName} and its licensors. These Terms do not grant you any rights to our trademarks.</p>
 
       <h2>8. Payments and subscriptions</h2>
-      <p>Contractor features require a paid subscription after any free trial ({L.trialDays} days unless stated otherwise). Fees are shown on our <Link href="/pricing">pricing page</Link>, billed in advance on a recurring basis, and calculated from your plan&apos;s base price plus any additional users. Prices may change with reasonable notice. Taxes may apply.</p>
+      <p>Contractor features are currently available free during a {L.trialDays}-day trial, and billing is not yet live. Once paid subscriptions launch, fees will be shown on our <Link href="/pricing">pricing page</Link>, billed in advance on a recurring basis, and calculated from your plan&apos;s base price plus any additional users. Prices may change with reasonable notice. Taxes may apply.</p>
 
       <h2>9. Cancellation</h2>
       <p>You may cancel at any time. Cancellation and refunds are governed by our <Link href="/refund-policy">Refund &amp; Cancellation Policy</Link>.</p>

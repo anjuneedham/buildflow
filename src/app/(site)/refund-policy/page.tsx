@@ -9,7 +9,7 @@ export default function RefundPolicy() {
   const endOfPeriod = L.cancellationTakesEffect === "end_of_period";
   return (
     <LegalPage title="Refund & Cancellation Policy">
-      <p>BuildFlow is a subscription software service. There are no physical products, so there are no returns. This policy explains how billing, cancellation and refunds work.</p>
+      <p>BuildFlow is a subscription software service. There are no physical products, so there are no returns. This policy explains how billing, cancellation and refunds will work once paid subscriptions launch. Paid billing is not live yet: every account currently runs on the free trial described below, and nobody is charged.</p>
 
       <h2>Subscription billing</h2>
       <p>New businesses start with a {L.trialDays}-day free trial. After the trial, your subscription is billed in advance each billing period (monthly unless stated otherwise). Your charge is your plan&apos;s base price plus a fee for each additional user beyond those included. Adding a user increases your next bill; removing one decreases it.</p>
