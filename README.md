@@ -86,6 +86,7 @@ Copy `.env.example` to `.env.local`.
 
 | Variable | Required | Notes |
 |---|---|---|
+| `NEXT_PUBLIC_APP_ENV` | yes | `local`, `staging` or `production`. Staging/production refuse to start with emulator settings, a `demo-*` project, missing Firebase config or a non-https site URL (`src/lib/env.ts`). Each environment uses its own Firebase project (`.firebaserc` aliases). |
 | `NEXT_PUBLIC_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_PROJECT_ID`, `_STORAGE_BUCKET`, `_APP_ID` | yes | Firebase web app config (safe in the browser; the browser SDK is used for sign-in only) |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | prod | **Server only.** Service-account JSON (raw or base64) for the Admin SDK. Never prefix with `NEXT_PUBLIC_`. Not needed with emulators. |
 | `NEXT_PUBLIC_USE_FIREBASE_EMULATORS`, `FIREBASE_AUTH_EMULATOR_HOST`, `FIRESTORE_EMULATOR_HOST`, `FIREBASE_STORAGE_EMULATOR_HOST` | dev | Point both SDKs at the local emulators |
@@ -110,7 +111,7 @@ Demo accounts (password `demo-password-123`, all **demo data**):
 | Email | Role |
 |---|---|
 | `owner@kingstonpro.demo` | Owner, Kingston Pro Builders |
-| `crew@kingstonpro.demo` | Team member, Kingston Pro Builders |
+| `crew@kingstonpro.demo` | Crew (field role), Kingston Pro Builders: sees only assigned jobs |
 | `owner@islandelectrical.demo` | Owner, Island Electrical Services |
 | `customer@buildflow.demo` | Customer |
 | `admin@buildflow.demo` | Platform admin |
@@ -119,9 +120,11 @@ Demo accounts (password `demo-password-123`, all **demo data**):
 
 ```bash
 npm run typecheck && npm run lint
-npm test                 # unit tests (pricing math, search parsing)
-npm run test:rules       # Firestore security-rules tests (starts its own emulator)
-npm run test:integration # HTTP tenant-isolation tests (needs emulators + seed + app on :3000)
+npm test                 # unit tests (pricing, search parsing, permissions, env validation, file types)
+npm run test:rules       # Firestore rules: every client read/write denied (starts its own emulator)
+npm run test:integration # HTTP tenant isolation + crew restrictions (needs emulators + seed + app on :3000)
+npm run test:e2e         # browser: roles, the full contractor→customer→job loop, axe + overflow audit
+                         # (needs emulators + seed + app on :3000; set CHROMIUM_PATH if Playwright has no browser)
 ```
 
 ## Firebase setup (production)

@@ -28,11 +28,11 @@ export function BottomNavigation({ items, center }: { items: NavItem[]; center?:
     const Icon = item.icon;
     return (
       <li key={item.href}>
+        {/* The spoken name keeps the visible words ("1", "Inbox") and adds "unread". */}
         <Link href={item.href} prefetch={false} aria-current={on ? "page" : undefined}
-          aria-label={item.badge ? `${item.label}, ${item.badge} unread` : undefined}
           className={cn("flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 text-[11px] font-semibold", on ? "text-action" : "text-ink-500")}>
           <span className="relative"><Icon className={cn("h-5 w-5", on && "stroke-[2.5]")} aria-hidden /><Badge n={item.badge} /></span>
-          {item.label}
+          <span>{item.label}{item.badge ? <span className="sr-only"> unread</span> : null}</span>
         </Link>
       </li>
     );

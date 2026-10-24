@@ -14,8 +14,9 @@ export function UserMenu({ name, avatar, links }: { name: string; avatar: ReactN
   }, []);
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" aria-label="Account menu" className="flex h-10 items-center rounded-full">
-        {avatar}
+      {/* Name = visible initials + "Account menu", so voice control users can say what they see. */}
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" className="flex h-10 items-center rounded-full">
+        {avatar}<span className="sr-only">Account menu</span>
       </button>
       {open && (
         <div role="menu" className="absolute right-0 top-12 z-50 w-60 overflow-hidden rounded-xl border border-concrete-200 bg-white py-1 shadow-lg">

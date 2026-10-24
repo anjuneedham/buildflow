@@ -50,7 +50,7 @@ export default function HomePage() {
         <ol className="mt-8 grid gap-3 md:grid-cols-5">
           {loop.map((s, i) => (
             <li key={s.title} className="relative rounded-xl border border-concrete-200 bg-white p-4">
-              <span className="absolute right-3 top-3 text-xs font-bold text-concrete-400">0{i + 1}</span>
+              <span className="absolute right-3 top-3 text-xs font-bold text-ink-500">0{i + 1}</span>
               <s.icon className="h-6 w-6 text-safety-500" aria-hidden />
               <h3 className="mt-3 font-bold">{s.title}</h3>
               <p className="mt-1 text-sm text-ink-500">{s.body}</p>

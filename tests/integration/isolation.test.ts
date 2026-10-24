@@ -19,7 +19,7 @@ async function sessionFor(email: string) {
 const get = (path: string, cookie?: string) => fetch(APP + path, { headers: cookie ? { cookie } : {}, redirect: "manual" });
 
 // Records that belong to Kingston Pro Builders in the demo seed.
-const KPB = ["/app/leads/demo-lead-qr", "/app/customers/demo-cust-1", "/app/projects/demo-proj-1", "/app/projects/demo-proj-1/edit", "/app/customers/demo-cust-1/edit"];
+const KPB = ["/app/leads/demo-lead-qr", "/app/customers/demo-cust-1", "/app/jobs/demo-proj-1", "/app/jobs/demo-proj-1/edit", "/app/customers/demo-cust-1/edit"];
 
 test("owner can open their own records", async () => {
   const cookie = await sessionFor("owner@kingstonpro.demo");
@@ -27,9 +27,30 @@ test("owner can open their own records", async () => {
   assert.ok((await (await get("/app/leads/demo-lead-qr", cookie)).text()).includes("Jordan Lewis"));
 });
 
-test("team member can open their business's records", async () => {
+test("crew open only the jobs they're assigned to", async () => {
   const cookie = await sessionFor("crew@kingstonpro.demo");
-  for (const path of KPB) assert.equal((await get(path, cookie)).status, 200, path);
+  const assigned = await get("/app/jobs/demo-proj-1", cookie);
+  assert.equal(assigned.status, 200);
+  assert.ok((await assigned.text()).includes("Williams Home Extension"));
+  const other = await (await get("/app/jobs/demo-proj-2", cookie)).text();
+  assert.ok(other.includes("couldn't find") || other.includes("couldn&#x27;t find"), "unassigned job should render not-found");
+  assert.ok(!other.includes("Cafe Fit-out"), "unassigned job leaked its name");
+});
+
+test("crew are kept out of CRM, editing and billing", async () => {
+  const cookie = await sessionFor("crew@kingstonpro.demo");
+  for (const path of ["/app/leads", "/app/leads/demo-lead-qr", "/app/customers", "/app/customers/demo-cust-1", "/app/jobs/demo-proj-1/edit", "/app/jobs/new", "/app/billing", "/app/analytics", "/app/profile"]) {
+    const r = await get(path, cookie);
+    const html = r.status === 200 ? await r.text() : "";
+    assert.ok(r.status === 307 || html.includes("NEXT_REDIRECT"), `${path} should redirect crew (got ${r.status})`);
+    for (const secret of ["Jordan Lewis", "walk-in shower", "Hope Road"]) assert.ok(!html.includes(secret), `${path} leaked "${secret}" to crew`);
+  }
+});
+
+test("old project URLs redirect to jobs", async () => {
+  const r = await get("/app/projects/demo-proj-1");
+  assert.equal(r.status, 308);
+  assert.match(r.headers.get("location") ?? "", /\/app\/jobs\/demo-proj-1$/);
 });
 
 // Strings that only appear in Kingston Pro Builders' private records.

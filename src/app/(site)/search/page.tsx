@@ -4,6 +4,8 @@ import { SearchBar } from "@/components/forms/search-bar";
 import { getRegions, getServices } from "@/lib/queries";
 import { isFirebaseConfigured } from "@/lib/env";
 
+// Reference data only: static, refreshed hourly.
+export const revalidate = 3600;
 export const metadata: Metadata = { title: "Search contractors" };
 
 export default async function SearchPage() {

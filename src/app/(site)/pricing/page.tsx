@@ -5,6 +5,8 @@ import { SeatCalculator } from "@/components/forms/seat-calculator";
 import { formatMoney, seatPriceBreakdown } from "@/lib/plans";
 import { getPlans } from "@/lib/plans.server";
 
+// Static, refreshed when an admin edits plans (revalidatePath) and at least hourly.
+export const revalidate = 3600;
 export const metadata: Metadata = { title: "Pricing", description: "BuildFlow Basic: $50/month including one user, plus $20/month per additional team member." };
 
 export default async function PricingPage() {
