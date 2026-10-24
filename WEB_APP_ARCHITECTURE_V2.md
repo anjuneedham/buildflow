@@ -206,11 +206,13 @@ The fix is already in `ARCHITECTURE_V2.md` §6.2 and keeps the same safety prope
 
 Storage CORS must allow the production and staging origins. Estimated size: about two days including tests, then the existing upload test suite runs unchanged against it.
 
-## 7. Open decisions for you
+## 7. Decisions
 
-1. **Name:** BuildFlow or BuilderFlow?
-2. **Is there a separate native mobile app** outside this repository? If yes, it needs `/api/v1` early; if the Android app is the Capacitor shell, it does not.
-3. **Firestore region** (permanent): recommendation in `VERCEL_DEPLOYMENT_V2.md` §3.
-4. **Play Billing vs web checkout** for subscriptions (blocks real payments).
-5. **Messages:** confirm "client link, no chat threads" for V2.
-6. **Domain** for production and staging.
+Settled by you:
+
+1. **Name: BuildFlow.**
+2. **No native app outside this repository.** The Android app is the Capacitor shell around this web app, so the versioned `/api/v1` is not needed now. Build it only if a non-web client is ever introduced.
+3. **Firestore region: already chosen** (staging project `build-6fa95`). Record the region in `VERCEL_DEPLOYMENT_V2.md` §3 and set the Vercel function region to match.
+4. **Subscriptions: Google Play Billing for now.** Web checkout (Stripe) is deferred. Consequence: a contractor who signs up on the web cannot pay until Stripe exists or they subscribe through the Android app; until then the web billing page stays in its current "manual" mode and shows the plan and trial. The provider code goes in `infra/billing/play` (Play Developer API plus real-time notifications to a webhook that updates the existing `subscriptions` document), as `ARCHITECTURE_V2.md` §10 describes.
+5. **Messages:** awaiting your answer. The question, in plain words, is in the conversation: *no chat inside BuildFlow (customers get a private link per job) versus real in-app chat.* Recommendation: the link.
+6. **Hosting and domain: Vercel, using the default `*.vercel.app` address for now.** Buy a custom domain later; nothing else changes except `NEXT_PUBLIC_SITE_URL`, the Firebase authorized domains and the Auth action URL.

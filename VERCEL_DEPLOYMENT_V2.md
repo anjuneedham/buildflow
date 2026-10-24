@@ -16,7 +16,7 @@ Items marked **[verify]** are from my knowledge of Vercel and Firebase, which I 
 | 6 | Node version | 22.x (what the test suite runs on) |
 | 7 | Production vs development | Production branch `main` → production Firebase project. Every other branch and pull request → preview deployments on the **staging** Firebase project. `vercel dev` / `npm run dev` → emulators. See §4. |
 | 8 | Routing configuration | **None needed in `vercel.json`.** Next.js handles routes, and the legacy redirects are already in `next.config.ts`. See §6. |
-| 9 | Function region | Pick it **after** the Firestore region (§3); set both to the same coast. |
+| 9 | Function region | Same area as the Firestore region you already chose (§3). **I need that region to set it.** |
 | 10 | Plan | Production use needs a paid Vercel plan: the Hobby plan is for non-commercial use **[verify current terms]**. |
 
 ## 2. One project or two?
@@ -43,7 +43,7 @@ The marketing site, discovery pages and the web app are the same codebase, the s
 ## 3. Firebase prerequisites (before the first deploy)
 
 1. **Two Firebase projects.** `.firebaserc` now points `default` and `staging` at **`build-6fa95`** (a project id you set in the latest commit) and still names `buildflow-prod` for production. Treat `build-6fa95` as staging; do not put real customer data in it, and create the production project separately. Never share data, Auth users, buckets or keys between the two.
-2. **Firestore region is permanent.** Choose before creating the production database. Recommendation: **`us-east4` (N. Virginia)** with Vercel functions in **`iad1`** (also N. Virginia), the closest major region to Jamaica **[verify latency from Kingston]**. Alternatives from `ARCHITECTURE_V2.md`: `us-east1` or the multi-region `nam5`. Put the Storage buckets in the same region.
+2. **Firestore region is permanent and has already been chosen** (tell me which, so the Vercel function region can match). For reference, the recommendation I had made was: **`us-east4` (N. Virginia)** with Vercel functions in **`iad1`** (also N. Virginia), the closest major region to Jamaica **[verify latency from Kingston]**. Alternatives from `ARCHITECTURE_V2.md`: `us-east1` or the multi-region `nam5`. Put the Storage buckets in the same region.
 3. **Billing plan:** Cloud Storage for new Firebase projects and Cloud Functions require the paid (Blaze) plan **[verify]**. Set a budget alert.
 4. **Auth:** enable Email/Password. Set the **Action URL** (Authentication → Templates) to `https://<domain>/auth/action` so verification and reset links open the app's own page. Add **authorized domains**: the production domain, the staging domain and `localhost`.
 5. **API key:** the web API key is not a secret, but restrict it in Google Cloud Console to your domains (HTTP referrers) and to the Identity Toolkit API.
@@ -155,7 +155,7 @@ The service account has full backend power. It is **server-only** (`import "serv
 
 ## 9. First-deploy checklist (for when you approve)
 
-- [ ] Name and domain confirmed
+- [ ] Name confirmed (BuildFlow). Domain: the default `*.vercel.app` address for now; a custom domain later
 - [ ] Production Firebase project created (staging is `build-6fa95`), Blaze plan, Firestore region chosen, budget alerts set
 - [ ] Auth providers, Action URL and authorized domains configured; API key restricted
 - [ ] Service accounts created (app, CI)
