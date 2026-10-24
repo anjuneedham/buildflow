@@ -1,10 +1,21 @@
-// Security-rules tests (second line of defence). Run: npm run test:rules
+// Security-rules tests. Run: npm run test:rules
+// Every client read and write is denied: all access is server-side.
 import { after, before, test } from "node:test";
 import { readFileSync } from "node:fs";
-import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
+import { assertFails, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
+import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
 
 let env: RulesTestEnvironment;
+
+// One document in every collection the app uses (FIRESTORE_SCHEMA_V2.md §2).
+const PATHS = [
+  "users/alice", "users/alice/notifications/n1", "users/alice/likes/p1", "users/alice/saves/p1", "users/alice/following/a",
+  "businesses/a", "businesses/a/private/config", "businesses/a/members/alice", "businesses/a/leads/l1", "businesses/a/customers/c1",
+  "businesses/a/projects/j1", "businesses/a/tasks/t1", "businesses/a/notes/n1", "businesses/a/activity/x1", "businesses/a/photos/ph1",
+  "businesses/a/media/m1", "businesses/a/events/e1", "businesses/a/quote_requests/q1", "businesses/a/followers/bob",
+  "posts/p1", "posts/p1/comments/c1", "slugs/a", "invitations/tok", "subscriptions/a", "plans/basic", "services/mason",
+  "locations/kingston", "reports/r1",
+];
 
 before(async () => {
   env = await initializeTestEnvironment({
@@ -13,54 +24,30 @@ before(async () => {
   });
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await setDoc(doc(db, "businesses/a"), { name: "A", is_public: true, is_suspended: false });
-    await setDoc(doc(db, "businesses/b"), { name: "B", is_public: true, is_suspended: false });
-    await setDoc(doc(db, "businesses/hidden"), { name: "H", is_public: false, is_suspended: false });
+    for (const p of PATHS) await setDoc(doc(db, p), { seeded: true, visible: true, is_public: true, is_suspended: false });
     await setDoc(doc(db, "businesses/a/members/alice"), { role: "owner" });
-    await setDoc(doc(db, "businesses/b/members/bob"), { role: "owner" });
-    await setDoc(doc(db, "businesses/a/leads/l1"), { name: "Lead of A" });
-    await setDoc(doc(db, "businesses/a/customers/c1"), { name: "Customer of A" });
-    await setDoc(doc(db, "users/alice"), { full_name: "Alice", is_platform_admin: false });
-    await setDoc(doc(db, "users/bob"), { full_name: "Bob", is_platform_admin: false });
-    await setDoc(doc(db, "users/root"), { full_name: "Admin", is_platform_admin: true });
-    await setDoc(doc(db, "posts/p1"), { business_id: "a", visible: true });
-    await setDoc(doc(db, "posts/p2"), { business_id: "a", visible: false });
-    await setDoc(doc(db, "services/mason"), { name: "Mason" });
+    await setDoc(doc(db, "users/root"), { is_platform_admin: true });
   });
 });
 after(async () => { await env.cleanup(); });
 
-const as = (uid?: string) => (uid ? env.authenticatedContext(uid) : env.unauthenticatedContext()).firestore();
+const clients = () => [
+  ["anonymous", env.unauthenticatedContext().firestore()],
+  ["member", env.authenticatedContext("alice").firestore()],
+  ["forged claims", env.authenticatedContext("mallory", { bid: "a", brole: "owner", adm: true }).firestore()],
+  ["platform admin", env.authenticatedContext("root").firestore()],
+] as const;
 
-test("anyone can read public profiles, posts and reference data", async () => {
-  await assertSucceeds(getDoc(doc(as(), "businesses/a")));
-  await assertSucceeds(getDoc(doc(as(), "posts/p1")));
-  await assertSucceeds(getDoc(doc(as(), "services/mason")));
+test("no client can read any document", async () => {
+  for (const [, db] of clients()) for (const p of PATHS) await assertFails(getDoc(doc(db, p)));
 });
 
-test("private profiles and hidden posts are not public", async () => {
-  await assertFails(getDoc(doc(as(), "businesses/hidden")));
-  await assertFails(getDoc(doc(as("bob"), "posts/p2")));
-  await assertSucceeds(getDoc(doc(as("alice"), "posts/p2")));
+test("no client can list any collection", async () => {
+  for (const [, db] of clients()) {
+    for (const c of ["posts", "businesses", "businesses/a/leads", "businesses/a/customers", "users", "services"]) await assertFails(getDocs(collection(db, c)));
+  }
 });
 
-test("tenant data is readable only by members", async () => {
-  await assertSucceeds(getDoc(doc(as("alice"), "businesses/a/leads/l1")));
-  await assertSucceeds(getDocs(collection(as("alice"), "businesses/a/customers")));
-  await assertFails(getDoc(doc(as("bob"), "businesses/a/leads/l1")));
-  await assertFails(getDocs(collection(as("bob"), "businesses/a/customers")));
-  await assertFails(getDoc(doc(as(), "businesses/a/leads/l1")));
-});
-
-test("users read only their own profile; admins read all", async () => {
-  await assertSucceeds(getDoc(doc(as("alice"), "users/alice")));
-  await assertFails(getDoc(doc(as("bob"), "users/alice")));
-  await assertSucceeds(getDoc(doc(as("root"), "users/alice")));
-});
-
-test("clients can never write", async () => {
-  await assertFails(setDoc(doc(as("alice"), "businesses/a/leads/l2"), { name: "x" }));
-  await assertFails(setDoc(doc(as("alice"), "users/alice"), { is_platform_admin: true }));
-  await assertFails(setDoc(doc(as("alice"), "posts/p3"), { business_id: "a", visible: true }));
-  await assertFails(setDoc(doc(as("root"), "plans/basic"), { base_price_cents: 0 }));
+test("no client can write any document", async () => {
+  for (const [, db] of clients()) for (const p of PATHS) await assertFails(setDoc(doc(db, p), { hacked: true }));
 });

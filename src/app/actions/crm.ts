@@ -49,7 +49,7 @@ export async function createLead(_: ActionState, fd: FormData): Promise<ActionSt
   const batch = db().batch();
   const ts = now();
   batch.set(ref, { ...(await leadFields(parsed.data)), customer_id: null, quote_request_id: null, created_by: userId, status_changed_at: ts, created_at: ts, updated_at: ts });
-  addEvent(batch, businessId, "lead_created", { source: parsed.data.source });
+  addEvent(batch, businessId, "lead_created");
   addActivity(batch, businessId, { actorId: userId, actorName: userName, entityType: "lead", entityId: ref.id, action: "created", summary: `Added lead ${parsed.data.name}` });
   if (parsed.data.assignedTo && parsed.data.assignedTo !== userId) {
     addNotification(batch, parsed.data.assignedTo, { businessId, type: "new_lead", title: `A lead was assigned to you: ${parsed.data.name}`, link: `/app/leads/${ref.id}` });
@@ -70,7 +70,7 @@ export async function updateLead(id: string, _: ActionState, fd: FormData): Prom
   const batch = db().batch();
   const fields = await leadFields(parsed.data);
   batch.update(ref, { ...fields, updated_at: now(), ...(fields.status !== prev.get("status") ? { status_changed_at: now() } : {}) });
-  if (fields.status === "won" && prev.get("status") !== "won") addEvent(batch, businessId, "project_won", { lead_id: id });
+  if (fields.status === "won" && prev.get("status") !== "won") addEvent(batch, businessId, "project_won");
   if (fields.assigned_to && fields.assigned_to !== prev.get("assigned_to") && fields.assigned_to !== userId) {
     addNotification(batch, fields.assigned_to, { businessId, type: "new_lead", title: `A lead was assigned to you: ${fields.name}`, link: `/app/leads/${id}` });
   }
@@ -89,7 +89,7 @@ export async function setLeadStatus(id: string, status: string) {
   if (prev.get("status") === parsed.data) return { ok: true };
   const batch = db().batch();
   batch.update(ref, { status: parsed.data, status_changed_at: now(), updated_at: now() });
-  if (parsed.data === "won") addEvent(batch, businessId, "project_won", { lead_id: id });
+  if (parsed.data === "won") addEvent(batch, businessId, "project_won");
   addActivity(batch, businessId, { actorId: userId, actorName: userName, entityType: "lead", entityId: id, action: "status_changed", summary: `Moved ${prev.get("name")} to ${optionFor(LEAD_STATUSES, parsed.data)?.label}` });
   await batch.commit();
   return { ok: true };
@@ -105,7 +105,7 @@ export async function deleteLead(id: string) {
 }
 
 export async function convertLead(id: string) {
-  const { t, userId, userName } = await ctx();
+  const { t, businessId, userId, userName } = await ctx();
   if (!isId(id)) return { ok: false, error: "Lead not found." };
   const leadRef = t.doc("leads", id);
   let customerId: string;
@@ -123,7 +123,7 @@ export async function convertLead(id: string) {
       });
       const becomesWon = !["won", "lost"].includes(l.status);
       tx.update(leadRef, { customer_id: customerRef.id, customer_name: l.name, updated_at: ts, ...(becomesWon ? { status: "won", status_changed_at: ts } : {}) });
-      if (becomesWon) tx.set(t.col("events").doc(), { type: "project_won", lead_id: id, created_at: ts });
+      if (becomesWon) addEvent(tx, businessId, "project_won");
       tx.set(t.col("activity").doc(), { actor_id: userId, actor_name: userName, entity_type: "customer", entity_id: customerRef.id, action: "created", summary: `Converted lead ${l.name} into a customer`, created_at: ts });
       return customerRef.id;
     });

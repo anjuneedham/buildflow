@@ -8,7 +8,7 @@ import { addActivity, addEvent, addNotification, inc, ownerIds, tenant } from "@
 import { getSession, requireBusiness } from "@/lib/session";
 import { isEmailVerified, VERIFY_EMAIL_MESSAGE } from "@/server/email-verification";
 import { rateLimit } from "@/lib/rate-limit";
-import { uploadImage, validImage } from "@/lib/storage";
+import { deleteObjects, pathFromPublicUrl, uploadImage, validImage } from "@/lib/storage";
 import { UPLOAD } from "@/lib/constants";
 import { commentSchema, parseForm, postSchema, quoteRequestSchema, reportSchema, type ActionState } from "@/lib/validation";
 import type { Business } from "@/lib/types";
@@ -57,6 +57,8 @@ export async function createPost(_: ActionState, fd: FormData): Promise<ActionSt
     business_id: s.business.id, author_id: s.user.id, type: d.type, caption: d.caption ?? null, project_id: d.projectId ?? null,
     service_id: service?.exists ? service.id : null, service: service?.exists ? { name: service.get("name"), slug: service.get("slug") } : null,
     location_text: d.locationText ?? null, media, is_public: true, is_hidden: false, visible: isVisible(b),
+    // Flattened copy (FIRESTORE_SCHEMA_V2.md §3.18) so feed filters use plain indexes.
+    region_id: b.region_id ?? null,
     business: { id: s.business.id, name: b.name, slug: b.slug, logo_url: b.logo_url ?? null, is_verified: b.is_verified, city: b.city ?? null, region_id: b.region_id ?? null },
     like_count: 0, comment_count: 0, save_count: 0, created_at: now(), updated_at: now(),
   });
@@ -77,6 +79,8 @@ export async function deletePost(postId: string) {
   comments.docs.forEach((c) => batch.delete(c.ref));
   batch.delete(ref);
   await batch.commit();
+  // Remove the images too: their public URLs must stop working (audit C.2.6).
+  await deleteObjects((post.get("media") as { url: string }[] | undefined ?? []).map((m) => pathFromPublicUrl(m.url)));
   await recountPosts(s.business.id);
   return { ok: true, redirectTo: `/contractor/${s.business.slug}` };
 }
@@ -99,7 +103,7 @@ async function toggleMarker(kind: "likes" | "saves", postId: string): Promise<To
     } else {
       tx.set(marker, { created_at: now(), business_id: post.get("business_id") });
       tx.update(post.ref, { [counter]: inc() });
-      tx.set(tenant(post.get("business_id")).col("events").doc(), { type: kind === "likes" ? "like" : "save", post_id: postId, actor_id: c.userId, created_at: now() });
+      addEvent(tx, post.get("business_id"), kind === "likes" ? "like" : "save");
     }
     return !exists;
   });
@@ -127,7 +131,7 @@ export async function toggleFollow(businessId: string): Promise<ToggleResult> {
     } else {
       tx.set(mine, { created_at: now() }); tx.set(theirs, { created_at: now(), full_name: c.name });
       tx.update(t.root, { follower_count: inc() });
-      tx.set(t.col("events").doc(), { type: "follow", actor_id: c.userId, created_at: now() });
+      addEvent(tx, businessId, "follow");
       owners.filter((o) => o !== c.userId).forEach((o) => tx.set(db().collection("users").doc(o).collection("notifications").doc(), {
         business_id: businessId, type: "follower", title: `${c.name} started following your business`, body: null, link: "/app/analytics", read_at: null, created_at: now(),
       }));
@@ -151,7 +155,7 @@ export async function addComment(_: ActionState, fd: FormData): Promise<ActionSt
     user_id: c.userId, author: { full_name: c.name, avatar_url: c.avatar }, body: parsed.data.body, is_hidden: false, created_at: now(),
   });
   batch.update(post.ref, { comment_count: inc() });
-  addEvent(batch, businessId, "comment", { post_id: post.id, actor_id: c.userId });
+  addEvent(batch, businessId, "comment");
   for (const o of await ownerIds(businessId)) {
     if (o !== c.userId) addNotification(batch, o, { businessId, type: "comment", title: `${c.name} commented on your post`, body: parsed.data.body.slice(0, 140), link: `/post/${post.id}` });
   }
@@ -217,8 +221,8 @@ export async function submitQuoteRequest(_: ActionState, fd: FormData): Promise<
       business_id: d.businessId, business_name: b.name, business_slug: b.slug, kind: d.kind, description: d.description, created_at: ts,
     });
   }
-  addEvent(batch, d.businessId, d.kind === "quote" ? "quote_request" : "contact_click", { lead_id: leadRef.id });
-  addEvent(batch, d.businessId, "lead_created", { source: "buildflow" });
+  addEvent(batch, d.businessId, d.kind === "quote" ? "quote_request" : "contact_click");
+  addEvent(batch, d.businessId, "lead_created");
   for (const o of await ownerIds(d.businessId)) {
     addNotification(batch, o, { businessId: d.businessId, type: "quote_request", title: `${d.kind === "quote" ? "New quote request from" : "New message from"} ${d.name.slice(0, 80)}`, body: d.description.slice(0, 140), link: `/app/leads/${leadRef.id}` });
   }
@@ -236,7 +240,9 @@ export async function trackView(businessId: string, postId?: string) {
   if (s.membership?.business.id === businessId) return; // don't count your own views
   const biz = await tenant(businessId).root.get();
   if (!biz.exists || !isVisible(biz.data() as Business)) return;
-  await tenant(businessId).col("events").add({ type: postId ? "post_view" : "profile_view", post_id: postId ?? null, actor_id: s.user?.id ?? null, created_at: now() });
+  const batch = db().batch();
+  addEvent(batch, businessId, postId ? "post_view" : "profile_view");
+  await batch.commit();
 }
 
 export async function reportContent(_: ActionState, fd: FormData): Promise<ActionState> {

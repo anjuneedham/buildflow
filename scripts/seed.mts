@@ -37,6 +37,12 @@ const SERVICES = [
   ["construction-company", "Construction Company", "Construction Companies"], ["welder", "Welder / Steel Work", "Welders"], ["other", "Other Trade", "Other Trades"],
 ] as const;
 const PARISHES = ["Kingston", "St Andrew", "St Catherine", "Clarendon", "Manchester", "St Elizabeth", "Westmoreland", "Hanover", "St James", "Trelawny", "St Ann", "St Mary", "Portland", "St Thomas"];
+// Monthly insight counters (businesses/{id}/stats/{yyyy-mm}), in Jamaica time like the app.
+const jmDate = (at: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Jamaica", year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+async function stat(biz: FirebaseFirestore.DocumentReference, type: string, isoAt: string, n = 1) {
+  const d = jmDate(new Date(isoAt));
+  await biz.collection("stats").doc(d.slice(0, 7)).set({ month: d.slice(0, 7), totals: { [type]: FieldValue.increment(n) }, days: { [d.slice(8, 10)]: { [type]: FieldValue.increment(n) } } }, { merge: true });
+}
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
 async function reference() {
@@ -152,7 +158,7 @@ async function demo() {
       status, source, estimated_value: value, assigned_to: assigned, customer_id: null, quote_request_id: null, created_by: "demo-owner-kpb",
       status_changed_at: iso(i * day), created_at: iso((i + 1) * day), updated_at: iso(i * day),
     });
-    await kpb.ref.collection("events").add({ type: "lead_created", source, created_at: iso((i + 1) * day) });
+    await stat(kpb.ref, "lead_created", iso((i + 1) * day));
   }
   const projects = [
     ["demo-proj-1", "Williams Home Extension (Demo)", "demo-cust-1", "Tamara Williams (Demo)", "in_progress", -30, 45, 5500000],
@@ -198,6 +204,7 @@ async function demo() {
     await db.collection("posts").doc(id).set({
       business_id: bid, author_id: b.owner_id, type, caption, project_id: projectId, service_id: service, service: { name: svc(service).name, slug: service },
       location_text: loc, media: media.map(([url, label], i) => ({ id: `${id}-m${i}`, url, label, position: i })), is_public: true, is_hidden: false, visible: true,
+      region_id: b.region_id,
       business: { id: bid, name: b.name, slug: b.slug, logo_url: null, is_verified: b.is_verified, city: b.city, region_id: b.region_id },
       like_count: 0, comment_count: 0, save_count: 0, created_at: iso(daysAgo * day), updated_at: iso(daysAgo * day),
     });
@@ -226,11 +233,9 @@ async function demo() {
   await qr.set({ requester_id: "demo-customer", name: "Jordan Lewis (Demo)", email: "customer@buildflow.demo", phone: null, service_id: "renovation", location: "Liguanea", description: "Looking to renovate a small bathroom and add a walk-in shower.", budget_range: "500k – 1M", timeline: "1 – 3 months", kind: "quote", lead_id: lead.id, created_at: iso(6 * 3600e3) });
   await lead.set({ name: "Jordan Lewis (Demo)", name_lower: "jordan lewis (demo)", phone: null, email: "customer@buildflow.demo", location: "Liguanea", description: "Looking to renovate a small bathroom and add a walk-in shower.\nBudget: 500k – 1M\nTimeline: 1 – 3 months", service_id: "renovation", service_name: "Home Renovation", status: "new", source: "buildflow", estimated_value: null, assigned_to: null, customer_id: null, quote_request_id: qr.id, quote: { budget_range: "500k – 1M", timeline: "1 – 3 months" }, created_by: null, status_changed_at: iso(6 * 3600e3), created_at: iso(6 * 3600e3), updated_at: iso(6 * 3600e3) });
   await me.collection("quote_requests").doc(qr.id).set({ business_id: "demo-kpb", business_name: "Kingston Pro Builders", business_slug: kpb.slug, kind: "quote", description: "Looking to renovate a small bathroom and add a walk-in shower.", created_at: iso(6 * 3600e3) });
-  await kpb.ref.collection("events").add({ type: "quote_request", lead_id: lead.id, created_at: iso(6 * 3600e3) });
+  await stat(kpb.ref, "quote_request", iso(6 * 3600e3));
   await db.collection("users").doc("demo-owner-kpb").collection("notifications").add({ business_id: "demo-kpb", type: "quote_request", title: "New quote request from Jordan Lewis (Demo)", body: "Looking to renovate a small bathroom…", link: `/app/leads/${lead.id}`, read_at: null, created_at: iso(6 * 3600e3) });
-  const views = db.batch();
-  for (let h = 1; h <= 48; h++) views.set(kpb.ref.collection("events").doc(), { type: "profile_view", post_id: null, actor_id: null, created_at: iso(h * 3600e3) });
-  await views.commit();
+  for (let h = 1; h <= 48; h++) await stat(kpb.ref, "profile_view", iso(h * 3600e3));
   console.log("✓ demo data (password for all demo accounts: demo-password-123)");
 }
 

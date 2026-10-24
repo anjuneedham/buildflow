@@ -42,6 +42,7 @@ export async function syncBusinessToPosts(businessId: string) {
     for (const p of posts.docs.slice(i, i + 400)) {
       batch.update(p.ref, {
         business: { id: businessId, name: b.name, slug: b.slug, logo_url: b.logo_url ?? null, is_verified: b.is_verified, city: b.city ?? null, region_id: b.region_id ?? null },
+        region_id: b.region_id ?? null,
         visible: isVisible(b) && p.get("is_public") && !p.get("is_hidden"),
       });
     }

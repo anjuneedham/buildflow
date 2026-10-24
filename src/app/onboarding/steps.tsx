@@ -131,13 +131,13 @@ export function BrandingStep({ business }: { business: Business }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {cover && <img src={cover} alt="" className="h-full w-full object-cover" />}
             <label className={buttonClasses({ size: "sm", variant: "secondary", className: "absolute bottom-2 right-2 cursor-pointer" })}>
-              {cover ? "Change cover" : "Add cover photo"}<input type="file" name="cover" accept="image/jpeg,image/png,image/webp,image/heic" className="sr-only" onChange={preview(setCover)} />
+              {cover ? "Change cover" : "Add cover photo"}<input type="file" name="cover" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={preview(setCover)} />
             </label>
           </div>
           <div className="flex items-center gap-3 p-3">
             <Avatar src={logo} name={business.name} size="lg" square className="-mt-10 ring-4 ring-white" />
             <label className={buttonClasses({ size: "sm", variant: "outline", className: "cursor-pointer" })}>
-              {logo ? "Change logo" : "Upload logo"}<input type="file" name="logo" accept="image/jpeg,image/png,image/webp,image/heic" className="sr-only" onChange={preview(setLogo)} />
+              {logo ? "Change logo" : "Upload logo"}<input type="file" name="logo" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={preview(setLogo)} />
             </label>
           </div>
         </div>

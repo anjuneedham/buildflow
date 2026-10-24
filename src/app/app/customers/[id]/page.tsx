@@ -22,9 +22,9 @@ export default async function CustomerPage({ params, searchParams }: { params: P
   const c = isId(id) ? fromDoc<Customer>(await t.doc("customers", id).get()) : null;
   if (!c) notFound();
   const [projects, leads, notes] = await Promise.all([
-    list<Project>(t.col("projects").where("customer_id", "==", id).orderBy("created_at", "desc")),
-    list<Lead>(t.col("leads").where("customer_id", "==", id).orderBy("created_at", "desc")),
-    list<NoteRow>(t.col("notes").where("entity_id", "==", id).orderBy("created_at", "desc")),
+    list<Project>(t.col("projects").where("customer_id", "==", id).orderBy("created_at", "desc").limit(50)),
+    list<Lead>(t.col("leads").where("customer_id", "==", id).orderBy("created_at", "desc").limit(50)),
+    list<NoteRow>(t.col("notes").where("entity_id", "==", id).orderBy("created_at", "desc").limit(100)),
   ]);
   const totalValue = projects.reduce((n, p) => n + Number(p.budget ?? 0), 0);
 

@@ -26,9 +26,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   if (!p || !canAccessProject(s.role, s.user.id, p)) notFound();
   const canManage = s.can("projects.manage");
   const [tasks, photos, notes, activity, posts, team] = await Promise.all([
-    list<Task>(t.col("tasks").where("project_id", "==", id)),
-    list<{ id: string; path: string; caption: string | null }>(t.col("photos").where("project_id", "==", id).orderBy("created_at", "desc")),
-    list<NoteRow>(t.col("notes").where("entity_id", "==", id).orderBy("created_at", "desc")),
+    list<Task>(t.col("tasks").where("project_id", "==", id).limit(200)),
+    list<{ id: string; path: string; caption: string | null }>(t.col("photos").where("project_id", "==", id).orderBy("created_at", "desc").limit(120)),
+    list<NoteRow>(t.col("notes").where("entity_id", "==", id).orderBy("created_at", "desc").limit(100)),
     list<ActivityRow>(t.col("activity").where("entity_id", "==", id).orderBy("created_at", "desc").limit(25)),
     db().collection("posts").where("business_id", "==", s.business.id).where("project_id", "==", id).limit(1).get(),
     getTeam(s.business.id),

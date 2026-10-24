@@ -5,10 +5,10 @@ import { FormSuccess } from "@/components/ui/input";
 import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { isEmailVerified } from "@/server/email-verification";
 import { count, list } from "@/lib/data/db";
-import { tenant } from "@/lib/data/tenant";
+import { monthStats, tenant } from "@/lib/data/tenant";
 import { requireBusiness } from "@/lib/session";
 import { ACTIVE_PROJECT_STATUSES, OPEN_LEAD_STATUSES } from "@/lib/constants";
-import { compactAmount, dateInDays, formatDate, startOfMonthISO, timeAgo } from "@/lib/utils";
+import { compactAmount, dateInDays, formatDate, timeAgo } from "@/lib/utils";
 
 export const metadata = { title: "Dashboard" };
 
@@ -22,20 +22,20 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const t = tenant(s.business.id);
   // The cookie's flag can be stale after the user clicks the link; confirm only when it says "no".
   const emailVerified = s.user.emailVerified || (await isEmailVerified(s.user.id));
-  const month = startOfMonthISO();
   const weekAhead = dateInDays(7);
-  const monthEvents = (type: string) => count(t.col("events").where("type", "==", type).where("created_at", ">=", month));
 
-  const [newLeads, activeProjects, completedProjects, customers, openLeads, tasksDue, activity, views, quotes, likes, comments, follows] = await Promise.all([
+  const [newLeads, activeProjects, completedProjects, customers, openLeads, tasksDue, activity, [monthCounts]] = await Promise.all([
     count(t.col("leads").where("status", "==", "new")),
     count(t.col("projects").where("status", "in", ACTIVE_PROJECT_STATUSES)),
     count(t.col("projects").where("status", "==", "completed")),
     count(t.col("customers")),
-    list<{ estimated_value: number | null }>(t.col("leads").where("status", "in", OPEN_LEAD_STATUSES).select("estimated_value")),
-    list<TaskRow>(t.col("tasks").where("due_date", "<=", weekAhead).orderBy("due_date").limit(30)),
+    list<{ estimated_value: number | null }>(t.col("leads").where("status", "in", OPEN_LEAD_STATUSES).select("estimated_value").limit(1000)),
+    list<TaskRow>(t.col("tasks").where("status", "in", ["todo", "in_progress"]).where("due_date", "<=", weekAhead).orderBy("due_date").limit(30)),
     list<ActivityRow>(t.col("activity").orderBy("created_at", "desc").limit(8)),
-    monthEvents("profile_view"), monthEvents("quote_request"), monthEvents("like"), monthEvents("comment"), monthEvents("follow"),
+    monthStats(s.business.id),
   ]);
+  const m = (k: keyof typeof monthCounts.totals) => monthCounts.totals[k] ?? 0;
+  const [views, quotes, likes, comments, follows] = [m("profile_view"), m("quote_request"), m("like"), m("comment"), m("follow")];
   const due = tasksDue.filter((x) => x.status !== "done").slice(0, 6);
   const pipeline = openLeads.reduce((sum, l) => sum + Number(l.estimated_value ?? 0), 0);
   const engagement = likes + comments + follows;

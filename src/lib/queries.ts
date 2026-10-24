@@ -49,7 +49,7 @@ export async function getFeed(opts: { serviceId?: string; regionId?: string; bus
   let q = db().collection("posts").where("visible", "==", true);
   if (opts.serviceId) q = q.where("service_id", "==", opts.serviceId);
   if (opts.businessId) q = q.where("business_id", "==", opts.businessId);
-  if (opts.regionId) q = q.where("business.region_id", "==", opts.regionId);
+  if (opts.regionId) q = q.where("region_id", "==", opts.regionId);
   return fromQuery<FeedPost>(await q.orderBy("created_at", "desc").limit(opts.limit ?? 24).get()).map(sortMedia);
 }
 

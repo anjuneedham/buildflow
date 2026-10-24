@@ -17,7 +17,7 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
   const t = tenant(s.business.id);
   const [project, customers, team] = await Promise.all([
     t.doc("projects", id).get().then((d) => fromDoc<Project>(d)),
-    list<{ id: string; name: string }>(t.col("customers").orderBy("name_lower").select("name")),
+    list<{ id: string; name: string }>(t.col("customers").orderBy("name_lower").select("name").limit(1000)),
     getTeam(s.business.id),
   ]);
   if (!project) notFound();

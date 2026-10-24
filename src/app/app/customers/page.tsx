@@ -14,7 +14,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const t = tenant(s.business.id);
   const [all, projects] = await Promise.all([
     list<Customer>(t.col("customers").orderBy("created_at", "desc").limit(500)),
-    list<{ customer_id: string | null }>(t.col("projects").select("customer_id")),
+    list<{ customer_id: string | null }>(t.col("projects").select("customer_id").limit(2000)),
   ]);
   const projectCount = new Map<string, number>();
   projects.forEach((p) => p.customer_id && projectCount.set(p.customer_id, (projectCount.get(p.customer_id) ?? 0) + 1));

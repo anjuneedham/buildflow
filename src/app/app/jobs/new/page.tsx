@@ -14,7 +14,7 @@ export default async function NewProjectPage({ searchParams }: { searchParams: P
   const sp = await searchParams;
   const t = tenant(s.business.id);
   const [customers, team, lead] = await Promise.all([
-    list<{ id: string; name: string }>(t.col("customers").orderBy("name_lower").select("name")),
+    list<{ id: string; name: string }>(t.col("customers").orderBy("name_lower").select("name").limit(1000)),
     getTeam(s.business.id),
     isId(sp.leadId) ? t.doc("leads", sp.leadId).get().then((d) => fromDoc<Lead>(d)) : null,
   ]);

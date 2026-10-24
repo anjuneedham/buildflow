@@ -2,6 +2,7 @@ import "server-only";
 import { FieldValue, type Transaction, type WriteBatch } from "firebase-admin/firestore";
 import { db } from "@/lib/firebase/admin";
 import { now } from "./db";
+import { localDate } from "@/lib/utils";
 
 // Tenant boundary. Every CRM/project collection lives under
 // businesses/{businessId}/..., and callers get the businessId from the
@@ -10,7 +11,7 @@ import { now } from "./db";
 // inside the caller's own business.
 export type TenantCollection =
   | "customers" | "leads" | "projects" | "tasks" | "notes" | "activity" | "photos" | "media"
-  | "quote_requests" | "events" | "members" | "invitations";
+  | "quote_requests" | "stats" | "members" | "invitations";
 
 export function tenant(businessId: string) {
   const root = db().collection("businesses").doc(businessId);
@@ -25,9 +26,34 @@ export type EventType =
   | "profile_view" | "post_view" | "like" | "comment" | "follow" | "save" | "quote_request"
   | "contact_click" | "lead_created" | "project_won" | "project_completed";
 
-/** Queue analytics/activity/notification side effects on an existing batch. */
-export function addEvent(batch: WriteBatch, businessId: string, type: EventType, extra: Record<string, unknown> = {}) {
-  batch.set(tenant(businessId).col("events").doc(), { type, created_at: now(), ...extra });
+/**
+ * Contractor insights are counters, not one document per event
+ * (FIRESTORE_SCHEMA_V2.md §3.16): businesses/{id}/stats/{yyyy-mm} holds
+ * totals and per-day counts in the business timezone. A month of insights
+ * is one read; V1 read up to 50,000 event documents.
+ */
+export function statsRef(businessId: string, month: string) {
+  return tenant(businessId).doc("stats", month);
+}
+
+export function addEvent(writer: WriteBatch | Transaction, businessId: string, type: EventType, at: Date = new Date()) {
+  const day = localDate(at);
+  (writer as WriteBatch).set(statsRef(businessId, day.slice(0, 7)), {
+    month: day.slice(0, 7), totals: { [type]: inc() }, days: { [day.slice(8, 10)]: { [type]: inc() } },
+  }, { merge: true });
+}
+
+export type MonthStats = { totals: Partial<Record<EventType, number>>; days: Record<string, Partial<Record<EventType, number>>> };
+
+/** Stats for the month containing `at` (and optionally the months before it). */
+export async function monthStats(businessId: string, monthsBack = 0, at: Date = new Date()): Promise<MonthStats[]> {
+  const [y, m] = localDate(at).split("-").map(Number);
+  const keys = Array.from({ length: monthsBack + 1 }, (_, i) => {
+    const d = new Date(Date.UTC(y, m - 1 - i, 1));
+    return d.toISOString().slice(0, 7);
+  });
+  const snaps = await db().getAll(...keys.map((k) => statsRef(businessId, k)));
+  return snaps.map((s) => ({ totals: (s.get("totals") as MonthStats["totals"]) ?? {}, days: (s.get("days") as MonthStats["days"]) ?? {} }));
 }
 
 export type ActivityEntry = {

@@ -100,7 +100,7 @@ export function PhotoUpload({ projectId }: { projectId: string }) {
     <form action={action} onSubmit={() => setCount(0)} className="flex flex-wrap items-center gap-2">
       <label className={buttonClasses({ variant: "outline", className: "cursor-pointer" })}>
         <ImagePlus className="h-4 w-4" />{pending ? "Uploading…" : count ? `${count} selected` : "Choose photos"}
-        <input type="file" name="photos" accept="image/jpeg,image/png,image/webp,image/heic" multiple className="sr-only" disabled={pending} onChange={(e) => setCount(e.target.files?.length ?? 0)} />
+        <input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" disabled={pending} onChange={(e) => setCount(e.target.files?.length ?? 0)} />
       </label>
       {count > 0 && <SubmitButton>Upload</SubmitButton>}
       {state.ok === false && <p className="w-full text-sm text-site-red">{state.error}</p>}

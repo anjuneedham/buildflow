@@ -11,7 +11,7 @@ export const metadata = { title: "Businesses" };
 export default async function AdminBusinesses() {
   const [rows, subs] = await Promise.all([
     list<Business>(db().collection("businesses").orderBy("created_at", "desc").limit(300)),
-    list<{ id: string; status: string; seats: number }>(db().collection("subscriptions")),
+    list<{ id: string; status: string; seats: number }>(db().collection("subscriptions").limit(1000)),
   ]);
   const subBy = new Map(subs.map((x) => [x.id, x]));
   return (

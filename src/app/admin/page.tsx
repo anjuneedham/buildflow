@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
 import { db } from "@/lib/firebase/admin";
 import { count } from "@/lib/data/db";
-import { startOfMonthISO } from "@/lib/utils";
+import { localDate, startOfMonthISO } from "@/lib/utils";
+import { AggregateField } from "firebase-admin/firestore";
 
 export const metadata = { title: "Dashboard" };
 
@@ -15,7 +16,8 @@ export default async function AdminDashboard() {
     count(d.collection("businesses")),
     count(d.collection("businesses").where("created_at", ">=", month)),
     count(d.collection("posts")),
-    count(d.collectionGroup("events").where("type", "==", "quote_request").where("created_at", ">=", month)),
+    // Sum of every business's monthly counter: one aggregation, no document reads.
+    d.collectionGroup("stats").where("month", "==", localDate().slice(0, 7)).aggregate({ n: AggregateField.sum("totals.quote_request") }).get().then((r) => r.data().n ?? 0),
     count(d.collection("reports").where("status", "==", "open")),
     count(d.collection("subscriptions").where("status", "==", "trialing")),
     count(d.collection("subscriptions").where("status", "==", "active")),

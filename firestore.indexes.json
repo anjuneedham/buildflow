@@ -1,24 +1,463 @@
 {
   "indexes": [
-    { "collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "visible", "order": "ASCENDING" }, { "fieldPath": "created_at", "order": "DESCENDING" } ] },
-    { "collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "visible", "order": "ASCENDING" }, { "fieldPath": "service_id", "order": "ASCENDING" }, { "fieldPath": "created_at", "order": "DESCENDING" } ] },
-    { "collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "visible", "order": "ASCENDING" }, { "fieldPath": "business_id", "order": "ASCENDING" }, { "fieldPath": "created_at", "order": "DESCENDING" } ] },
-    { "collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "visible", "order": "ASCENDING" }, { "fieldPath": "business.region_id", "order": "ASCENDING" }, { "fieldPath": "created_at", "order": "DESCENDING" } ] },
-    { "collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "business_id", "order": "ASCENDING" }, { "fieldPath": "visible", "order": "ASCENDING" } ] },
-    { "collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "business_id", "order": "ASCENDING" }, { "fieldPath": "project_id", "order": "ASCENDING" } ] },
-    { "collectionGroup": "businesses", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "is_public", "order": "ASCENDING" }, { "fieldPath": "is_suspended", "order": "ASCENDING" }, { "fieldPath": "service_ids", "arrayConfig": "CONTAINS" }, { "fieldPath": "region_id", "order": "ASCENDING" } ] },
-    { "collectionGroup": "businesses", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "is_public", "order": "ASCENDING" }, { "fieldPath": "is_suspended", "order": "ASCENDING" }, { "fieldPath": "service_ids", "arrayConfig": "CONTAINS" } ] },
-    { "collectionGroup": "businesses", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "is_public", "order": "ASCENDING" }, { "fieldPath": "is_suspended", "order": "ASCENDING" }, { "fieldPath": "region_id", "order": "ASCENDING" } ] },
-    { "collectionGroup": "events", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "type", "order": "ASCENDING" }, { "fieldPath": "created_at", "order": "ASCENDING" } ] },
-    { "collectionGroup": "events", "queryScope": "COLLECTION_GROUP", "fields": [ { "fieldPath": "type", "order": "ASCENDING" }, { "fieldPath": "created_at", "order": "ASCENDING" } ] },
-    { "collectionGroup": "notes", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "entity_id", "order": "ASCENDING" }, { "fieldPath": "created_at", "order": "DESCENDING" } ] },
-    { "collectionGroup": "activity", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "entity_id", "order": "ASCENDING" }, { "fieldPath": "created_at", "order": "DESCENDING" } ] },
-    { "collectionGroup": "leads", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "customer_id", "order": "ASCENDING" }, { "fieldPath": "created_at", "order": "DESCENDING" } ] },
-    { "collectionGroup": "projects", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "customer_id", "order": "ASCENDING" }, { "fieldPath": "created_at", "order": "DESCENDING" } ] },
-    { "collectionGroup": "photos", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "project_id", "order": "ASCENDING" }, { "fieldPath": "created_at", "order": "DESCENDING" } ] },
-    { "collectionGroup": "invitations", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "business_id", "order": "ASCENDING" }, { "fieldPath": "email", "order": "ASCENDING" }, { "fieldPath": "accepted_at", "order": "ASCENDING" } ] },
-    { "collectionGroup": "invitations", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "business_id", "order": "ASCENDING" }, { "fieldPath": "accepted_at", "order": "ASCENDING" } ] },
-    { "collectionGroup": "locations", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "country_code", "order": "ASCENDING" }, { "fieldPath": "level", "order": "ASCENDING" } ] }
+    {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "visible",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "visible",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "service_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "visible",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "business_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "business_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "visible",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "business_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "project_id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "businesses",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "is_public",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "is_suspended",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "service_ids",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "region_id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "businesses",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "is_public",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "is_suspended",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "service_ids",
+          "arrayConfig": "CONTAINS"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "businesses",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "is_public",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "is_suspended",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "region_id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "notes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "entity_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "activity",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "entity_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "leads",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "customer_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "projects",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "customer_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "photos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "project_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "invitations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "business_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "email",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "accepted_at",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "invitations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "business_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "accepted_at",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "locations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "country_code",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "level",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "visible",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "region_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "visible",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "service_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "region_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "projects",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "member_ids",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "projects",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "member_ids",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "due_date",
+          "order": "ASCENDING"
+        }
+      ]
+    }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "posts",
+      "fieldPath": "caption",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "posts",
+      "fieldPath": "media",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "posts",
+      "fieldPath": "business",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "leads",
+      "fieldPath": "description",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "leads",
+      "fieldPath": "quote",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "customers",
+      "fieldPath": "notes",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "customers",
+      "fieldPath": "address",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "notes",
+      "fieldPath": "body",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "activity",
+      "fieldPath": "summary",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "activity",
+      "fieldPath": "body",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "activity",
+      "fieldPath": "media",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "projects",
+      "fieldPath": "description",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "tasks",
+      "fieldPath": "description",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "comments",
+      "fieldPath": "body",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "reports",
+      "fieldPath": "details",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "businesses",
+      "fieldPath": "description",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "businesses",
+      "fieldPath": "services",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "businesses",
+      "fieldPath": "social_links",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "stats",
+      "fieldPath": "month",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "stats",
+      "fieldPath": "days",
+      "indexes": []
+    }
+  ]
 }

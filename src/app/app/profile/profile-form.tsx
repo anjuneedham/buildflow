@@ -18,7 +18,7 @@ export function ProfileForm({ business: b, services, regions, selected }: { busi
   useActionToast(state);
   const fe = state.fieldErrors ?? {};
   const preview = (set: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) set(URL.createObjectURL(f)); };
-  const accept = "image/jpeg,image/png,image/webp,image/heic";
+  const accept = "image/jpeg,image/png,image/webp";
   return (
     <form action={action} className="space-y-4">
       <FormError message={state.fieldErrors ? undefined : state.error} />

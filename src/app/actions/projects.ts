@@ -73,10 +73,10 @@ export async function createProject(_: ActionState, fd: FormData): Promise<Actio
     const lead = await t.doc("leads", d.leadId).get();
     if (lead.exists && lead.get("status") !== "won") {
       batch.update(lead.ref, { status: "won", status_changed_at: ts, updated_at: ts });
-      addEvent(batch, businessId, "project_won", { lead_id: d.leadId });
+      addEvent(batch, businessId, "project_won");
     }
   }
-  if (d.status === "completed") addEvent(batch, businessId, "project_completed", { project_id: ref.id });
+  if (d.status === "completed") addEvent(batch, businessId, "project_completed");
   members.filter((m) => m !== userId).forEach((m) => addNotification(batch, m, { businessId, type: "project_assigned", title: `You were added to ${d.name}`, link: `/app/jobs/${ref.id}` }));
   addActivity(batch, businessId, { actorId: userId, actorName: userName, entityType: "project", entityId: ref.id, action: "created", summary: `Created project ${d.name}` });
   await batch.commit();
@@ -104,7 +104,7 @@ export async function updateProject(id: string, _: ActionState, fd: FormData): P
     ...projectFields(d), customer_name: customer.name, member_ids: members, updated_at: now(),
     completed_at: d.status === "completed" ? prev.get("completed_at") ?? now() : null,
   });
-  if (d.status === "completed" && !wasCompleted) addEvent(batch, businessId, "project_completed", { project_id: id });
+  if (d.status === "completed" && !wasCompleted) addEvent(batch, businessId, "project_completed");
   members.filter((m) => !before.includes(m) && m !== userId).forEach((m) => addNotification(batch, m, { businessId, type: "project_assigned", title: `You were added to ${d.name}`, link: `/app/jobs/${id}` }));
   addActivity(batch, businessId, { actorId: userId, actorName: userName, entityType: "project", entityId: id, action: "updated", summary: "Updated project details" });
   await batch.commit();
@@ -124,7 +124,7 @@ export async function setProjectStatus(id: string, status: string) {
   const batch = db().batch();
   const completing = parsed.data === "completed";
   batch.update(ref, { status: parsed.data, completed_at: completing ? now() : null, updated_at: now() });
-  if (completing) addEvent(batch, businessId, "project_completed", { project_id: id });
+  if (completing) addEvent(batch, businessId, "project_completed");
   addActivity(batch, businessId, { actorId: userId, actorName: userName, entityType: "project", entityId: id, action: "status_changed", summary: `${prev.get("name")} is now ${optionFor(PROJECT_STATUSES, parsed.data)?.label}` });
   await batch.commit();
   if (completing || prev.get("status") === "completed") await refreshCompletedCount(businessId);

@@ -1,54 +1,17 @@
 rules_version = '2';
 
-// BuildFlow reads and writes Firestore from the server with the Admin SDK,
-// which bypasses these rules. The rules are a second line of defence:
-// if a client SDK ever talks to the database directly, it can read only
-// public data and its own records, and it can never write.
+// BuildFlow: all Firestore access is server-side (Admin SDK, which bypasses
+// these rules) after session verification and the policy checks in
+// src/server/policy.ts. The browser bundle does not include the Firestore
+// SDK, so no client path exists; these rules prove that by denying every
+// client read and write (ARCHITECTURE_V2.md §1, FIRESTORE_SCHEMA_V2.md §7).
+//
+// A future feature that needs live client listeners must add a narrowly
+// scoped rule, tests for it, and update FIRESTORE_SCHEMA_V2.md.
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function signedIn() { return request.auth != null; }
-    function isMember(businessId) {
-      return signedIn() && exists(/databases/$(database)/documents/businesses/$(businessId)/members/$(request.auth.uid));
+    match /{document=**} {
+      allow read, write: if false;
     }
-    function isAdmin() {
-      return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_platform_admin == true;
-    }
-
-    // Reference data
-    match /services/{id}  { allow read: if true; }
-    match /locations/{id} { allow read: if true; }
-    match /plans/{id}     { allow read: if true; }
-    match /slugs/{slug}   { allow read: if true; }
-
-    // Users: only yourself (and platform admins).
-    match /users/{uid} {
-      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
-      match /{sub=**} { allow read: if signedIn() && request.auth.uid == uid; }
-    }
-
-    // Tenant root = public contractor profile.
-    match /businesses/{businessId} {
-      allow read: if (resource.data.is_public == true && resource.data.is_suspended == false) || isMember(businessId) || isAdmin();
-
-      // Everything under a business (CRM, projects, analytics, team) is private to its members.
-      match /{sub=**} { allow read: if isMember(businessId) || isAdmin(); }
-    }
-
-    match /subscriptions/{businessId} { allow read: if isMember(businessId) || isAdmin(); }
-    match /invitations/{token}       { allow read: if isAdmin(); }
-
-    // Social
-    match /posts/{postId} {
-      allow read: if resource.data.visible == true || isMember(resource.data.business_id) || isAdmin();
-      match /comments/{commentId} {
-        allow read: if get(/databases/$(database)/documents/posts/$(postId)).data.visible == true && resource.data.is_hidden == false;
-      }
-    }
-
-    match /reports/{id} { allow read: if isAdmin(); }
-
-    // No client writes anywhere: all mutations go through validated server actions.
-    match /{document=**} { allow write: if false; }
   }
 }

@@ -1,6 +1,7 @@
 import { Card, CardBody, CardHeader, PageHeader } from "@/components/ui";
 import { list } from "@/lib/data/db";
-import { tenant } from "@/lib/data/tenant";
+import { monthStats, tenant, type EventType, type MonthStats } from "@/lib/data/tenant";
+import { formatDate } from "@/lib/utils";
 import { requirePermission } from "@/lib/session";
 import { LEAD_SOURCES } from "@/lib/constants";
 
@@ -23,33 +24,30 @@ const METRICS = [
 export default async function AnalyticsPage() {
   const s = await requirePermission("analytics.view");
   const t = tenant(s.business.id);
-  const now = new Date();
-  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const [ev, leads] = await Promise.all([
-    list<{ type: string; created_at: string }>(t.col("events").where("created_at", ">=", lastMonth.toISOString()).select("type", "created_at").limit(50000)),
+  const [[current, previous], leads] = await Promise.all([
+    monthStats(s.business.id, 1), // 2 reads: this month and last month
     list<{ source: string; status: string }>(t.col("leads").select("source", "status").limit(5000)),
   ]);
-  const count = (type: string, from: Date, to?: Date) => ev.filter((e) => e.type === type && new Date(e.created_at) >= from && (!to || new Date(e.created_at) < to)).length;
-  const quotes = count("quote_request", thisMonth);
+  const count = (type: EventType, month: MonthStats) => month.totals[type] ?? 0;
+  const quotes = count("quote_request", current);
   const sources = LEAD_SOURCES.map((src) => {
     const rows = leads.filter((l) => l.source === src.value);
     return { ...src, total: rows.length, won: rows.filter((l) => l.status === "won").length };
   }).filter((x) => x.total > 0).sort((a, b) => b.total - a.total);
   const maxSource = Math.max(1, ...sources.map((x) => x.total));
-  const monthName = now.toLocaleDateString("en-US", { month: "long" });
+  const monthName = formatDate(new Date(), { month: "long" });
 
   return (
     <div className="space-y-4">
       <PageHeader title="Analytics" subtitle={`${monthName} so far, compared with last month`} />
       <Card className="bg-ink p-5 text-white">
         <p className="text-lg">Your profile generated <b className="text-2xl text-safety-400">{quotes}</b> quote request{quotes === 1 ? "" : "s"} this month.</p>
-        <p className="mt-1 text-sm text-concrete-300">From {count("profile_view", thisMonth)} profile views. Posting finished work regularly is the best way to grow this.</p>
+        <p className="mt-1 text-sm text-concrete-300">From {count("profile_view", current)} profile views. Posting finished work regularly is the best way to grow this.</p>
       </Card>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {METRICS.map((m) => {
-          const cur = count(m.key, thisMonth);
-          const prev = count(m.key, lastMonth, thisMonth);
+          const cur = count(m.key, current);
+          const prev = count(m.key, previous);
           const diff = cur - prev;
           return (
             <div key={m.key} className="rounded-xl border border-concrete-200 bg-white p-3">

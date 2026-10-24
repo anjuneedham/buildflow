@@ -22,9 +22,9 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   const lead = isId(id) ? fromDoc<Lead>(await t.doc("leads", id).get()) : null;
   if (!lead) notFound();
   const [notes, activity, projects, team] = await Promise.all([
-    list<NoteRow>(t.col("notes").where("entity_id", "==", id).orderBy("created_at", "desc")),
+    list<NoteRow>(t.col("notes").where("entity_id", "==", id).orderBy("created_at", "desc").limit(100)),
     list<ActivityRow>(t.col("activity").where("entity_id", "==", id).orderBy("created_at", "desc").limit(20)),
-    list<{ id: string; name: string }>(t.col("projects").where("lead_id", "==", id)),
+    list<{ id: string; name: string }>(t.col("projects").where("lead_id", "==", id).limit(20)),
     getTeam(s.business.id),
   ]);
   const assignee = team.find((m) => m.user_id === lead.assigned_to);
