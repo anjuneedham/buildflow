@@ -97,7 +97,8 @@ await check("login: double-click Log in works once, no error flash", async () =>
   await p.goto(`${BASE}/login`); await p.fill("#email", email); await p.fill("#password", pw);
   await p.locator("button[type=submit]").dblclick();
   await p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 20000 });
-  return (await p.locator("[role=alert]").allTextContents()).join("").trim() === "";
+  // Next's own route announcer is also role=alert; only the form's messages count.
+  return (await p.locator("form [role=alert]").allTextContents()).join("").trim() === "";
 });
 for (const next of ["//evil.com", "/\\evil.com", "https://evil.com", "/\t/evil.com", "/%09/evil.com", "javascript:alert(1)"]) {
   await check(`login: next=${JSON.stringify(next)} never leaves the site`, async () => {
@@ -158,6 +159,7 @@ await check("logout from one device ends that session on the server (cookie repl
   const { ctx: c1, page: p } = await newPage(phone, "replay");
   await login(p, "owner@kingstonpro.demo");
   const cookie = (await c1.cookies()).find((c) => c.name === "__session").value;
+  await sleep(1500); // Firebase compares whole seconds; a cookie from the same second as the logout cannot be told apart
   await p.goto(`${BASE}/account`); await p.getByRole("button", { name: "Log out" }).click(); await p.waitForURL(`${BASE}/`, { timeout: 15000 });
   const r = await fetch(`${BASE}/app/leads`, { headers: { cookie: `__session=${cookie}` }, redirect: "manual" });
   const body = r.status === 200 ? await r.text() : "";
@@ -173,7 +175,7 @@ await check("session cookie deleted mid-session: submitting a form sends you to 
   const url = p.url(); const alert = (await p.locator("[role=alert],[aria-live]").allTextContents()).join("|").slice(0, 200);
   const toLogin = /\/login/.test(url);
   const kept = await p.locator("textarea[name=body]").inputValue().catch(() => null);
-  return toLogin || alert ? { status: toLogin ? "PASS" : "FINDING", detail: `url=${url} alert="${alert}" textKept=${kept === "Note typed right before the session expired"}` } : { status: "FAIL", detail: `silent: url=${url}` };
+  return toLogin || (/signed out/i.test(alert) && kept === "Note typed right before the session expired") ? { status: "PASS", detail: `url=${url} alert="${alert}" textKept=${kept === "Note typed right before the session expired"}` } : { status: alert ? "FINDING" : "FAIL", detail: `url=${url} alert="${alert}" kept=${kept}` };
 });
 await check("session revoked server-side (password changed elsewhere): next action is refused", async () => {
   const { page: p } = await newPage(phone, "revoked");

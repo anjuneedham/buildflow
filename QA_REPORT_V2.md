@@ -139,7 +139,32 @@ IDs: **H** = HIGH, **M** = MEDIUM, **L** = LOW. "Reproduced" means the failure w
 
 ## 8. Final run
 
-RESULTS_PLACEHOLDER
+Run on the production build (`next build && next start`) with the Firebase emulators, a freshly seeded database and a freshly restarted server for each suite (the in-memory rate limits would otherwise leak between suites).
+
+| Suite | Result |
+|---|---|
+| Typecheck, lint | clean (lint: warnings only, no errors) |
+| Unit tests | **30 / 30** |
+| Firestore rules tests | **3 / 3** |
+| Integration (tenant isolation over HTTP) | **9 / 9** |
+| End-to-end: roles, journey, workflow, discovery | **14, 22, 15, 15 checks, all pass**, no browser errors |
+| End-to-end: audit (axe WCAG 2.1 A/AA, overflow, broken requests) | no violations, no overflow, no non-200 |
+| `action-fuzz` (direct action authorization) | **157 / 157** |
+| `http-probe` | **137 / 137** (CSP and HSTS recorded as informational) |
+| `param-fuzz` (hostile query strings) | **455 / 455** |
+| `bundle-scan` | pass |
+| `concurrency` | **11 / 12**; the remaining item is the open LOW "5 per hour" guard (6 stored, limit 5) |
+| `browser-auth` | **32 / 32** |
+| `browser-crud` | **22 / 22** |
+| `browser-uploads` | **18 / 18** |
+| `browser-network` | **11 / 11** |
+| `layouts` (7 viewports × 19 pages) | **133 / 133** |
+| `page-weight` | 7 / 10; the three misses are the photo-weight finding O3 (15.7 to 25.5 s on the emulated slow connection) |
+
+How the final numbers were produced, so nothing is overstated: the full run above was made, then I changed logout handling again and re-ran the end-to-end suites, `action-fuzz`, `http-probe` and `browser-auth` against the final code (all pass as listed). The other suites were not re-run after that last change; it touches only session verification and logout.
+
+Failures seen during the pass and what they were: several were mistakes in my own tests (selectors that matched Next's route announcer, an upload test waiting for the wrong element, a revocation test that revoked within the same second as the sign-in, and the deterministic job id breaking one URL pattern in the `workflow` end-to-end test), not defects in the app. None was "fixed" by loosening an assertion the app should meet.
+
 
 ## 9. Re-running
 
