@@ -42,7 +42,7 @@ The marketing site, discovery pages and the web app are the same codebase, the s
 
 ## 3. Firebase prerequisites (before the first deploy)
 
-1. **Two Firebase projects:** `buildflow-staging` and `buildflow-prod` (already named in `.firebaserc`). Never share data, Auth users, buckets or keys between them.
+1. **Two Firebase projects.** `.firebaserc` now points `default` and `staging` at **`build-6fa95`** (a project id you set in the latest commit) and still names `buildflow-prod` for production. Treat `build-6fa95` as staging; do not put real customer data in it, and create the production project separately. Never share data, Auth users, buckets or keys between the two.
 2. **Firestore region is permanent.** Choose before creating the production database. Recommendation: **`us-east4` (N. Virginia)** with Vercel functions in **`iad1`** (also N. Virginia), the closest major region to Jamaica **[verify latency from Kingston]**. Alternatives from `ARCHITECTURE_V2.md`: `us-east1` or the multi-region `nam5`. Put the Storage buckets in the same region.
 3. **Billing plan:** Cloud Storage for new Firebase projects and Cloud Functions require the paid (Blaze) plan **[verify]**. Set a budget alert.
 4. **Auth:** enable Email/Password. Set the **Action URL** (Authentication → Templates) to `https://<domain>/auth/action` so verification and reset links open the app's own page. Add **authorized domains**: the production domain, the staging domain and `localhost`.
@@ -57,8 +57,8 @@ The marketing site, discovery pages and the web app are the same codebase, the s
 | Vercel environment | Git trigger | Firebase project | `NEXT_PUBLIC_APP_ENV` | Domain |
 |---|---|---|---|---|
 | **Production** | `main` | `buildflow-prod` | `production` | `<domain>` |
-| **Preview** | any other branch, any pull request | `buildflow-staging` | `staging` | `*.vercel.app` per deployment |
-| **Staging** (stable) | branch `staging` | `buildflow-staging` | `staging` | `staging.<domain>` (a Vercel custom environment, paid plans **[verify]**) |
+| **Preview** | any other branch, any pull request | `build-6fa95` (staging) | `staging` | `*.vercel.app` per deployment |
+| **Staging** (stable) | branch `staging` | `build-6fa95` | `staging` | `staging.<domain>` (a Vercel custom environment, paid plans **[verify]**) |
 | **Development** | `vercel dev`, `npm run dev` | emulators, `demo-buildflow` | `local` | `localhost:3000` |
 
 Rules that follow from how the app is built:
@@ -77,7 +77,7 @@ Set in Vercel → Project → Settings → Environment Variables. **No value is 
 | `NEXT_PUBLIC_APP_ENV` | `production` | `staging` | `local` | no | Drives the startup checks above |
 | `NEXT_PUBLIC_FIREBASE_API_KEY` | prod app | staging app | emulator value | no | Firebase console → Project settings → Your apps |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `<prod-project>.firebaseapp.com` or custom auth domain | staging | — | no | |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `buildflow-prod` | `buildflow-staging` | `demo-buildflow` | no | `demo-*` is refused outside local |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `buildflow-prod` | `build-6fa95` | `demo-buildflow` | no | `demo-*` is refused outside local |
 | `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | prod bucket | staging bucket | — | no | |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | prod app id | staging app id | — | no | |
 | `NEXT_PUBLIC_SITE_URL` | `https://<domain>` | `https://staging.<domain>` | `http://localhost:3000` | no | Used for review links, canonical URLs, sitemap and robots. Must be https when deployed |
@@ -156,7 +156,7 @@ The service account has full backend power. It is **server-only** (`import "serv
 ## 9. First-deploy checklist (for when you approve)
 
 - [ ] Name and domain confirmed
-- [ ] Firebase projects created, Blaze plan, Firestore region chosen, budget alerts set
+- [ ] Production Firebase project created (staging is `build-6fa95`), Blaze plan, Firestore region chosen, budget alerts set
 - [ ] Auth providers, Action URL and authorized domains configured; API key restricted
 - [ ] Service accounts created (app, CI)
 - [ ] Direct-to-Storage upload shipped and tested against the real bucket; Storage CORS set

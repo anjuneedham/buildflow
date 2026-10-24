@@ -162,7 +162,7 @@ The current upload path does not work on Vercel for typical phone photos; §6 is
 
 ## 4. Environments and delivery (summary; detail in `VERCEL_DEPLOYMENT_V2.md`)
 
-`local` (emulators) → `staging` (`buildflow-staging`, every pull request preview) → `production` (`buildflow-prod`, `main` only). Rules and indexes deploy from GitHub Actions before the app. Secrets live in the host's encrypted environment, never in the repository.
+`local` (emulators) → `staging` (`build-6fa95`, every pull request preview) → `production` (`buildflow-prod`, `main` only). Rules and indexes deploy from GitHub Actions before the app. Secrets live in the host's encrypted environment, never in the repository.
 
 ## 5. Implementation plan
 

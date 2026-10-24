@@ -88,7 +88,7 @@ await check("login: wrong password and unknown email give the same message", asy
   const msgs = [];
   for (const [e, w] of [[email, "wrong-password-1"], [`nobody${run}@test.dev`, "whatever123"]]) {
     await p.goto(`${BASE}/login`); await p.fill("#email", e); await p.fill("#password", w); await p.click("button[type=submit]");
-    await p.locator("[role=alert]").first().waitFor({ timeout: 10000 }); msgs.push((await p.locator("[role=alert]").first().textContent()).trim());
+    const err = p.locator("div[role=alert]").filter({ hasText: /\S/ }).first(); await err.waitFor({ timeout: 10000 }); msgs.push((await err.textContent()).trim());
   }
   return msgs[0] === msgs[1] ? true : { status: "FAIL", detail: JSON.stringify(msgs) };
 });
@@ -179,7 +179,8 @@ await check("session revoked server-side (password changed elsewhere): next acti
   const { page: p } = await newPage(phone, "revoked");
   await login(p, "owner@kingstonpro.demo");
   await p.goto(`${BASE}/app/leads/demo-lead-qr`); await p.waitForLoadState("networkidle");
-  const uid = (await adminAuth.getUserByEmail("owner@kingstonpro.demo")).uid; await adminAuth.revokeRefreshTokens(uid); await sleep(1200);
+  // Firebase compares whole seconds: revoke in a later second than the sign-in or the token still counts as newer.
+  await sleep(1500); const uid = (await adminAuth.getUserByEmail("owner@kingstonpro.demo")).uid; await adminAuth.revokeRefreshTokens(uid); await sleep(1500);
   await p.fill("textarea[name=body]", "after revoke"); await p.click("text=Add note"); await sleep(2500);
   const added = (await fs.collection("businesses/demo-kpb/activity").where("body", "==", "after revoke").get()).size;
   return added === 0 ? true : { status: "FAIL", detail: "note written with a revoked session" };
