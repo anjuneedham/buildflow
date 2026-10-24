@@ -1,8 +1,8 @@
 {
   "projects": {
-    "default": "demo-buildflow",
+    "default": "build-6fa95",
     "local": "demo-buildflow",
-    "staging": "buildflow-staging",
+    "staging": "build-6fa95",
     "production": "buildflow-prod"
   }
 }
