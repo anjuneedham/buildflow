@@ -575,6 +575,20 @@
       "collectionGroup": "reviews",
       "fieldPath": "body",
       "indexes": []
+    },
+    {
+      "collectionGroup": "reviews",
+      "fieldPath": "reviewer_uid",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
     }
   ]
 }

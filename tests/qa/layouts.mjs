@@ -13,7 +13,7 @@ const viewports = {
   "tablet-landscape-1024x768": { viewport: { width: 1024, height: 768 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
   "galaxy-tab-800x1280": { viewport: { width: 800, height: 1280 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
 };
-const publicPages = ["/", "/explore", "/explore?tab=contractors", "/contractor/kingston-pro-builders", "/post/demo-post-1", "/login", "/signup", "/pricing", "/for-contractors"];
+const publicPages = ["/", "/faq", "/support", "/delete-account", "/privacy", "/terms", "/explore", "/explore?tab=contractors", "/contractor/kingston-pro-builders", "/post/demo-post-1", "/login", "/signup", "/pricing", "/for-contractors"];
 const ownerPages = ["/app", "/app/leads", "/app/leads/demo-lead-qr", "/app/customers", "/app/jobs", "/app/jobs/demo-proj-1", "/app/posts/new", "/app/profile", "/app/analytics", "/app/team"];
 
 async function audit(p, url, name) {

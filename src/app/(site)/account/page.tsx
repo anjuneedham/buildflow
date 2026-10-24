@@ -3,6 +3,7 @@ import { db } from "@/lib/firebase/admin";
 import { fromQuery } from "@/lib/data/db";
 import { requireUser } from "@/lib/session";
 import { AccountForm } from "./account-form";
+import { DeleteAccount } from "./delete-account";
 import { Card, StatusBadge } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -46,6 +47,7 @@ export default async function AccountPage() {
         )}
       </section>
       <LogoutButton className="font-semibold text-site-red" />
+      <DeleteAccount businessName={s.membership?.business.name ?? null} isOwner={s.membership?.role === "owner"} />
     </main>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useActionState, useCallback, useEffect, useLayoutEffect, useRef, useTransition } from "react";
 import { useRouter, unstable_rethrow } from "next/navigation";
-import { UPLOAD } from "@/lib/constants";
+import { prepareUploads } from "@/lib/shrink-images";
 import type { ActionState } from "@/lib/validation";
 import { useToast } from "./toast";
 
@@ -30,20 +30,6 @@ if (typeof document !== "undefined" && !(window as unknown as { __bfFormTrack?: 
 }
 
 type Snapshot = { form: HTMLFormElement | null; entries: [string, string][] };
-
-const MB = 1024 * 1024;
-/** Catches oversized files before they are sent (a failed upload on a phone connection wastes minutes). */
-function oversizeMessage(fd: FormData) {
-  let total = 0;
-  for (const v of fd.values()) {
-    if (!(v instanceof File)) continue;
-    total += v.size;
-    const limit = v.type === "application/pdf" ? UPLOAD.maxFileBytes : UPLOAD.maxBytes;
-    if (v.size > limit) return `${v.name || "That file"} is ${(v.size / MB).toFixed(1)} MB. Files must be ${Math.round(limit / MB)} MB or smaller. Choose a smaller one or take the photo at a lower quality.`;
-  }
-  if (total > 48 * MB) return `These files add up to ${Math.round(total / MB)} MB. Send them in smaller groups (48 MB at a time).`;
-  return null;
-}
 
 function takeSnapshot(fd: FormData): Snapshot {
   return { form: lastSubmitted, entries: [...fd.entries()].filter((e): e is [string, string] => typeof e[1] === "string" && !e[0].startsWith("$ACTION")) };
@@ -99,9 +85,10 @@ export function useFormAction(action: (state: ActionState, fd: FormData) => Prom
   const safe = useCallback(
     async (state: ActionState, fd: FormData) => {
       submitted.current = takeSnapshot(fd);
-      const tooBig = oversizeMessage(fd);
-      if (tooBig) return { ok: false, error: tooBig } as ActionState;
-      const next = await settle(() => action(state, fd), (error): ActionState => ({ ok: false, error }));
+      // Photos are shrunk in the browser first: a 12 MP phone photo is 3-6 MB, and the host accepts about 4.5 MB per request.
+      const prepared = await prepareUploads(fd);
+      if (!prepared.fd) return { ok: false, error: prepared.error } as ActionState;
+      const next = await settle(() => action(state, prepared.fd), (error): ActionState => ({ ok: false, error }));
       if (next.ok) submitted.current = null;
       return next;
     },

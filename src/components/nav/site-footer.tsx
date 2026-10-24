@@ -4,8 +4,8 @@ import { Logo } from "@/components/brand/logo";
 const cols = [
   { title: "Product", links: [["Features", "/features"], ["Pricing", "/pricing"], ["For contractors", "/for-contractors"], ["For customers", "/for-customers"]] },
   { title: "Discover", links: [["Explore contractors", "/explore"], ["Search", "/search"]] },
-  { title: "Company", links: [["About", "/about"], ["Contact", "/contact"]] },
-  { title: "Legal", links: [["Privacy", "/privacy"], ["Terms", "/terms"], ["Refunds & cancellation", "/refund-policy"]] },
+  { title: "Company", links: [["About", "/about"], ["FAQ", "/faq"], ["Support", "/support"], ["Contact", "/contact"]] },
+  { title: "Legal", links: [["Privacy", "/privacy"], ["Terms", "/terms"], ["Refunds & cancellation", "/refund-policy"], ["Delete your account", "/delete-account"]] },
 ];
 
 export function SiteFooter() {

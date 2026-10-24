@@ -10,6 +10,8 @@ const F = (n) => join(dir, n);
 const solid = (w, h, fmt = "png") => sharp({ create: { width: w, height: h, channels: 3, background: { r: 200, g: 120, b: 40 } } })[fmt]();
 writeFileSync(F("ok.jpg"), await sharp({ create: { width: 1600, height: 1200, channels: 3, noise: { type: "gaussian", mean: 128, sigma: 40 } } }).jpeg().toBuffer());
 writeFileSync(F("noise-12mb.png"), await sharp(Buffer.alloc(3000 * 1400 * 3).map(() => Math.floor(Math.random() * 256)), { raw: { width: 3000, height: 1400, channels: 3 } }).png({ compressionLevel: 0 }).toBuffer());
+writeFileSync(F("noise-26mb.png"), await sharp(Buffer.alloc(4600 * 1950 * 3).map(() => Math.floor(Math.random() * 256)), { raw: { width: 4600, height: 1950, channels: 3 } }).png({ compressionLevel: 0 }).toBuffer());
+writeFileSync(F("big.pdf"), Buffer.concat([Buffer.from("%PDF-1.4\n"), Buffer.alloc(5 * 1024 * 1024, 32)]));
 writeFileSync(F("bomb-16k.png"), await solid(16000, 16000).toBuffer());
 writeFileSync(F("bomb-20k.png"), await solid(20000, 20000).toBuffer().catch(() => Buffer.from("")));
 writeFileSync(F("tall.png"), await solid(10, 20000).toBuffer());
@@ -35,7 +37,10 @@ const { page: p } = await newPage(phone, "uploads");
 await login(p, "owner@kingstonpro.demo");
 const mediaCount = async () => (await fs.collection("businesses/demo-kpb/media").where("project_id", "==", "demo-proj-1").get()).size;
 
+let maxBody = 0;
+await p.route("**/*", async (route) => { const r = route.request(); if (r.method() === "POST" && r.headers()["next-action"]) maxBody = Math.max(maxBody, r.postDataBuffer()?.length ?? 0); await route.continue(); });
 async function uploadPhotos(files, { note = "" } = {}) {
+  maxBody = 0;
   await p.goto(`${BASE}/app/jobs/demo-proj-1`); await p.waitForLoadState("networkidle");
   const before = await mediaCount();
   if (note) await p.fill("textarea[name=body]", note);
@@ -51,12 +56,18 @@ async function uploadPhotos(files, { note = "" } = {}) {
   }
   done = true; await sampler; await sleep(500);
   const alert = (await p.locator("form [role=alert]").allTextContents()).join(" ").trim();
-  return { added: (await mediaCount()) - before, alert, ms: Date.now() - t0, peak };
+  return { added: (await mediaCount()) - before, alert, ms: Date.now() - t0, peak, body: maxBody };
 }
 
 await check("valid JPEG uploads, shows in gallery", async () => { const r = await uploadPhotos(F("ok.jpg")); return r.added === 1 ? true : { status: "FAIL", detail: JSON.stringify(r) }; });
-await check("four realistic 12-megapixel phone photos (about 20 MB in total) upload in one update", async () => { const r = await uploadPhotos(["phone-0.jpg", "phone-1.jpg", "phone-2.jpg", "phone-3.jpg"].map(F)); return r.added === 4 ? { status: "PASS", detail: `${r.ms}ms` } : { status: "FAIL", detail: JSON.stringify(r) }; });
-await check("12 MB file is refused with a clear size message (nothing stored)", async () => { const r = await uploadPhotos(F("noise-12mb.png")); return r.added === 0 && /10 MB|smaller|too large|too big/i.test(r.alert) ? true : { status: "FAIL", detail: JSON.stringify(r) }; });
+await check("four realistic 12-megapixel phone photos (about 20 MB in total) upload in one update, and the request stays under Vercel's 4.5 MB body limit", async () => { const r = await uploadPhotos(["phone-0.jpg", "phone-1.jpg", "phone-2.jpg", "phone-3.jpg"].map(F)); return r.added === 4 && r.body > 0 && r.body < 4.5 * 1024 * 1024 ? { status: "PASS", detail: `${r.ms}ms, request ${(r.body / 1048576).toFixed(2)} MB (from about 20 MB of originals)` } : { status: "FAIL", detail: JSON.stringify(r) }; });
+await check("a 12 MB photo is shrunk in the browser and accepted, under the 4.5 MB request limit", async () => { const r = await uploadPhotos(F("noise-12mb.png")); return r.added === 1 && r.body < 4.5 * 1024 * 1024 ? true : { status: "FAIL", detail: JSON.stringify(r) }; });
+await check("a 26 MB photo is refused with a clear size message before it is sent (nothing stored)", async () => { const r = await uploadPhotos(F("noise-26mb.png")); return r.added === 0 && /under 25 MB|lower quality/i.test(r.alert) ? true : { status: "FAIL", detail: JSON.stringify(r) }; });
+await check("a 5 MB PDF is refused with a clear message (host request limit) and nothing is stored", async () => {
+  await p.goto(`${BASE}/app/jobs/demo-proj-1`); await p.waitForLoadState("networkidle"); const before = await mediaCount();
+  await p.setInputFiles("input[name=files]", F("big.pdf")); await p.getByRole("button", { name: /upload|add file/i }).first().click().catch(() => {}); await sleep(2500);
+  const msg = (await p.locator("form [role=alert]").allTextContents()).join(" "); return /4 MB or smaller|smaller PDF/i.test(msg) && (await mediaCount()) === before ? true : { status: "FAIL", detail: msg };
+});
 await check("text file renamed .jpg is refused", async () => { const r = await uploadPhotos(F("text-as.jpg")); return r.added === 0 && r.alert ? true : { status: "FAIL", detail: JSON.stringify(r) }; });
 await check("SVG (script-capable) and GIF are refused", async () => { for (const f of ["x.svg", "x.gif"]) { const r = await uploadPhotos(F(f)); if (r.added !== 0) return { status: "FAIL", detail: `${f} accepted` }; } });
 await check("truncated JPEG is refused or repaired without crashing", async () => { const r = await uploadPhotos(F("truncated.jpg")); return r.alert || r.added === 1 ? true : { status: "FAIL", detail: JSON.stringify(r) }; });
@@ -78,7 +89,7 @@ await check("20000x20000 PNG is refused (over the pixel limit) without crashing"
 await check("private files: another business cannot fetch this job's photo even with the exact URL", async () => { const m = (await fs.collection("businesses/demo-kpb/media").limit(1).get()).docs[0]; const { page: q } = await newPage(phone, "other"); await login(q, "owner@islandelectrical.demo"); const res = await q.context().request.get(`${BASE}/media/${m.get("path")}`); return res.status() === 404 ? true : { status: "FAIL", detail: String(res.status()) }; });
 await check("profile logo: oversize / fake / GIF are refused with a message and the profile keeps working", async () => {
   await p.goto(`${BASE}/app/profile`); await p.waitForLoadState("networkidle");
-  for (const f of ["noise-12mb.png", "text-as.jpg", "x.gif"]) {
+  for (const f of ["noise-26mb.png", "text-as.jpg", "x.gif"]) {
     await p.setInputFiles("input[name=logo]", F(f)); await p.getByRole("button", { name: /save/i }).first().click(); await sleep(2500);
     const msg = (await p.locator("form [role=alert]").allTextContents()).join(" ").trim();
     if (!msg) return { status: "FAIL", detail: `${f}: no error shown` };

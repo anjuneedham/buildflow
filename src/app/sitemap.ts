@@ -5,7 +5,7 @@ import { db } from "@/lib/firebase/admin";
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const pages = ["", "/features", "/pricing", "/for-contractors", "/for-customers", "/about", "/contact", "/explore", "/privacy", "/terms", "/refund-policy"]
+  const pages = ["", "/features", "/pricing", "/for-contractors", "/for-customers", "/about", "/contact", "/explore", "/privacy", "/terms", "/refund-policy", "/faq", "/support", "/delete-account"]
     .map((p) => ({ url: `${env.siteUrl}${p}`, changeFrequency: "weekly" as const }));
   if (!isFirebaseConfigured) return pages;
   try {

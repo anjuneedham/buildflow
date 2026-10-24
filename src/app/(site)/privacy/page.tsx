@@ -42,7 +42,7 @@ export default function Privacy() {
       <p>We send service messages (such as verification, password reset and billing notices). If we send marketing emails, you can unsubscribe at any time.</p>
 
       <h2>5. Data storage and third-party services</h2>
-      <p>We use trusted providers to run the Service, which may include Google Firebase (database, authentication and file storage), Vercel (hosting), Stripe (payments) and an email delivery provider. These providers process data on our behalf under their own security and privacy commitments. Data may be stored on servers located outside your country.</p>
+      <p>We use trusted providers to run the Service, which may include Google Firebase (database, authentication and file storage), Vercel (hosting), payment providers such as Google Play Billing, and an email delivery provider. These providers process data on our behalf under their own security and privacy commitments. Data may be stored on servers located outside your country.</p>
 
       <h2>6. Payments</h2>
       <p>Payments are processed by our payment provider. We do not store full card numbers. We receive limited billing information such as the last four digits, card brand, billing country and payment status.</p>
@@ -51,7 +51,7 @@ export default function Privacy() {
       <p>We share information only: with contractors when you contact them; publicly, for content you choose to make public; with service providers who help us run BuildFlow; when required by law or to protect rights and safety; and as part of a business transfer such as a merger, subject to this policy.</p>
 
       <h2>8. Your rights</h2>
-      <p>Depending on where you live, you may have rights to access, correct, export or delete your personal information, and to object to or restrict certain processing. You can edit most information in your account settings. To make a request, email {L.contactEmail}. If your data was entered by a contractor (for example, you are one of their customers), we may refer your request to that contractor.</p>
+      <p>Depending on where you live, you may have rights to access, correct, export or delete your personal information, and to object to or restrict certain processing. You can edit most information in your account settings and delete your account yourself under Account → Delete my account (see <a href="/delete-account">how deletion works</a>). To make any other request, email {L.contactEmail}. If your data was entered by a contractor (for example, you are one of their customers), we may refer your request to that contractor.</p>
 
       <h2>9. Data retention</h2>
       <p>We keep information for as long as your account is active and as needed to provide the Service. When an account or business is deleted, we delete or anonymise associated data within a reasonable period, except where we must keep it for legal, tax, security or dispute purposes. Backups are overwritten on a rolling basis.</p>

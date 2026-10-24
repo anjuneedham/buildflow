@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { useFormAction } from "@/components/ui/use-form-action";
 import { Briefcase, PartyPopper, UserPlus } from "lucide-react";
 import { createBusiness, finishOnboarding, saveBranding, saveFirstRecord, saveServiceArea, saveServices, skipStep } from "@/app/actions/onboarding";
 import { Avatar } from "@/components/ui/avatar";
@@ -31,7 +32,7 @@ function StepShell({ title, subtitle, children, back, skipTo }: { title: string;
 }
 
 export function BusinessStep({ business, regions, ownerName, email }: { business: Business | null; regions: Location[]; ownerName: string; email: string }) {
-  const [state, action] = useActionState(createBusiness, init);
+  const [state, action] = useFormAction(createBusiness, init, { refresh: false });
   const fe = state.fieldErrors ?? {};
   return (
     <StepShell title="Tell us about your business" subtitle="This is what customers will see first. You can change it later.">
@@ -60,7 +61,7 @@ export function BusinessStep({ business, regions, ownerName, email }: { business
 }
 
 export function ServicesStep({ services, selected, primary }: { services: Service[]; selected: string[]; primary: string | null }) {
-  const [state, action] = useActionState(saveServices, init);
+  const [state, action] = useFormAction(saveServices, init, { refresh: false });
   const [main, setMain] = useState(primary ?? "");
   const [extra, setExtra] = useState(new Set(selected.filter((s) => s !== primary)));
   return (
@@ -99,7 +100,7 @@ export function ServicesStep({ services, selected, primary }: { services: Servic
 }
 
 export function ServiceAreaStep({ business, regions }: { business: Business; regions: Location[] }) {
-  const [state, action] = useActionState(saveServiceArea, init);
+  const [state, action] = useFormAction(saveServiceArea, init, { refresh: false });
   return (
     <StepShell title="Where do you work?" subtitle="Customers search by location. Add a short description so they know what you're about." back={3} skipTo={5}>
       <form action={action} className="space-y-4">
@@ -118,7 +119,7 @@ export function ServiceAreaStep({ business, regions }: { business: Business; reg
 }
 
 export function BrandingStep({ business }: { business: Business }) {
-  const [state, action] = useActionState(saveBranding, init);
+  const [state, action] = useFormAction(saveBranding, init, { refresh: false });
   const [logo, setLogo] = useState<string | null>(business.logo_url);
   const [cover, setCover] = useState<string | null>(business.cover_url);
   const preview = (set: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) set(URL.createObjectURL(f)); };
@@ -153,7 +154,7 @@ export function BrandingStep({ business }: { business: Business }) {
 }
 
 export function FirstRecordStep() {
-  const [state, action] = useActionState(saveFirstRecord, init);
+  const [state, action] = useFormAction(saveFirstRecord, init, { refresh: false });
   const [kind, setKind] = useState<"project" | "customer">("project");
   const fe = state.fieldErrors ?? {};
   return (

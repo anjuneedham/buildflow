@@ -15,7 +15,7 @@ export const SESSION_COOKIE = "__session";
 export const AUTH_HINT_COOKIE = "bf_auth";
 export const SESSION_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 
-export type SessionUser = { id: string; email: string | null; emailVerified: boolean };
+export type SessionUser = { id: string; email: string | null; emailVerified: boolean; /** When this person last signed in, seconds since epoch. */ authTime: number };
 export type Membership = { role: Role; business: Business };
 type Session = { user: SessionUser | null; profile: Profile | null; membership: Membership | null; isAdmin: boolean };
 
@@ -48,7 +48,7 @@ export const getSession = cache(async (): Promise<Session> => {
   if (!cookie) return empty;
   const claims = await verify(cookie);
   if (!claims) return empty;
-  const user: SessionUser = { id: claims.uid, email: claims.email ?? null, emailVerified: Boolean(claims.email_verified) };
+  const user: SessionUser = { id: claims.uid, email: claims.email ?? null, emailVerified: Boolean(claims.email_verified), authTime: claims.auth_time };
   const profile = fromDoc<Profile>(await db().collection("users").doc(claims.uid).get());
   let membership: Membership | null = null;
   if (profile?.business_id && profile.business_role) {

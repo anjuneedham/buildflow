@@ -37,6 +37,12 @@ export function serverEnvProblems(e: Record<string, string | undefined> = proces
     if (deployed && !e[k]) problems.push(`${k} is required in ${current}`);
   }
   if (deployed && !e.NEXT_PUBLIC_SITE_URL?.startsWith("https://")) problems.push(`NEXT_PUBLIC_SITE_URL must be an https URL in ${current}`);
+  if (current === "production") {
+    // What customers and Google Play reviewers read: no placeholders, no example addresses, no "draft" banner.
+    if (!e.NEXT_PUBLIC_SUPPORT_EMAIL || /\.example$|@example\./.test(e.NEXT_PUBLIC_SUPPORT_EMAIL)) problems.push("NEXT_PUBLIC_SUPPORT_EMAIL must be a real address in production");
+    for (const k of ["NEXT_PUBLIC_LEGAL_COMPANY_NAME", "NEXT_PUBLIC_LEGAL_ADDRESS", "NEXT_PUBLIC_LEGAL_GOVERNING_LAW"]) if (!e[k]?.trim()) problems.push(`${k} is required in production (shown in the Privacy Policy and Terms)`);
+    if (e.NEXT_PUBLIC_LEGAL_REVIEWED !== "true") problems.push("NEXT_PUBLIC_LEGAL_REVIEWED must be \"true\" in production: have counsel review the Privacy Policy, Terms and Refund policy first");
+  }
   if (deployed) {
     for (const k of ["FIRESTORE_EMULATOR_HOST", "FIREBASE_AUTH_EMULATOR_HOST", "FIREBASE_STORAGE_EMULATOR_HOST"]) {
       if (e[k]) problems.push(`${k} must not be set in ${current}`);

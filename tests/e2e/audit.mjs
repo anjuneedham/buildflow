@@ -5,7 +5,7 @@ import { chromium } from "playwright-core"; import fs from "node:fs"; import { c
 const require = createRequire(import.meta.url); const AXE = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 const B = process.env.APP_URL ?? "http://localhost:3000"; const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH });
 const VIEWS = { phone: { width: 390, height: 844, isMobile: true, hasTouch: true }, tablet: { width: 820, height: 1180, hasTouch: true }, desktop: { width: 1280, height: 800 } };
-const PUBLIC = ["/", "/explore", "/explore?service=electrician&area=st-andrew", "/pricing", "/contractor/kingston-pro-builders", "/post/demo-post-4", "/login", "/signup", "/privacy", "/search"];
+const PUBLIC = ["/", "/explore", "/explore?service=electrician&area=st-andrew", "/pricing", "/contractor/kingston-pro-builders", "/post/demo-post-4", "/login", "/signup", "/privacy", "/terms", "/refund-policy", "/faq", "/support", "/delete-account", "/contact", "/about", "/features", "/for-contractors", "/for-customers", "/search"];
 const OWNER = ["/app", "/app/leads", "/app/leads/demo-lead-qr", "/app/customers", "/app/customers/demo-cust-1", "/app/jobs", "/app/jobs/demo-proj-1", "/app/posts/new", "/app/profile", "/app/team", "/app/billing", "/app/analytics", "/app/inbox"];
 async function login(ctx, email) { const p = await ctx.newPage(); await p.goto(B + "/login"); await p.fill("#email", email); await p.fill("#password", "demo-password-123"); await p.click("button[type=submit]"); await p.waitForURL(/\/(app|explore)/); await p.close(); }
 const results = { overflow: [], axe: {}, perf: [], broken: [] };
