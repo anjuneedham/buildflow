@@ -42,6 +42,18 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
   ]);
   const viewer = await getViewerState(s.user?.id, posts.map((p) => p.id));
 
+  // A brand-new directory (nobody has joined yet) should say so and invite people, not tell them to "broaden the search".
+  const directoryEmpty = !filtered && !sp.q && posts.length === 0 && businesses.length === 0;
+  if (directoryEmpty) {
+    return (
+      <main id="main" tabIndex={-1} className="mx-auto max-w-xl px-4 py-16">
+        <EmptyState icon={Compass} title="Contractors are just joining BuildFlow"
+          description="Finished jobs and contractor profiles will appear here as they are added. Are you a contractor? Create your free profile and be one of the first people customers find."
+          action={<div className="flex flex-wrap justify-center gap-2"><ButtonLink href="/signup?type=contractor">I&apos;m a contractor</ButtonLink><ButtonLink href="/for-customers" variant="outline">How it works for customers</ButtonLink></div>} />
+      </main>
+    );
+  }
+
   return (
     <main id="main" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-6">
       <div className="mx-auto max-w-2xl">
