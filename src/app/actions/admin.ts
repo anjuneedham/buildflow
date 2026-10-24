@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { adminAuth, db } from "@/lib/firebase/admin";
 import { isId, now } from "@/lib/data/db";
+import { adjustRating } from "@/lib/data/trust";
 import { recountPosts, syncBusinessToPosts } from "@/lib/data/business";
 import { inc } from "@/lib/data/tenant";
 import { requireAdmin } from "@/lib/session";
@@ -52,6 +53,18 @@ export async function resolveReport(reportId: string, action: "dismiss" | "hide"
       }
     }
     if (type === "business") await setBusinessFlag(id, "is_suspended", true);
+    // Hiding a review removes it from the profile and from the rating.
+    if (type === "review" && typeof path === "string" && /^businesses\/[\w-]+\/reviews\/[\w-]+$/.test(path)) {
+      const review = db().doc(path);
+      const businessId = path.split("/")[1];
+      await db().runTransaction(async (tx) => {
+        const r = await tx.get(review);
+        if (!r.exists || r.get("status") === "hidden") return;
+        tx.update(review, { status: "hidden" });
+        adjustRating(tx, businessId, { count: -1, sum: -Number(r.get("rating")) });
+      });
+      await syncBusinessToPosts(businessId);
+    }
   }
   await ref.update({ status: action === "hide" ? "actioned" : "dismissed", resolved_by: admin.user.id, resolved_at: now() });
   return { ok: true };

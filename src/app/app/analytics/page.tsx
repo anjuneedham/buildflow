@@ -1,6 +1,7 @@
 import { Card, CardBody, CardHeader, PageHeader } from "@/components/ui";
 import { list } from "@/lib/data/db";
 import { monthStats, tenant, type EventType, type MonthStats } from "@/lib/data/tenant";
+import { ratingOf } from "@/lib/data/trust";
 import { formatDate } from "@/lib/utils";
 import { requirePermission } from "@/lib/session";
 import { LEAD_SOURCES } from "@/lib/constants";
@@ -12,10 +13,8 @@ const METRICS = [
   { key: "post_view", label: "Post views" },
   { key: "quote_request", label: "Quote requests" },
   { key: "contact_click", label: "Contact messages" },
-  { key: "like", label: "Likes" },
-  { key: "comment", label: "Comments" },
-  { key: "follow", label: "New followers" },
   { key: "save", label: "Saves" },
+  { key: "review", label: "New reviews" },
   { key: "lead_created", label: "Leads created" },
   { key: "project_won", label: "Leads won" },
   { key: "project_completed", label: "Jobs completed" },
@@ -35,6 +34,7 @@ export default async function AnalyticsPage() {
     return { ...src, total: rows.length, won: rows.filter((l) => l.status === "won").length };
   }).filter((x) => x.total > 0).sort((a, b) => b.total - a.total);
   const maxSource = Math.max(1, ...sources.map((x) => x.total));
+  const rating = ratingOf(s.business);
   const monthName = formatDate(new Date(), { month: "long" });
 
   return (
@@ -58,8 +58,9 @@ export default async function AnalyticsPage() {
           );
         })}
         <div className="rounded-xl border border-concrete-200 bg-white p-3">
-          <p className="text-xs text-ink-500">Total followers</p>
-          <p className="mt-1 text-2xl font-extrabold">{s.business.follower_count}</p>
+          <p className="text-xs text-ink-500">Rating</p>
+          <p className="mt-1 text-2xl font-extrabold">{rating ? `★ ${rating.avg.toFixed(1)}` : "–"}</p>
+          <p className="text-xs text-ink-500">{rating ? `${rating.count} review${rating.count === 1 ? "" : "s"}` : "Ask finished customers for a review"}</p>
         </div>
       </div>
       <Card>

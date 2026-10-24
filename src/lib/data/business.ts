@@ -26,6 +26,15 @@ export function defaultBusinessConfig() {
   };
 }
 
+/** The business details copied onto each post (FIRESTORE_SCHEMA_V2.md §4). */
+export function postSnapshot(b: Business & { id?: string }, id: string) {
+  const n = b.review_count ?? 0;
+  return {
+    id, name: b.name, slug: b.slug, logo_url: b.logo_url ?? null, is_verified: b.is_verified, city: b.city ?? null, region_id: b.region_id ?? null,
+    rating: n > 0 ? { avg: Math.round(((b.rating_sum ?? 0) / n) * 10) / 10, count: n } : null,
+  };
+}
+
 export const isVisible = (b: Pick<Business, "is_public" | "is_suspended">) => b.is_public && !b.is_suspended;
 
 /**
@@ -41,7 +50,7 @@ export async function syncBusinessToPosts(businessId: string) {
     const batch = db().batch();
     for (const p of posts.docs.slice(i, i + 400)) {
       batch.update(p.ref, {
-        business: { id: businessId, name: b.name, slug: b.slug, logo_url: b.logo_url ?? null, is_verified: b.is_verified, city: b.city ?? null, region_id: b.region_id ?? null },
+        business: postSnapshot(b, businessId),
         region_id: b.region_id ?? null,
         visible: isVisible(b) && p.get("is_public") && !p.get("is_hidden"),
       });

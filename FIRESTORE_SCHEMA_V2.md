@@ -625,6 +625,20 @@ Where the shipped code differs from the plan above, the code is the source of tr
 
 New indexes for this: activity by `lead_id`/`customer_id`/`project_id` + `created_at desc`, activity by record + `action` (note clean-up), `media (project_id, created_at desc)`, `leads (status, created_at desc)`, `tasks (project_id, status)`.
 
+### Discovery and trust layer
+
+| Planned | Implemented | Why |
+|---|---|---|
+| `reviews` keyed by auto id | `businesses/{bid}/reviews/{projectId}`: `rating`, `body`, `reviewer_name` ("First L."), `service_name`, `job_completed_on`, `status` (`published` \| `hidden`), `reply {body, at}` | One review per completed job by construction; editable by the customer for 14 days |
+| Review invite by email/SMS code | `review_requests/{sha256(token)}`: `business_id`, `project_id`, customer snapshot, `expires_at` (+60 days), `used_at`; the job keeps `review_token`, `review_requested_at` | A capability link the contractor sends on WhatsApp; customers need no account. Only the hash is stored |
+| Rating computed on read | `businesses.review_count`, `rating_sum` (transaction with the review); copied to `posts.business.rating` | Profile, cards and feed show ratings with no extra reads. Hiding a review via a report subtracts it |
+| — | `businesses.response {count, total_minutes}`; `leads.first_response_at` | "Usually replies within …": the first time a new enquiry is moved on (status change or job started). Shown after 2 replies |
+| — | `posts.verified_job`, `posts.completed_on` | A post linked to a completed job; job photos are copied from private `project-files/` to `public-media/` when published |
+| `followers`, `likes`, `comments` | Removed. `users/{uid}/saves/{postId}` and `users/{uid}/following/{businessId}` (shown as "Saved contractors") are private shortlists | Discovery, trust and leads only: no public vanity counts |
+| — | `leads.reference_post_id`; description line "Saw your work: …" | "Request a similar job" tells the contractor which work brought the customer |
+
+New index: `reviews (status, created_at desc)`; `reviews.body` exempt from indexing. Stats events: `save`, `contact_click`, `review` (removed `like`, `comment`, `follow`).
+
 ## 11. Open schema questions
 
 1. **Tax rules:** is GCT applied per line or per quote in practice, and are there exempt items? The schema supports per-line rates; the UI can default to one rate.

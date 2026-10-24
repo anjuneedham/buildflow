@@ -18,6 +18,11 @@ export interface Business {
   is_public: boolean; is_verified: boolean; is_suspended: boolean; is_demo: boolean;
   onboarding_step: number; onboarding_completed_at: string | null;
   follower_count: number; post_count: number; completed_project_count: number; created_at: string; updated_at?: string;
+  /** Verified reviews (one per completed job): count and sum of stars. */
+  review_count?: number; rating_sum?: number;
+  /** First-reply times on enquiries, for "usually replies within…". */
+  response?: { count: number; total_minutes: number };
+  whatsapp?: string | null;
   region: { id: string; name: string } | null;
   service_ids: string[];
   services: Pick<Service, "id" | "name" | "slug">[];
@@ -48,6 +53,7 @@ export interface Project {
   responsible_id?: string | null;
   /** Copy of the open task due soonest (owner: refreshNextTask in lib/data/workflow.ts). */
   next_task?: { id: string; title: string; due_date: string | null; assigned_to: string | null } | null;
+  review_requested_at?: string | null;
 }
 
 export interface Task {
@@ -59,7 +65,9 @@ export interface PostMedia { id: string; url: string; label: "before" | "after" 
 export interface FeedPost {
   id: string; business_id: string; type: PostType; caption: string | null; location_text: string | null; created_at: string;
   like_count: number; comment_count: number; save_count: number; project_id: string | null;
-  business: Pick<Business, "id" | "name" | "slug" | "logo_url" | "is_verified" | "city" | "region_id">;
+  business: Pick<Business, "id" | "name" | "slug" | "logo_url" | "is_verified" | "city" | "region_id"> & { rating?: { avg: number; count: number } | null };
+  /** Linked to a job in BuildFlow, so the work is real ("Verified job"). */
+  verified_job?: boolean; completed_on?: string | null;
   service_id: string | null; is_public: boolean; is_hidden: boolean; author_id: string;
   service: Pick<Service, "name" | "slug"> | null;
   media: PostMedia[];

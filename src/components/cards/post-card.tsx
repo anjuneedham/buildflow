@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { BadgeCheck, MapPin, MessageCircle } from "lucide-react";
+import { BadgeCheck, MapPin } from "lucide-react";
 import { Avatar, Badge } from "@/components/ui";
-import { LikeButton, SaveButton, ShareButton } from "@/components/social/interactions";
+import { SaveButton, ShareButton } from "@/components/social/interactions";
+import { Stars, VerifiedJobBadge } from "./trust";
 import { POST_TYPES, optionFor } from "@/lib/constants";
 import { timeAgo } from "@/lib/utils";
 import type { FeedPost } from "@/lib/types";
@@ -35,8 +36,17 @@ export function PostMediaView({ post, priority }: { post: FeedPost; priority?: b
   );
 }
 
-export function PostCard({ post, liked = false, saved = false, priority, hideBusiness }: { post: FeedPost; liked?: boolean; saved?: boolean; priority?: boolean; hideBusiness?: boolean }) {
+/** Where "Request a similar job" goes: the contractor's profile with the request form open, referencing this post. */
+export const similarJobHref = (post: Pick<FeedPost, "id" | "business">) => `/contractor/${post.business.slug}?request=1&post=${post.id}#quote`;
+
+/**
+ * A piece of work in Explore or a profile. Built for trust and enquiries,
+ * not engagement: proof (photos, verified job, rating) and one action
+ * (request a similar job). Save and share help a customer shortlist.
+ */
+export function PostCard({ post, saved = false, priority, hideBusiness }: { post: FeedPost; saved?: boolean; priority?: boolean; hideBusiness?: boolean }) {
   const type = optionFor(POST_TYPES, post.type);
+  const rating = post.business.rating;
   return (
     <article className="overflow-hidden rounded-xl border border-concrete-200 bg-white shadow-card">
       {!hideBusiness && (
@@ -48,31 +58,27 @@ export function PostCard({ post, liked = false, saved = false, priority, hideBus
                 {post.business.name}
                 {post.business.is_verified && <BadgeCheck className="h-4 w-4 shrink-0 text-site-blue" aria-label="Verified" />}
               </p>
-              <p className="flex items-center gap-1 truncate text-xs text-ink-500">
-                {post.location_text && <><MapPin className="h-3 w-3" />{post.location_text} · </>}{timeAgo(post.created_at)}
+              <p className="flex items-center gap-1.5 truncate text-xs text-ink-500">
+                {rating ? <Stars avg={rating.avg} count={rating.count} /> : <span>New on BuildFlow</span>}
+                {post.location_text && <><span aria-hidden>·</span><MapPin className="h-3 w-3 shrink-0" aria-hidden /><span className="truncate">{post.location_text}</span></>}
               </p>
             </div>
           </Link>
         </div>
       )}
       <Link href={`/post/${post.id}`}><span className="sr-only">Open post</span><PostMediaView post={post} priority={priority} /></Link>
-      <div className="px-3 pb-3 pt-1">
-        <div className="-mx-1 flex items-center">
-          <LikeButton postId={post.id} liked={liked} count={post.like_count} />
-          <Link href={`/post/${post.id}#comments`} className="flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-ink-600 hover:bg-concrete-100" aria-label={`Comments${post.comment_count > 0 ? ` ${post.comment_count}` : ""}`}>
-            <MessageCircle className="h-5 w-5" />{post.comment_count > 0 && post.comment_count}
-          </Link>
-          <ShareButton path={`/post/${post.id}`} compact />
-          <div className="ml-auto"><SaveButton postId={post.id} saved={saved} /></div>
-        </div>
-        <div className="mt-1 flex flex-wrap gap-1.5">
+      <div className="px-3 pb-3 pt-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {post.verified_job && <VerifiedJobBadge completedOn={post.completed_on} />}
           {type && <Badge tone="orange">{type.label}</Badge>}
           {post.service && <Badge>{post.service.name}</Badge>}
+          <span className="ml-auto flex items-center"><ShareButton path={`/post/${post.id}`} compact /><SaveButton postId={post.id} saved={saved} /></span>
         </div>
         {post.caption && <p className="mt-2 line-clamp-3 whitespace-pre-line text-sm text-ink-700">{post.caption}</p>}
+        <p className="mt-1 text-xs text-ink-500">{timeAgo(post.created_at)}</p>
         {!hideBusiness && (
-          <Link href={`/contractor/${post.business.slug}#quote`} className="mt-3 flex min-h-10 items-center justify-center rounded-lg bg-safety-50 text-sm font-bold text-safety-700 hover:bg-safety-100">
-            Get a quote from {post.business.name.split(" ").slice(0, 3).join(" ")}
+          <Link href={similarJobHref(post)} className="mt-3 flex min-h-11 items-center justify-center rounded-lg bg-safety-50 text-sm font-bold text-action hover:bg-safety-100">
+            Request a similar job
           </Link>
         )}
       </div>

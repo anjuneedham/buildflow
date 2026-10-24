@@ -123,3 +123,17 @@ export function whatsappLink(phone: string | null | undefined, text?: string) {
   if (!d) return null;
   return `https://wa.me/${d}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
 }
+
+/** True when an ISO instant is in the past. */
+export function isPast(iso: string) {
+  return Date.parse(iso) < Date.now();
+}
+
+/** First line of `text`, cut at a word boundary with an ellipsis when longer than `max`. */
+export function excerpt(text: string | null | undefined, max = 80) {
+  const line = text?.split("\n")[0].trim();
+  if (!line) return null;
+  if (line.length <= max) return line;
+  const cut = line.slice(0, max - 1);
+  return `${cut.slice(0, cut.lastIndexOf(" ") > max / 2 ? cut.lastIndexOf(" ") : cut.length).replace(/[\s,.;:–-]+$/, "")}…`;
+}

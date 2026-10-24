@@ -5,6 +5,7 @@ import { db } from "@/lib/firebase/admin";
 import { isId, now } from "@/lib/data/db";
 import { addActivity, addEvent, addNotification, tenant } from "@/lib/data/tenant";
 import { findOrCreateCustomer } from "@/lib/data/workflow";
+import { recordFirstResponse } from "@/lib/data/trust";
 import { requireBusiness, requirePermission } from "@/lib/session";
 import { canAccessProject } from "@/server/policy";
 import { LEAD_STATUSES, LOST_REASONS, OPEN_LEAD_STATUSES, optionFor, values } from "@/lib/constants";
@@ -103,6 +104,7 @@ export async function setLeadStatus(id: string, status: string, lostReason?: str
   if (prev.get("status") === parsed.data && !reason) return { ok: true };
   const open = OPEN_LEAD_STATUSES.includes(parsed.data);
   const batch = db().batch();
+  recordFirstResponse(batch, businessId, prev);
   batch.update(ref, { status: parsed.data, status_changed_at: now(), updated_at: now(), lost_reason: reason, ...(open ? {} : { next_follow_up: null }) });
   if (parsed.data === "won") addEvent(batch, businessId, "project_won");
   addActivity(batch, businessId, {

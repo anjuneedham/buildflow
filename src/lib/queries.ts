@@ -35,11 +35,16 @@ export async function searchBusinesses(opts: { name?: string; serviceId?: string
   let rows = fromQuery<Business>(await q.limit(500).get());
   const term = opts.name?.toLowerCase().trim();
   if (term) rows = rows.filter((b) => [b.name_lower, b.tagline, b.city, b.service_area, b.region?.name].some((v) => v?.toLowerCase().includes(term)));
-  rows.sort((a, b) => Number(b.is_verified) - Number(a.is_verified) || b.completed_project_count - a.completed_project_count || a.name.localeCompare(b.name));
+  // Earned trust first: verified, then rating (weighted by how many reviews), then finished jobs.
+  const score = (b: Business) => {
+    const n = b.review_count ?? 0;
+    return n ? ((b.rating_sum ?? 0) / n) * Math.min(n, 5) / 5 : 0;
+  };
+  rows.sort((a, b) => Number(b.is_verified) - Number(a.is_verified) || score(b) - score(a) || b.completed_project_count - a.completed_project_count || a.name.localeCompare(b.name));
   return rows.slice(0, opts.limit ?? 30);
 }
 
-export async function getFeed(opts: { serviceId?: string; regionId?: string; businessId?: string; limit?: number; postIds?: string[] } = {}) {
+export async function getFeed(opts: { serviceId?: string; regionId?: string; businessId?: string; limit?: number; postIds?: string[]; perBusiness?: number } = {}) {
   if (opts.postIds) {
     const ids = opts.postIds.filter(isId);
     if (!ids.length) return [];
@@ -50,22 +55,23 @@ export async function getFeed(opts: { serviceId?: string; regionId?: string; bus
   if (opts.serviceId) q = q.where("service_id", "==", opts.serviceId);
   if (opts.businessId) q = q.where("business_id", "==", opts.businessId);
   if (opts.regionId) q = q.where("region_id", "==", opts.regionId);
-  return fromQuery<FeedPost>(await q.orderBy("created_at", "desc").limit(opts.limit ?? 24).get()).map(sortMedia);
+  const limit = opts.limit ?? 24;
+  const rows = fromQuery<FeedPost>(await q.orderBy("created_at", "desc").limit(opts.businessId ? limit : Math.ceil(limit * 1.5)).get()).map(sortMedia);
+  if (opts.businessId || !opts.perBusiness) return rows.slice(0, limit);
+  // Explore: at most `perBusiness` posts per contractor so one busy business can't fill the page.
+  const seen = new Map<string, number>();
+  return rows.filter((p) => { const n = (seen.get(p.business_id) ?? 0) + 1; seen.set(p.business_id, n); return n <= opts.perBusiness!; }).slice(0, limit);
 }
 
-/** Which of these posts/businesses the current user has liked, saved or followed. */
+/** Which of these posts and contractors the current user has saved to their shortlist. */
 export async function getViewerState(userId: string | null | undefined, postIds: string[], businessIds: string[] = []) {
-  const empty = { liked: new Set<string>(), saved: new Set<string>(), following: new Set<string>() };
+  const empty = { saved: new Set<string>(), savedContractors: new Set<string>() };
   if (!userId || (postIds.length === 0 && businessIds.length === 0)) return empty;
   const user = db().collection("users").doc(userId);
-  const refs = [
-    ...postIds.map((id) => user.collection("likes").doc(id)),
-    ...postIds.map((id) => user.collection("saves").doc(id)),
-    ...businessIds.map((id) => user.collection("following").doc(id)),
-  ];
+  const refs = [...postIds.map((id) => user.collection("saves").doc(id)), ...businessIds.map((id) => user.collection("following").doc(id))];
   const snaps = await db().getAll(...refs);
   const exists = (sub: string) => new Set(snaps.filter((s) => s.exists && s.ref.parent.id === sub).map((s) => s.id));
-  return { liked: exists("likes"), saved: exists("saves"), following: exists("following") };
+  return { saved: exists("saves"), savedContractors: exists("following") };
 }
 
 export const getBusinessBySlug = cache(async (slug: string) => {

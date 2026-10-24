@@ -105,7 +105,7 @@ await dlg.locator("input[name=phone]").fill("876-555-9999");
 await dlg.locator("textarea[name=description]").fill("Need a retaining wall, about 30ft.");
 await shot(ap, "07-quote-form");
 await dlg.locator("button[type=submit]").click();
-await dlg.getByText("Quote request sent").waitFor();
+await dlg.getByText("Request sent").waitFor();
 await shot(ap, "08-quote-sent");
 step("customer submitted quote request");
 
@@ -167,8 +167,8 @@ await page.reload();
 await shot(page, "11-project-completed");
 step("project completed");
 
-// 15. Showcase
-await page.click("text=Showcase this job");
+// 15. Publish the finished job to the portfolio
+await page.click("text=Publish to portfolio");
 await page.waitForURL("**/app/posts/new?projectId=**");
 await page.locator("label", { hasText: "Before / after" }).click();
 await page.setInputFiles("input[name=before]", `${FIX}logo.png`);
@@ -176,16 +176,16 @@ await page.setInputFiles("input[name=after]", `${FIX}wall.png`);
 await page.fill("#caption", "Retaining wall finished for Keisha.");
 await page.click("button[type=submit]");
 await page.waitForURL("**/post/**");
-step("completed project showcased (before/after)");
+await page.getByText(/^Verified job/).first().waitFor();
+step("completed job published to portfolio (before/after) with a Verified job badge");
 
 // 16. New discovery
 await ap.goto(`${BASE}/explore`);
 await ap.getByText("Retaining wall finished for Keisha.").first().waitFor();
 await shot(ap, "12-explore-feed");
 await ap.goto(`${BASE}/contractor/${slug}`);
-const jobs = await ap.locator("dd").first().textContent();
-
-step(`showcase appears in Explore; profile shows ${jobs} completed job(s)`);
+await ap.getByText("1 job completed").first().waitFor();
+step("portfolio post appears in Explore; profile shows 1 job completed");
 
 // Dashboard + analytics
 await page.goto(`${BASE}/app`);

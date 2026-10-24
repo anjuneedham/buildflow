@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { dateInDays, localDate, phoneDigits, relativeDay, whatsappLink } from "../src/lib/utils.ts";
+import { dateInDays, excerpt, localDate, phoneDigits, relativeDay, whatsappLink } from "../src/lib/utils.ts";
 
 test("'today' is the Jamaica calendar day, not UTC", () => {
   // 03:00 UTC is still the previous evening in Kingston (UTC-5).
@@ -31,4 +31,11 @@ test("phone numbers match across formats (find-or-create customer)", () => {
 test("WhatsApp links use the normalised number", () => {
   assert.equal(whatsappLink("876-555-1234", "Hi"), "https://wa.me/18765551234?text=Hi");
   assert.equal(whatsappLink(""), null);
+});
+
+test("excerpt keeps the first line and cuts at a word with an ellipsis", () => {
+  assert.equal(excerpt("Short caption\nsecond line"), "Short caption");
+  assert.equal(excerpt("Stamped concrete driveway and covered patio finished in Portmore. Six weeks start to finish."), "Stamped concrete driveway and covered patio finished in Portmore. Six weeks…");
+  assert.equal(excerpt("   "), null);
+  assert.equal(excerpt(null), null);
 });

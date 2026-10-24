@@ -2,33 +2,14 @@
 
 import { useOptimistic, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Bookmark, Heart, Link2, UserPlus, UserCheck } from "lucide-react";
-import { toggleFollow, toggleLike, toggleSave } from "@/app/actions/social";
+import { Bookmark, BookmarkCheck, Link2 } from "lucide-react";
+import { toggleSave, toggleSaveContractor } from "@/app/actions/social";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 function useAuthRedirect() {
   const router = useRouter();
   return () => router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
-}
-
-export function LikeButton({ postId, liked, count }: { postId: string; liked: boolean; count: number }) {
-  const [state, set] = useOptimistic({ liked, count });
-  const [, start] = useTransition();
-  const toAuth = useAuthRedirect();
-  const toast = useToast();
-  return (
-    <button aria-pressed={state.liked} aria-label={`${state.liked ? "Unlike" : "Like"}${state.count > 0 ? ` ${state.count}` : ""}`}
-      onClick={() => start(async () => {
-        set({ liked: !state.liked, count: state.count + (state.liked ? -1 : 1) });
-        const r = await toggleLike(postId);
-        if (r.needsAuth) toAuth(); else if (!r.ok) toast(r.error ?? "Error", "error");
-      })}
-      className="flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-ink-600 hover:bg-concrete-100">
-      <Heart className={cn("h-5 w-5", state.liked && "fill-safety-500 text-safety-500")} />
-      {state.count > 0 && state.count}
-    </button>
-  );
 }
 
 export function SaveButton({ postId, saved }: { postId: string; saved: boolean }) {
@@ -66,8 +47,9 @@ export function ShareButton({ path, label = "Copy link", compact }: { path: stri
   );
 }
 
-export function FollowButton({ businessId, following, className }: { businessId: string; following: boolean; className?: string }) {
-  const [on, set] = useOptimistic(following);
+/** Shortlist a contractor to compare later (private to the customer). */
+export function SaveContractorButton({ businessId, saved, className }: { businessId: string; saved: boolean; className?: string }) {
+  const [on, set] = useOptimistic(saved);
   const [, start] = useTransition();
   const toAuth = useAuthRedirect();
   const toast = useToast();
@@ -75,13 +57,13 @@ export function FollowButton({ businessId, following, className }: { businessId:
     <button aria-pressed={on}
       onClick={() => start(async () => {
         set(!on);
-        const r = await toggleFollow(businessId);
-        if (r.needsAuth) toAuth(); else if (!r.ok) toast(r.error ?? "Error", "error");
+        const r = await toggleSaveContractor(businessId);
+        if (r.needsAuth) toAuth(); else if (!r.ok) toast(r.error ?? "Error", "error"); else toast(r.on ? "Saved to your shortlist" : "Removed from your shortlist");
       })}
       className={cn("inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold transition-colors",
-        on ? "border-concrete-300 bg-concrete-100 text-ink" : "border-ink bg-white text-ink hover:bg-concrete-50", className)}>
-      {on ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-      {on ? "Following" : "Follow"}
+        on ? "border-concrete-300 bg-concrete-100 text-ink" : "border-concrete-300 bg-white text-ink hover:bg-concrete-50", className)}>
+      {on ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+      {on ? "Saved" : "Save"}
     </button>
   );
 }

@@ -11,7 +11,8 @@ import { canAccessProject } from "@/server/policy";
 import { getTeam } from "@/lib/team";
 import { cn, dateInDays, formatAmount, formatDate, relativeDay } from "@/lib/utils";
 import type { ActivityRow, Media, Project, Task } from "@/lib/types";
-import { CompleteJobButton, DeleteProject, DoneButton, FilesSection, PhotoGrid, ProjectStatus, TaskList, UpdateComposer } from "./project-client";
+import { CompleteJobButton, DeleteProject, DoneButton, FilesSection, PhotoGrid, ProjectStatus, ReviewReplyForm, ReviewRequestButton, TaskList, UpdateComposer } from "./project-client";
+import type { Review } from "@/lib/data/trust";
 
 export const metadata = { title: "Job" };
 
@@ -30,6 +31,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     db().collection("posts").where("business_id", "==", s.business.id).where("project_id", "==", id).limit(1).get(),
     getTeam(s.business.id),
   ]);
+  const review = p.status === "completed" ? fromDoc<Review>(await t.doc("reviews", id).get()) : null;
   const today = dateInDays(0);
   const order = { in_progress: 0, todo: 1, done: 2 } as const;
   const allTasks = tasks.sort((a, b) => order[a.status] - order[b.status] || (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999"));
@@ -54,13 +56,25 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           {s.can("records.delete") && <DeleteProject id={id} />}
         </>} />
 
+      {/* After completion: turn the job into proof (portfolio post + verified review). */}
       {isCompleted && canManage && (
-        <Card className="flex flex-col gap-3 border-safety-400 bg-safety-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <Card className="space-y-4 border-safety-400 bg-safety-50 p-4">
           <div>
-            <p className="font-bold text-ink">{!posts.empty ? "This job is on your profile." : "Job done! Show it off."}</p>
-            <p className="text-sm text-ink-600">{!posts.empty ? "Post a before/after to keep your profile fresh." : "Completed work is the best way to win your next customer."}</p>
+            <p className="font-bold text-ink">{!posts.empty ? "This job is on your profile." : "Job done! Turn it into your next customer."}</p>
+            <p className="text-sm text-ink-600">{review ? "Thanks to the review, it's verified proof of your work." : "Post the photos to your portfolio, and ask the customer for a review."}</p>
           </div>
-          <ButtonLink href={`/app/posts/new?projectId=${id}`} className="shrink-0"><Megaphone className="h-4 w-4" />Showcase this job</ButtonLink>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href={`/app/posts/new?projectId=${id}`} variant={posts.empty ? "primary" : "outline"}><Megaphone className="h-4 w-4" />{posts.empty ? "Publish to portfolio" : "Post more from this job"}</ButtonLink>
+            {!review && <ReviewRequestButton projectId={id} requested={Boolean(p.review_requested_at)} />}
+          </div>
+          {review && (
+            <div className="rounded-lg bg-white p-3">
+              <p className="text-sm"><span className="font-bold text-safety-600" aria-label={`${review.rating} out of 5 stars`}>{"★".repeat(review.rating)}<span className="text-concrete-300">{"★".repeat(5 - review.rating)}</span></span> <span className="font-semibold">{review.reviewer_name}</span></p>
+              {review.body && <p className="mt-1 whitespace-pre-line text-sm text-ink-700">{review.body}</p>}
+              {review.reply && <p className="mt-2 border-l-2 border-concrete-300 pl-2 text-sm text-ink-600"><span className="font-semibold">Your reply:</span> {review.reply.body}</p>}
+              <div className="mt-2"><ReviewReplyForm projectId={id} reply={review.reply?.body ?? null} /></div>
+            </div>
+          )}
         </Card>
       )}
 

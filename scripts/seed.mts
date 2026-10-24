@@ -218,6 +218,34 @@ async function demo() {
     await db.collection("businesses").doc(bid).collection("leads").add({ name: `Enquiry for ${name}`, name_lower: "enquiry", phone: "+1 876 555 4000", email: null, location: null, description: null, service_id: null, service_name: null, status: "new", source: "phone", estimated_value: 300000, assigned_to: null, customer_id: null, quote_request_id: null, created_by: null, status_changed_at: iso(day), created_at: iso(day), updated_at: iso(day) });
   }
 
+  // Trust signals, earned the same way the app earns them: one verified
+  // review per completed job, and reply times from moving new enquiries on.
+  const reviews = [
+    ["demo-kpb", "demo-proj-3", 5, "Marcus and the team finished the driveway and patio on schedule and kept the site clean every evening. Would hire again.", "Paul Henry (Demo)", "General Contractor", -40, "Thank you Paul, enjoy the new patio!"],
+    ["demo-kpb", "demo-hist-1", 5, "Kitchen extension came out exactly like the drawings. Good communication all the way through.", "Keisha Morgan (Demo)", "Home Renovation", -120, null],
+    ["demo-kpb", "demo-hist-2", 4, "Solid block work and fair price. Finished a week later than planned because of rain.", "Andre Clarke (Demo)", "Mason", -200, null],
+    ["demo-crs", "demo-crs-hist-1", 5, "Roof held up perfectly through the last storm. Very professional.", "Natalie Wright (Demo)", "Roofer", -60, null],
+  ] as const;
+  for (const [bid, pid, rating, body, reviewer, serviceName, completed, reply] of reviews) {
+    const ref = db.collection("businesses").doc(bid);
+    const parts = reviewer.replace(/\(.*?\)/g, "").trim().split(/\s+/);
+    await ref.collection("reviews").doc(pid).set({
+      project_id: pid, rating, body, reviewer_name: `${parts[0]} ${parts[parts.length - 1][0]}.`, service_name: serviceName, job_completed_on: date(completed),
+      status: "published", reply: reply ? { body: reply, at: iso((-completed - 2) * day) } : null, created_at: iso((-completed - 1) * day),
+    });
+    // Older finished jobs, so every review belongs to a real completed job.
+    if (pid !== "demo-proj-3") await ref.collection("projects").doc(pid).set({
+      name: `${reviewer.split(" ")[1]} ${serviceName} job (Demo)`, customer_id: null, customer_name: reviewer, lead_id: null, description: null, location: null,
+      start_date: date(completed - 30), expected_end_date: date(completed), status: "completed", budget: null, completed_at: iso(-completed * day),
+      member_ids: [ref.id === "demo-kpb" ? "demo-owner-kpb" : "demo-owner-crs"], responsible_id: ref.id === "demo-kpb" ? "demo-owner-kpb" : "demo-owner-crs",
+      task_total: 0, task_done: 0, next_task: null, last_update_at: null, review_token: null, created_by: null, created_at: iso((-completed + 30) * day), updated_at: iso(-completed * day),
+    });
+    await ref.update({ review_count: FieldValue.increment(1), rating_sum: FieldValue.increment(rating), completed_project_count: FieldValue.increment(pid === "demo-proj-3" ? 0 : 1) });
+    await stat(ref, "review", iso((-completed - 1) * day));
+  }
+  await kpb.ref.update({ response: { count: 6, total_minutes: 6 * 95 } });
+  await db.collection("businesses").doc("demo-crs").update({ response: { count: 3, total_minutes: 3 * 600 } });
+
   // Public posts
   const posts = [
     ["demo-post-1", "demo-kpb", "completed_project", "Stamped concrete driveway and covered patio finished in Portmore. Six weeks start to finish. (Demo post)", "demo-proj-3", "general-contractor", "Portmore, St Catherine", 3, [[`${U}photo-1600585154340-be6161a56a0c?w=1200&q=70`, null]]],
@@ -232,27 +260,20 @@ async function demo() {
       business_id: bid, author_id: b.owner_id, type, caption, project_id: projectId, service_id: service, service: { name: svc(service).name, slug: service },
       location_text: loc, media: media.map(([url, label], i) => ({ id: `${id}-m${i}`, url, label, position: i })), is_public: true, is_hidden: false, visible: true,
       region_id: b.region_id,
-      business: { id: bid, name: b.name, slug: b.slug, logo_url: null, is_verified: b.is_verified, city: b.city, region_id: b.region_id },
+      business: { id: bid, name: b.name, slug: b.slug, logo_url: null, is_verified: b.is_verified, city: b.city, region_id: b.region_id,
+        rating: b.review_count ? { avg: Math.round((b.rating_sum / b.review_count) * 10) / 10, count: b.review_count } : null },
+      // A post linked to a finished job is proof the work happened.
+      verified_job: projectId === "demo-proj-3", completed_on: projectId === "demo-proj-3" ? date(-40) : null,
       like_count: 0, comment_count: 0, save_count: 0, created_at: iso(daysAgo * day), updated_at: iso(daysAgo * day),
     });
     await db.collection("businesses").doc(bid).update({ post_count: FieldValue.increment(1) });
   }
 
-  // Demo customer interactions
+  // Demo customer: a private shortlist (saved work and saved contractors).
   const me = db.collection("users").doc("demo-customer");
-  for (const bid of ["demo-kpb", "demo-crs"]) {
-    await me.collection("following").doc(bid).set({ created_at: iso(2 * day) });
-    await db.collection("businesses").doc(bid).collection("followers").doc("demo-customer").set({ created_at: iso(2 * day), full_name: "Jordan Lewis (Demo)" });
-    await db.collection("businesses").doc(bid).update({ follower_count: FieldValue.increment(1) });
-  }
-  for (const pid of ["demo-post-1", "demo-post-4"]) {
-    const bid = pid === "demo-post-1" ? "demo-kpb" : "demo-ptr";
-    await me.collection("likes").doc(pid).set({ created_at: iso(day), business_id: bid });
-    await db.collection("posts").doc(pid).update({ like_count: FieldValue.increment(1) });
-  }
+  for (const bid of ["demo-kpb", "demo-crs"]) await me.collection("following").doc(bid).set({ created_at: iso(2 * day) });
   await me.collection("saves").doc("demo-post-1").set({ created_at: iso(day), business_id: "demo-kpb" });
-  await db.collection("posts").doc("demo-post-1").update({ save_count: 1, comment_count: 1 });
-  await db.collection("posts").doc("demo-post-1").collection("comments").add({ user_id: "demo-customer", author: { full_name: "Jordan Lewis (Demo)", avatar_url: null }, body: "That driveway came out great. Do you work in Ocho Rios?", is_hidden: false, created_at: iso(day) });
+  await db.collection("posts").doc("demo-post-1").update({ save_count: 1 });
 
   // A quote request → lead, exactly as the app creates them.
   const qr = kpb.ref.collection("quote_requests").doc("demo-qr-1");

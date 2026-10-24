@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, FileText, ImagePlus, Paperclip, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, FileText, ImagePlus, Paperclip, Pencil, Plus, Star, Trash2, X } from "lucide-react";
 import {
   completeProject, createTask, deleteMedia, deleteProject, deleteTask, postUpdate, setProjectStatus, setTaskStatus, updateTask, uploadProjectFiles,
 } from "@/app/actions/projects";
+import { replyToReview, requestReview } from "@/app/actions/reviews";
 import { StatusChanger } from "@/components/crm/status-changer";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
@@ -239,5 +240,52 @@ export function FilesSection({ projectId, files }: { projectId: string; files: (
         {state.ok === false && <p className="w-full text-sm text-site-red">{state.error}</p>}
       </form>
     </div>
+  );
+}
+
+// ---------------- Reviews ----------------
+
+/** "Ask for a review": creates the job's review link and shares it (WhatsApp first). */
+export function ReviewRequestButton({ projectId, requested }: { projectId: string; requested: boolean }) {
+  const [link, setLink] = useState<{ url: string; whatsapp: string | null; text: string } | null>(null);
+  const [pending, setPending] = useState(false);
+  const toast = useToast();
+  const open = async () => {
+    setPending(true);
+    try {
+      const r = await requestReview(projectId);
+      if (!r.ok) toast(r.error, "error"); else setLink(r);
+    } catch { toast("Couldn't create the review link. Please try again.", "error"); }
+    setPending(false);
+  };
+  return (
+    <>
+      <Button variant="outline" onClick={open} disabled={pending} className="shrink-0"><Star className="h-4 w-4" />{pending ? "Getting link…" : requested ? "Share review link" : "Ask for a review"}</Button>
+      <Modal open={link !== null} onClose={() => setLink(null)} title="Ask for a review">
+        {link && (
+          <div className="space-y-3">
+            <p className="text-sm text-ink-600">Send this link to your customer. Only people with the link can review this job, so your reviews are always from real customers.</p>
+            <p className="break-all rounded-lg bg-concrete-50 p-3 font-mono text-xs" data-testid="review-link">{link.url}</p>
+            <div className="grid gap-2">
+              {link.whatsapp && <a href={link.whatsapp} target="_blank" rel="noreferrer" className={buttonClasses({})}>Send on WhatsApp</a>}
+              <Button variant="outline" onClick={async () => { await navigator.clipboard.writeText(link.text).catch(() => {}); toast("Message copied"); }}>Copy message</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </>
+  );
+}
+
+export function ReviewReplyForm({ projectId, reply }: { projectId: string; reply: string | null }) {
+  const [state, action] = useFormAction(replyToReview.bind(null, projectId));
+  const [editing, setEditing] = useState(!reply);
+  useActionToast(state);
+  if (!editing) return <button type="button" onClick={() => setEditing(true)} className="text-sm font-semibold text-safety-700">Edit reply</button>;
+  return (
+    <form action={action} className="space-y-2">
+      <Textarea name="body" rows={2} defaultValue={reply ?? ""} placeholder="Thank them, or respond to their feedback. Your reply is public." aria-label="Reply to review" required />
+      <div className="flex justify-end"><SubmitButton size="sm">Post reply</SubmitButton></div>
+    </form>
   );
 }

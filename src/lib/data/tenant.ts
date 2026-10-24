@@ -10,7 +10,7 @@ import { localDate } from "@/lib/utils";
 // document id from the client can therefore only ever address a document
 // inside the caller's own business.
 export type TenantCollection =
-  | "customers" | "leads" | "projects" | "tasks" | "activity" | "media"
+  | "customers" | "leads" | "projects" | "tasks" | "activity" | "media" | "reviews"
   | "quote_requests" | "stats" | "members" | "invitations";
 
 export function tenant(businessId: string) {
@@ -23,8 +23,8 @@ export function tenant(businessId: string) {
 }
 
 export type EventType =
-  | "profile_view" | "post_view" | "like" | "comment" | "follow" | "save" | "quote_request"
-  | "contact_click" | "lead_created" | "project_won" | "project_completed";
+  | "profile_view" | "post_view" | "save" | "quote_request"
+  | "contact_click" | "lead_created" | "project_won" | "project_completed" | "review";
 
 /**
  * Contractor insights are counters, not one document per event

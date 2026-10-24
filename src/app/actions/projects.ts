@@ -5,6 +5,7 @@ import { db } from "@/lib/firebase/admin";
 import { isId, now } from "@/lib/data/db";
 import { addActivity, addEvent, addNotification, inc, tenant } from "@/lib/data/tenant";
 import { findOrCreateCustomer, refreshCustomerStatus, refreshNextTask } from "@/lib/data/workflow";
+import { recordFirstResponse } from "@/lib/data/trust";
 import { requireBusiness } from "@/lib/session";
 import { canAccessProject } from "@/server/policy";
 import { deleteObjects, uploadImage, uploadPrivateFile, validImage } from "@/lib/storage";
@@ -101,6 +102,7 @@ export async function createProject(_: ActionState, fd: FormData): Promise<Actio
     task_total: 0, task_done: 0, next_task: null, last_update_at: null,
     completed_at: d.status === "completed" ? ts : null, created_by: userId, created_at: ts, updated_at: ts,
   });
+  if (lead?.exists) recordFirstResponse(batch, businessId, lead);
   if (lead?.exists && lead.get("status") !== "won") {
     batch.update(lead.ref, { status: "won", status_changed_at: ts, updated_at: ts, next_follow_up: null, project_id: ref.id });
     addEvent(batch, businessId, "project_won");

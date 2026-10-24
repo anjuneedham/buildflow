@@ -14,7 +14,7 @@
     "make-admin": "node --env-file=.env.local --import tsx scripts/make-admin.mts",
     "test:rules": "firebase emulators:exec --only firestore --project demo-rules-test \"node --test --experimental-strip-types tests/rules/*.test.ts\"",
     "test:integration": "node --test --experimental-strip-types tests/integration/*.test.ts",
-    "test:e2e": "node tests/e2e/roles.mjs && node tests/e2e/journey.mjs && node tests/e2e/workflow.mjs && node tests/e2e/audit.mjs"
+    "test:e2e": "node tests/e2e/roles.mjs && node tests/e2e/journey.mjs && node tests/e2e/workflow.mjs && node tests/e2e/discovery.mjs && node tests/e2e/audit.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

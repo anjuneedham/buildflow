@@ -13,11 +13,20 @@ import type { Service } from "@/lib/types";
 
 const ACCEPT = UPLOAD.allowedTypes.join(",");
 
-export function PostForm({ projects, services, defaults }: { projects: { id: string; name: string }[]; services: Service[]; defaults: { projectId?: string; type: string; serviceId?: string; location?: string } }) {
+type JobPhoto = { id: string; path: string };
+
+export function PostForm({ projects, services, defaults, jobPhotos = [], lockedProject }: {
+  projects: { id: string; name: string }[]; services: Service[]; defaults: { projectId?: string; type: string; serviceId?: string; location?: string };
+  /** Photos from the job this post is published from. */
+  jobPhotos?: JobPhoto[]; lockedProject?: { id: string; name: string };
+}) {
   const [state, action] = useFormAction(createPost);
   const [type, setType] = useState(defaults.type);
   const [previews, setPreviews] = useState<string[]>([]);
   const [ba, setBa] = useState<{ before?: string; after?: string }>({});
+  // Pre-select up to the last 4 job photos: the finished result is usually what to show.
+  const [picked, setPicked] = useState<string[]>(jobPhotos.slice(-4).map((p) => p.id));
+  const [baPick, setBaPick] = useState<{ before?: string; after?: string }>(jobPhotos.length >= 2 ? { before: jobPhotos[0].id, after: jobPhotos[jobPhotos.length - 1].id } : {});
   const isBA = type === "before_after";
 
   return (
@@ -34,7 +43,25 @@ export function PostForm({ projects, services, defaults }: { projects: { id: str
         </div>
       </fieldset>
 
-      {isBA ? (
+      {isBA && jobPhotos.length >= 2 ? (
+        <div className="grid grid-cols-2 gap-3">
+          {(["before", "after"] as const).map((k) => (
+            <fieldset key={k}>
+              <legend className="mb-1 text-sm font-semibold capitalize">{k}</legend>
+              <input type="hidden" name={`${k}MediaId`} value={baPick[k] ?? ""} />
+              <div className="grid grid-cols-3 gap-1">
+                {jobPhotos.map((p) => (
+                  <button type="button" key={p.id} onClick={() => setBaPick((x) => ({ ...x, [k]: p.id }))} aria-pressed={baPick[k] === p.id} aria-label={`Use photo as ${k}`}
+                    className={cn("relative aspect-square overflow-hidden rounded-md border-2", baPick[k] === p.id ? "border-action" : "border-transparent opacity-70")}>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- private, auth-checked route */}
+                    <img src={`/media/${p.path}`} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          ))}
+        </div>
+      ) : isBA ? (
         <div className="grid grid-cols-2 gap-2">
           {(["before", "after"] as const).map((k) => (
             <label key={k} className="relative flex aspect-[4/5] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-concrete-300 bg-concrete-50 text-sm font-semibold text-ink-500">
@@ -47,9 +74,28 @@ export function PostForm({ projects, services, defaults }: { projects: { id: str
           ))}
         </div>
       ) : (
-        <div>
+        <div className="space-y-3">
+          {jobPhotos.length > 0 && (
+            <fieldset>
+              <legend className="mb-1 text-sm font-semibold">Photos from this job <span className="font-normal text-ink-500">({picked.length} selected)</span></legend>
+              <div className="grid grid-cols-4 gap-1.5">
+                {jobPhotos.map((p) => {
+                  const on = picked.includes(p.id);
+                  return (
+                    <label key={p.id} className={cn("relative aspect-square cursor-pointer overflow-hidden rounded-lg border-2", on ? "border-action" : "border-transparent")}>
+                      <input type="checkbox" name="jobMediaIds" value={p.id} checked={on} className="sr-only"
+                        onChange={() => setPicked((x) => (on ? x.filter((i) => i !== p.id) : [...x, p.id].slice(-UPLOAD.maxImagesPerPost)))} aria-label="Include this photo" />
+                      {/* eslint-disable-next-line @next/next/no-img-element -- private, auth-checked route */}
+                      <img src={`/media/${p.path}`} alt="" className={cn("h-full w-full object-cover", !on && "opacity-60")} />
+                      {on && <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-action text-[11px] font-bold text-white">{picked.indexOf(p.id) + 1}</span>}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
           <label className={buttonClasses({ variant: "outline", block: true, size: "lg", className: "cursor-pointer border-dashed" })}>
-            <ImagePlus className="h-5 w-5" />{previews.length ? "Change photos" : "Add photos"}
+            <ImagePlus className="h-5 w-5" />{previews.length ? "Change photos" : jobPhotos.length ? "Add more photos" : "Add photos"}
             <input type="file" name="images" accept={ACCEPT} multiple className="sr-only"
               onChange={(e) => setPreviews(Array.from(e.target.files ?? []).slice(0, UPLOAD.maxImagesPerPost).map((f) => URL.createObjectURL(f)))} />
           </label>
@@ -70,8 +116,8 @@ export function PostForm({ projects, services, defaults }: { projects: { id: str
         <Field label="Service" htmlFor="serviceId" optional><Select id="serviceId" name="serviceId" defaultValue={defaults.serviceId ?? ""} placeholder="—" options={services.map((s) => ({ value: s.id, label: s.name }))} /></Field>
         <Field label="Location" htmlFor="locationText" optional><Input id="locationText" name="locationText" defaultValue={defaults.location} placeholder="e.g. Portmore, St Catherine" /></Field>
       </div>
-      {projects.length > 0 && (
-        <Field label="Link to job" htmlFor="projectId" hint="Only you see the link; customers see the post." optional>
+      {lockedProject ? <input type="hidden" name="projectId" value={lockedProject.id} /> : projects.length > 0 && (
+        <Field label="Link to job" htmlFor="projectId" hint="Linked posts show as a verified job. Customers never see job details." optional>
           <Select id="projectId" name="projectId" defaultValue={defaults.projectId ?? ""} placeholder="None" options={projects.map((p) => ({ value: p.id, label: p.name }))} />
         </Field>
       )}

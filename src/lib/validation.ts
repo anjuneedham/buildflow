@@ -128,7 +128,6 @@ export const postSchema = z.object({
   locationText: optText(200),
 });
 
-export const commentSchema = z.object({ postId: docId, body: reqText(1000, "Comment") });
 
 export const quoteRequestSchema = z.object({
   businessId: docId,
@@ -141,11 +140,12 @@ export const quoteRequestSchema = z.object({
   description: reqText(4000, "Project details"),
   budgetRange: optText(100),
   timeline: optText(100),
+  postId: optUuid, // "Request a similar job" from a portfolio post
   website: z.string().max(0, "Spam detected").optional(), // honeypot
 }).refine((d) => d.email || d.phone, { message: "Add an email or phone number so they can reach you", path: ["email"] });
 
 export const reportSchema = z.object({
-  targetType: z.enum(["post", "comment", "business"]),
+  targetType: z.enum(["post", "comment", "business", "review"]),
   targetId: docId,
   reason: z.enum(values(REPORT_REASONS)),
   details: optText(1000),

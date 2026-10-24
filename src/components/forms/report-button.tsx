@@ -9,7 +9,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { REPORT_REASONS } from "@/lib/constants";
 import type { ActionState } from "@/lib/validation";
 
-export function ReportButton({ targetType, targetId, targetPath, label = "Report" }: { targetType: "post" | "comment" | "business"; targetId: string; targetPath?: string; label?: string }) {
+export function ReportButton({ targetType, targetId, targetPath, label = "Report" }: { targetType: "post" | "comment" | "business" | "review"; targetId: string; targetPath?: string; label?: string }) {
   const [open, setOpen] = useState(false);
   const [state, action] = useActionState(reportContent, {} as ActionState);
   return (

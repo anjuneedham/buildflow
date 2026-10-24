@@ -14,7 +14,7 @@ const PATHS = [
   "businesses/a/projects/j1", "businesses/a/tasks/t1", "businesses/a/notes/n1", "businesses/a/activity/x1", "businesses/a/photos/ph1",
   "businesses/a/media/m1", "businesses/a/events/e1", "businesses/a/quote_requests/q1", "businesses/a/followers/bob",
   "posts/p1", "posts/p1/comments/c1", "slugs/a", "invitations/tok", "subscriptions/a", "plans/basic", "services/mason",
-  "locations/kingston", "reports/r1",
+  "locations/kingston", "reports/r1", "businesses/a/reviews/r1", "review_requests/x",
 ];
 
 before(async () => {

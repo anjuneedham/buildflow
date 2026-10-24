@@ -222,7 +222,7 @@ await done.getByText("2 tasks are still open.").waitFor();
 await done.getByRole("button", { name: "Mark them done and complete" }).click();
 await toast(owner, "Job completed");
 await owner.reload();
-await main(owner).getByText("Job done! Show it off.").waitFor();
+await main(owner).getByText("Job done! Turn it into your next customer.").waitFor();
 await main(owner).getByText("3 of 3 done").waitFor();
 await main(owner).getByText("Job completed (2 open tasks closed)").waitFor();
 assert.equal(await main(owner).getByText("What's next").count(), 0);

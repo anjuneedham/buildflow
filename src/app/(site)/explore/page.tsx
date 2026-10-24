@@ -22,7 +22,10 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
   if (!isFirebaseConfigured) return <NotConfigured />;
   const sp = await searchParams;
   const f = await resolveExploreFilters(sp);
-  const tab = sp.tab === "contractors" || (f.name && sp.tab !== "work") ? "contractors" : "work";
+  // A customer who searched for a service, place or name wants people to
+  // contact first; with no filters, browsing finished work leads.
+  const filtered = Boolean(f.name || f.service || f.region);
+  const tab = sp.tab === "contractors" || sp.tab === "work" ? sp.tab : filtered ? "contractors" : "work";
   const s = await getSession();
 
   const qs = (extra: Record<string, string | undefined>) => {
@@ -33,7 +36,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
   };
 
   const [posts, businesses] = await Promise.all([
-    tab === "work" ? getFeed({ serviceId: f.service?.id, regionId: f.region?.id, limit: 30 }) : Promise.resolve([]),
+    tab === "work" ? getFeed({ serviceId: f.service?.id, regionId: f.region?.id, limit: 30, perBusiness: 2 }) : Promise.resolve([]),
     searchBusinesses({ name: f.name || undefined, serviceId: f.service?.id, regionId: f.region?.id, limit: tab === "contractors" ? 30 : 6 }),
   ]);
   const viewer = await getViewerState(s.user?.id, posts.map((p) => p.id));
@@ -42,11 +45,11 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
     <main id="main" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-6">
       <div className="mx-auto max-w-2xl">
         <h1 className="font-display text-2xl font-extrabold md:text-3xl">{f.heading ?? "Explore"}</h1>
-        <p className="mb-4 text-sm text-ink-500">Find contractors through the work they&apos;ve done.</p>
-        <SearchBar q={sp.q} services={f.services} regions={f.regions} serviceSlug={f.service?.slug} regionSlug={f.region?.slug} tab={tab} />
+        <p className="mb-4 text-sm text-ink-500">See real finished jobs, check reviews, and request a quote from the contractor who did the work.</p>
+        <SearchBar q={sp.q} services={f.services} regions={f.regions} serviceSlug={f.service?.slug} regionSlug={f.region?.slug} tab={sp.tab} />
         <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 no-scrollbar" aria-label="Popular services">
           {f.services.slice(0, 10).map((svc) => (
-            <Link key={svc.id} href={qs({ service: f.service?.slug === svc.slug ? undefined : svc.slug, tab })}
+            <Link key={svc.id} href={qs({ service: f.service?.slug === svc.slug ? undefined : svc.slug, tab: sp.tab })}
               className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold", f.service?.id === svc.id ? "border-ink bg-ink text-white" : "border-concrete-300 bg-white text-ink-600 hover:border-ink-500")}>
               {svc.plural_name}
             </Link>
@@ -59,8 +62,8 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
         <div className="mx-auto mt-5 grid max-w-6xl gap-6 lg:grid-cols-[1fr_320px]">
           <div className="mx-auto w-full max-w-xl space-y-5">
             {posts.length === 0 ? (
-              <EmptyState icon={Compass} title="No work posted here yet" description="Try a different service or location, or browse contractors directly." action={<ButtonLink href={qs({ tab: "contractors" })} variant="outline">Browse contractors</ButtonLink>} />
-            ) : posts.map((p, i) => <PostCard key={p.id} post={p} liked={viewer.liked.has(p.id)} saved={viewer.saved.has(p.id)} priority={i < 2} />)}
+              <EmptyState icon={Compass} title="No finished work posted here yet" description="Try a different service or parish, or browse contractors directly." action={<ButtonLink href={qs({ tab: "contractors" })} variant="outline">Browse contractors</ButtonLink>} />
+            ) : posts.map((p, i) => <PostCard key={p.id} post={p} saved={viewer.saved.has(p.id)} priority={i < 2} />)}
           </div>
           <aside className="hidden space-y-3 lg:block">
             <h2 className="text-sm font-bold uppercase tracking-wide text-ink-500">Contractors {f.heading ? "matching" : "to know"}</h2>

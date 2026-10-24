@@ -108,3 +108,22 @@ export async function deleteObjects(paths: (string | null | undefined)[]) {
 
 /** URL for a private project file, served via the authenticated media route. */
 export const privateMediaUrl = (path: string) => `/media/${path}`;
+
+/**
+ * Publishes a private job photo to the portfolio: server-side copy into
+ * public-media (no download/re-upload; it was already re-encoded and
+ * stripped of metadata on upload) with a download token.
+ */
+export async function publishPrivateImage(privatePath: string, businessId: string) {
+  if (!privatePath.startsWith(`project-files/${businessId}/`) || !privatePath.endsWith(".webp")) return { error: "That photo can't be published." } as const;
+  const dest = `public-media/${businessId}/${randomUUID()}.webp`;
+  const token = randomUUID();
+  try {
+    await bucket().file(privatePath).copy(bucket().file(dest));
+    await bucket().file(dest).setMetadata({ contentType: "image/webp", cacheControl: "public, max-age=31536000, immutable", metadata: { firebaseStorageDownloadTokens: token } });
+  } catch (e) {
+    console.error("publish failed", e);
+    return { error: "Couldn't publish that photo. Please try again." } as const;
+  }
+  return { url: publicUrl(dest, token) } as const;
+}
