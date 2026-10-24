@@ -1,5 +1,5 @@
-import { LoadingState } from "@/components/ui";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export default function Loading() {
-  return <LoadingState />;
+  return <LoadingState label="Loading Today" />;
 }

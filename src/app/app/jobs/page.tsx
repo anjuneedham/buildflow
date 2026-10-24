@@ -28,7 +28,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
       ]} />
       <div className="mt-4">
         {visible.length === 0 ? (
-          <EmptyState icon={Briefcase} title={all.length === 0 ? "No jobs yet" : "Nothing in this view"} description={all.length === 0 && !s.can("projects.manage") ? "Jobs you're assigned to will show up here." : all.length === 0 ? "Create a job for each piece of work: track the timeline, tasks, crew and site photos." : undefined}
+          <EmptyState icon={Briefcase} title={all.length === 0 ? "No jobs yet" : "Nothing in this view"} description={all.length > 0 ? "Try another tab to see your other jobs." : all.length === 0 && !s.can("projects.manage") ? "Jobs you're assigned to will show up here." : all.length === 0 ? "Create a job for each piece of work: track the timeline, tasks, crew and site photos." : undefined}
             action={all.length === 0 && s.can("projects.manage") ? <ButtonLink href="/app/jobs/new">Create a job</ButtonLink> : undefined} />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">

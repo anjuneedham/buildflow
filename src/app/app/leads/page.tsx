@@ -43,8 +43,13 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       <div className="mt-4">
         {visible.length === 0 ? (
           <EmptyState icon={ClipboardList} title={leads.length === 0 ? "No leads yet" : "No leads here"}
-            description={leads.length === 0 ? "Quote requests from your public profile appear here automatically. You can also add leads from calls and referrals." : "Try another status or search."}
-            action={leads.length === 0 ? <ButtonLink href="/app/leads/new">Add your first lead</ButtonLink> : undefined} />
+            description={leads.length === 0 ? "Quote requests from your public profile appear here automatically. Share your profile to get your first one, or add a lead you got by phone." : "Try another status or search."}
+            action={leads.length === 0 ? (
+              <div className="flex flex-wrap justify-center gap-2">
+                <ButtonLink href={`/contractor/${s.business.slug}`}>Share your profile</ButtonLink>
+                <ButtonLink href="/app/leads/new" variant="outline">Add a lead</ButtonLink>
+              </div>
+            ) : undefined} />
         ) : (
           <div className="grid gap-3 md:grid-cols-2">{visible.map((l) => <LeadCard key={l.id} lead={l} assigneeName={l.assigned_to ? names.get(l.assigned_to) : undefined} />)}</div>
         )}

@@ -12,7 +12,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const push = useCallback((message: string, tone: Toast["tone"] = "success") => {
     const id = Date.now() + Math.random();
     setToasts((t) => [...t, { id, message, tone }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3500);
+    // Errors stay longer: people need time to read what went wrong.
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), tone === "error" ? 7000 : 3500);
   }, []);
   return (
     <ToastContext.Provider value={push}>
