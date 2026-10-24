@@ -15,8 +15,8 @@ await check("signup: 300-character name is handled with a clear message (not a g
   await page.goto(`${BASE}/signup?type=customer`);
   await page.fill("#fullName", "N".repeat(300)); await page.fill("#email", `long${run}@test.dev`); await page.fill("#password", pw);
   await page.click("button[type=submit]");
-  await sleep(2500);
-  const msg = (await page.locator("[role=alert]").allTextContents()).join(" ");
+  await Promise.race([page.waitForURL((u) => !u.pathname.startsWith("/signup"), { timeout: 20000 }).catch(() => {}), page.locator("[role=alert], .text-site-red").filter({ hasText: /\S/ }).first().waitFor({ timeout: 20000 }).catch(() => {})]);
+  const msg = (await page.locator("[role=alert], .text-site-red").allTextContents()).join(" ").trim();
   const left = !page.url().includes("/signup");
   if (left) return true;
   const u = await adminAuth.getUserByEmail(`long${run}@test.dev`).catch(() => null);

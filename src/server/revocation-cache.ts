@@ -15,4 +15,22 @@ export function markRevocationChecked(uid: string) {
   lastCheck.set(uid, Date.now());
   if (lastCheck.size > 10_000) lastCheck.clear();
 }
-export const forgetRevocationCheck = (uid: string) => { lastCheck.delete(uid); };
+
+// When this server itself ends a session (log out, removed from a team, suspended) it records the moment, and any
+// session that signed in earlier is refused from then on without another Firebase call. Clearing the "last checked"
+// time alone was not enough: a request already in flight when the session ended could write a fresh "checked" entry
+// back and keep a copied cookie alive for another five minutes.
+const rg = globalThis as unknown as { __bfRevokedAt?: Map<string, number> };
+const revokedAt = (rg.__bfRevokedAt ??= new Map<string, number>());
+
+export function forgetRevocationCheck(uid: string) {
+  lastCheck.delete(uid);
+  revokedAt.set(uid, Date.now());
+  if (revokedAt.size > 10_000) revokedAt.clear();
+}
+/** True when a session whose sign-in time is `authTimeSeconds` was ended by this server after it began. */
+export function endedByThisServer(uid: string, authTimeSeconds: number) {
+  const at = revokedAt.get(uid);
+  // auth_time is whole seconds; the one-second allowance keeps a sign-in in the same second as a logout valid.
+  return at !== undefined && authTimeSeconds * 1000 < at - 1000;
+}

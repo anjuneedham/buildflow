@@ -42,7 +42,7 @@ I read every server action, route handler, the policy layer, storage code, the r
 - **XSS.** Seven payloads in every field, anonymous quote requests included: nothing executed anywhere. JSON-LD escapes `<`.
 - **Firestore.** Client access is denied everywhere, and the browser bundle contains none of the Admin SDK, Firestore client or private keys (the emulator `.env.local` holds no real secret values, so that part of the scan only becomes meaningful with production env).
 - **Review links.** Eight simultaneous submissions on one link give exactly one review and consistent rating totals.
-- **Weight.** Public pages are about 200 KB on first load; 4.6–5.2 s on an emulated 400 kbps / 400 ms connection (images were blocked in this sandbox, so real pages with photos will be heavier, see O3).
+- **Weight.** Pages without photos are about 200 KB (about 170 KB of scripts) and load in 4.6–5.2 s on an emulated 400 kbps / 400 ms connection. With photos it is a different story, see O3.
 
 ## 4. Findings fixed
 
@@ -107,7 +107,7 @@ IDs: **H** = HIGH, **M** = MEDIUM, **L** = LOW. "Reproduced" means the failure w
 
 - **O1. "Verified" is weaker than it sounds.** A contractor can create a job, mark it complete, ask for a review, open the link themselves and post a 5-star "Verified customer" review, or publish a "Verified job". The link model proves the reviewer holds a link the contractor sent, nothing more. Needs a product decision. Options: send the link from the platform to the phone on the original lead, rename the labels ("Completed job", "Customer review"), flag reviews opened from the contractor's own device or IP, and add a short delay before a review is public.
 - **O2. Public pages are uncached.** Explore reads up to 500 business documents per view, and the feed 1.5× its page size, for every visitor. Fine today; it is the first thing to cost money or be abused at scale. Cache for about a minute with tag invalidation on publish and profile changes.
-- **O3. Photos are served at up to 2048 px to everyone**, with no smaller version. Cards on a phone download 150–400 KB per photo. Generate a roughly 800 px variant at upload and use `srcset`.
+- **O3. Photos are served at full size to everyone**, with no smaller version. Measured on the demo data (three photos): Explore is 1.2 MB and takes **25.5 s** on the emulated slow connection, a profile 18.6 s, a post 15.7 s; on a fast connection they are 0.5–3.7 s. Real uploads can be up to 2048 px, so real pages will be heavier. Generate a roughly 800 px variant at upload and use `srcset`.
 - **O4. Read amplification at scale** (see §5), and Leads, Customers and Jobs silently stop at 500 rows with no paging.
 - **O5. Rate limits are in memory per server instance and use the first `X-Forwarded-For` entry.** On a platform that appends rather than replaces that header the limit can be dodged; with several instances the effective limit multiplies, and the 5-minute revocation window applies per instance. Move to Redis/Upstash and read the client address from the platform's trusted header.
 
