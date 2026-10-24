@@ -1,12 +1,13 @@
 import { Logo } from "@/components/brand/logo";
 import { AuthAction } from "./auth-action";
+import { firstParams } from "@/lib/params";
 
 export const metadata = { title: "Account", robots: { index: false } };
 
 // Target for Firebase email links (set "Action URL" in Firebase console →
 // Authentication → Templates to https://your-domain/auth/action).
 export default async function AuthActionPage({ searchParams }: { searchParams: Promise<{ mode?: string; oobCode?: string }> }) {
-  const { mode, oobCode } = await searchParams;
+  const { mode, oobCode } = firstParams(await searchParams);
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="px-4 py-4"><Logo /></header>

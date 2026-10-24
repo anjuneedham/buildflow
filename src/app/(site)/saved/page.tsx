@@ -7,12 +7,13 @@ import { fromDoc } from "@/lib/data/db";
 import { getFeed } from "@/lib/queries";
 import type { Business } from "@/lib/types";
 import { requireUser } from "@/lib/session";
+import { firstParams } from "@/lib/params";
 
 export const metadata = { title: "Saved", robots: { index: false } };
 
 export default async function SavedPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const s = await requireUser("/saved");
-  const { tab: rawTab } = await searchParams;
+  const { tab: rawTab } = firstParams(await searchParams);
   const tab = rawTab === "contractors" || rawTab === "following" ? "contractors" : "posts";
   const me = db().collection("users").doc(s.user.id);
 

@@ -8,12 +8,13 @@ import { getTeam } from "@/lib/team";
 import { LEAD_STATUSES, OPEN_LEAD_STATUSES } from "@/lib/constants";
 import { compactAmount, dateInDays } from "@/lib/utils";
 import type { Lead } from "@/lib/types";
+import { firstParams } from "@/lib/params";
 
 export const metadata = { title: "Leads" };
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
   const s = await requirePermission("crm");
-  const { status = "open", q } = await searchParams;
+  const { status = "open", q } = firstParams(await searchParams);
   const [leads, team] = await Promise.all([
     list<Lead>(tenant(s.business.id).col("leads").orderBy("created_at", "desc").limit(500)),
     getTeam(s.business.id),

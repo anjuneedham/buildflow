@@ -5,6 +5,7 @@ import { getRegions, getServices } from "@/lib/queries";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { BrandingStep, BusinessStep, FinishStep, FirstRecordStep, ServiceAreaStep, ServicesStep } from "./steps";
+import { firstParams } from "@/lib/params";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   const business = s.membership?.business ?? null;
   if (s.membership && s.membership.role !== "owner") redirect("/app");
   const reached = business ? Math.max(3, business.onboarding_step) : 2;
-  const requested = Number((await searchParams).step) || reached;
+  const requested = Number((firstParams(await searchParams)).step) || reached;
   // Can revisit earlier steps, never skip ahead of where you've reached.
   const step = Math.min(Math.max(2, requested), reached);
 

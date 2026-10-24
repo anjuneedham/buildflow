@@ -6,12 +6,13 @@ import { tenant } from "@/lib/data/tenant";
 import type { Lead } from "@/lib/types";
 import { requirePermission } from "@/lib/session";
 import { getTeam } from "@/lib/team";
+import { firstParams } from "@/lib/params";
 
 export const metadata = { title: "New job" };
 
 export default async function NewProjectPage({ searchParams }: { searchParams: Promise<{ customerId?: string; leadId?: string }> }) {
   const s = await requirePermission("projects.manage");
-  const sp = await searchParams;
+  const sp = firstParams(await searchParams);
   const t = tenant(s.business.id);
   const [customers, team, lead] = await Promise.all([
     list<{ id: string; name: string }>(t.col("customers").orderBy("name_lower").select("name").limit(1000)),

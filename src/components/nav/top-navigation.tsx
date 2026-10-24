@@ -17,10 +17,10 @@ export function TopNavigation() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
         <Logo />
         <nav className="hidden items-center gap-6 text-sm font-semibold text-ink-600 md:flex" aria-label="Main">
-          <Link href="/explore" className="hover:text-ink">Explore</Link>
-          <Link href="/for-contractors" className="hover:text-ink">For contractors</Link>
-          <Link href="/features" className="hover:text-ink">Features</Link>
-          <Link href="/pricing" className="hover:text-ink">Pricing</Link>
+          <Link href="/explore" className="py-2.5 hover:text-ink">Explore</Link>
+          <Link href="/for-contractors" className="py-2.5 hover:text-ink">For contractors</Link>
+          <Link href="/features" className="py-2.5 hover:text-ink">Features</Link>
+          <Link href="/pricing" className="py-2.5 hover:text-ink">Pricing</Link>
         </nav>
         <div className="flex min-w-[7rem] items-center justify-end gap-2">
           {me === null ? (

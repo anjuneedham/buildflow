@@ -1,17 +1,18 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { CheckCircle2, Star } from "lucide-react";
 import { submitReview } from "@/app/actions/reviews";
 import { Field, FormError, Input, Textarea } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { useFormAction } from "@/components/ui/use-form-action";
 import { cn } from "@/lib/utils";
 import type { ActionState } from "@/lib/validation";
 
 const LABELS = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
 
 export function ReviewForm({ token, defaultName, existing }: { token: string; defaultName: string; existing: { rating: number; body: string } | null }) {
-  const [state, action] = useActionState(submitReview.bind(null, token), {} as ActionState);
+  const [state, action] = useFormAction(submitReview.bind(null, token), {} as ActionState, { refresh: false });
   const [rating, setRating] = useState(existing?.rating ?? 0);
   if (state.ok) {
     return (
@@ -36,7 +37,7 @@ export function ReviewForm({ token, defaultName, existing }: { token: string; de
           ))}
           <span className="ml-2 text-sm font-semibold text-ink-600">{LABELS[rating]}</span>
         </div>
-        {state.fieldErrors?.rating && <p className="mt-1 text-sm text-site-red">{state.fieldErrors.rating[0]}</p>}
+        {state.fieldErrors?.rating && <p role="alert" className="mt-1 text-sm text-site-red">{state.fieldErrors.rating[0]}</p>}
       </fieldset>
       <Field label="What went well? Anything they could improve?" htmlFor="review-body" optional>
         <Textarea id="review-body" name="body" rows={4} maxLength={2000} defaultValue={existing?.body} placeholder="On time, clean site, good communication…" />

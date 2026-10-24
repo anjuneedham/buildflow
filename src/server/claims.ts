@@ -1,6 +1,7 @@
 import "server-only";
 import { adminAuth, db } from "@/lib/firebase/admin";
 import { normalizeRole, type Role } from "./policy";
+import { forgetRevocationCheck } from "./revocation-cache";
 
 /**
  * Custom claims mirror the user's membership so a session can be authorised
@@ -24,6 +25,6 @@ export async function syncClaims(uid: string, opts: { revoke?: boolean } = {}): 
   const changed = have.bid !== want.bid || have.brole !== want.brole || Boolean(have.adm) !== want.adm;
   if (changed) await adminAuth().setCustomUserClaims(uid, { ...user.customClaims, ...want });
   // Losing access must take effect now: revoked sessions fail verification.
-  if (changed && opts.revoke) await adminAuth().revokeRefreshTokens(uid);
+  if (changed && opts.revoke) { await adminAuth().revokeRefreshTokens(uid); forgetRevocationCheck(uid); }
   return changed;
 }

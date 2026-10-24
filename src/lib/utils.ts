@@ -80,7 +80,8 @@ export function compactAmount(n: number) {
 
 export function safeNext(next: string | null | undefined, fallback = "/app") {
   // Only allow same-site relative paths.
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.includes("\\")) return fallback;
+  // Browsers drop tabs and newlines inside URLs, so "/\t/evil.com" would become "//evil.com".
+  if (!next || !next.startsWith("/") || next.startsWith("//") || next.includes("\\") || /[\u0000-\u001f\u007f\s]/.test(next)) return fallback;
   return next;
 }
 

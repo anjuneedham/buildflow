@@ -18,6 +18,7 @@ import { getSession } from "@/lib/session";
 import { POST_TYPES, optionFor } from "@/lib/constants";
 import { formatDate, whatsappLink } from "@/lib/utils";
 import type { Business } from "@/lib/types";
+import { firstParams } from "@/lib/params";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ published?: string }> };
 
@@ -35,7 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  */
 export default async function PostPage({ params, searchParams }: Props) {
   const { id } = await params;
-  const { published } = await searchParams;
+  const { published } = firstParams(await searchParams);
   const post = await getPost(id);
   if (!post) notFound();
   const s = await getSession();
@@ -53,6 +54,7 @@ export default async function PostPage({ params, searchParams }: Props) {
     <main id="main" tabIndex={-1} className="mx-auto max-w-2xl px-0 py-0 sm:px-4 sm:py-6">
       <ViewTracker businessId={post.business_id} postId={post.id} />
       {published && <div className="p-4 sm:px-0"><FormSuccess message="Your post is live on your profile and in Explore. Share it with customers." /></div>}
+      <h1 className="sr-only">{post.service?.name ?? optionFor(POST_TYPES, post.type)?.label ?? "Work"} by {post.business.name}{post.location_text ? ` in ${post.location_text}` : ""}</h1>
       <Card className="overflow-hidden rounded-none sm:rounded-xl">
         <div className="flex items-center gap-3 px-4 py-3">
           <Link href={`/contractor/${post.business.slug}`} className="flex min-w-0 flex-1 items-center gap-3">

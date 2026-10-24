@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { ID_RE } from "@/lib/ids";
+import { isRealDay } from "@/lib/dates";
 import {
   CUSTOMER_STATUSES, LEAD_SOURCES, LEAD_STATUSES, POST_TYPES, PROJECT_STATUSES,
   REPORT_REASONS, TASK_PRIORITIES, TASK_STATUSES, values,
@@ -11,13 +13,13 @@ const reqText = (max: number, label: string) =>
   z.preprocess((v) => (typeof v === "string" ? v.trim() : v), z.string({ required_error: `${label} is required` }).min(1, `${label} is required`).max(max));
 const optEmail = z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : typeof v === "string" ? v.trim() : v), z.string().email("Enter a valid email").max(200).optional());
 // Firestore document ids (auto-ids or readable demo ids).
-export const docId = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/, "Invalid id");
+export const docId = z.string().regex(ID_RE, "Invalid id");
 const optUuid = z.preprocess((v) => (v === "" || v === null ? undefined : v), docId.optional());
 const optMoney = z.preprocess((v) => {
   if (typeof v !== "string" || v.trim() === "") return undefined;
   return Number(v.replace(/[,$\s]/g, ""));
 }, z.number({ invalid_type_error: "Enter a number" }).nonnegative("Must be positive").max(1e11).optional());
-const optDate = z.preprocess((v) => (v === "" ? undefined : v), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date").optional());
+const optDate = z.preprocess((v) => (v === "" ? undefined : v), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date").refine(isRealDay, "Invalid date").optional());
 const optUrl = z.preprocess((v) => {
   if (typeof v !== "string" || v.trim() === "") return undefined;
   const t = v.trim();

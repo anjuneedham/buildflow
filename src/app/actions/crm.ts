@@ -11,6 +11,7 @@ import { canAccessProject } from "@/server/policy";
 import { LEAD_STATUSES, LOST_REASONS, OPEN_LEAD_STATUSES, optionFor, values } from "@/lib/constants";
 import { customerSchema, leadSchema, noteSchema, parseForm, type ActionState } from "@/lib/validation";
 import { phoneDigits } from "@/lib/utils";
+import { isRealDay } from "@/lib/dates";
 
 // Leads, customers and their notes: owner and admin only (crew are redirected).
 async function ctx() {
@@ -37,11 +38,16 @@ const leadFields = async (d: z.infer<typeof leadSchema>) => ({
 });
 
 /** Removes the notes that belong to a deleted record (history entries stay on the other records). */
-async function deleteNotesFor(businessId: string, field: "lead_id" | "customer_id", id: string) {
-  const snap = await tenant(businessId).col("activity").where(field, "==", id).where("action", "==", "note").limit(400).get();
-  const batch = db().batch();
-  snap.docs.forEach((d) => batch.delete(d.ref));
-  await batch.commit();
+async function deleteNotesFor(businessId: string, entityType: "lead" | "customer", id: string) {
+  // Only notes filed on this record: a job's notes carry the customer's id too, and the job outlives its customer.
+  const field = entityType === "lead" ? "lead_id" : "customer_id";
+  for (;;) {
+    const snap = await tenant(businessId).col("activity").where(field, "==", id).where("entity_type", "==", entityType).where("action", "==", "note").limit(400).get();
+    if (snap.empty) return;
+    const batch = db().batch();
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  }
 }
 
 // ---------------- Leads ----------------
@@ -55,7 +61,7 @@ export async function createLead(_: ActionState, fd: FormData): Promise<ActionSt
   const batch = db().batch();
   const ts = now();
   // Every lead belongs to a customer from the start: no separate "convert" step.
-  const customer = await findOrCreateCustomer(t, batch, { name: d.name, phone: d.phone, email: d.email, address: d.location }, userId);
+  const customer = await findOrCreateCustomer(t, { name: d.name, phone: d.phone, email: d.email, address: d.location }, userId);
   batch.set(ref, {
     ...(await leadFields(d)), phone_digits: phoneDigits(d.phone), customer_id: customer.id, customer_name: customer.name, project_id: null,
     quote_request_id: null, created_by: userId, status_changed_at: ts, created_at: ts, updated_at: ts,
@@ -99,26 +105,28 @@ export async function setLeadStatus(id: string, status: string, lostReason?: str
   if (!parsed.success || !isId(id)) return { ok: false, error: "Invalid status" };
   const reason = parsed.data === "lost" && lostReason && (LOST_REASONS as readonly string[]).includes(lostReason) ? lostReason : null;
   const ref = t.doc("leads", id);
-  const prev = await ref.get();
-  if (!prev.exists) return { ok: false, error: "Lead not found" };
-  if (prev.get("status") === parsed.data && !reason) return { ok: true };
   const open = OPEN_LEAD_STATUSES.includes(parsed.data);
-  const batch = db().batch();
-  recordFirstResponse(batch, businessId, prev);
-  batch.update(ref, { status: parsed.data, status_changed_at: now(), updated_at: now(), lost_reason: reason, ...(open ? {} : { next_follow_up: null }) });
-  if (parsed.data === "won") addEvent(batch, businessId, "project_won");
-  addActivity(batch, businessId, {
-    actorId: userId, actorName: userName, entityType: "lead", entityId: id, leadId: id, customerId: prev.get("customer_id"), action: "status_changed",
-    summary: `Moved to ${optionFor(LEAD_STATUSES, parsed.data)?.label}${reason ? ` (${reason})` : ""}`,
+  // In a transaction so a double tap (or two tabs) moves the lead once: one history entry, one counted reply.
+  const outcome = await db().runTransaction(async (tx) => {
+    const prev = await tx.get(ref);
+    if (!prev.exists) return "missing" as const;
+    if (prev.get("status") === parsed.data && !reason) return "same" as const;
+    recordFirstResponse(tx, businessId, prev);
+    tx.update(ref, { status: parsed.data, status_changed_at: now(), updated_at: now(), lost_reason: reason, ...(open ? {} : { next_follow_up: null }) });
+    if (parsed.data === "won") addEvent(tx, businessId, "project_won");
+    addActivity(tx, businessId, {
+      actorId: userId, actorName: userName, entityType: "lead", entityId: id, leadId: id, customerId: prev.get("customer_id"), action: "status_changed",
+      summary: `Moved to ${optionFor(LEAD_STATUSES, parsed.data)?.label}${reason ? ` (${reason})` : ""}`,
+    });
+    return "moved" as const;
   });
-  await batch.commit();
-  return { ok: true };
+  return outcome === "missing" ? { ok: false, error: "Lead not found" } : { ok: true };
 }
 
 /** Sets or clears the date to chase this lead. Shows on Today when due. */
 export async function setFollowUp(id: string, date: string | null) {
   const { t, businessId, userId, userName } = await ctx();
-  if (!isId(id) || (date !== null && !/^\d{4}-\d{2}-\d{2}$/.test(date))) return { ok: false, error: "Invalid date" };
+  if (!isId(id) || (date !== null && !isRealDay(date))) return { ok: false, error: "Invalid date" };
   const ref = t.doc("leads", id);
   const prev = await ref.get();
   if (!prev.exists) return { ok: false, error: "Lead not found" };
@@ -141,7 +149,7 @@ export async function deleteLead(id: string) {
   if (!lead.exists) return { ok: true, redirectTo: "/app/leads" };
   if (lead.get("project_id")) return { ok: false, error: "This lead has a job. Delete the job first, or keep the lead as its history." };
   await t.doc("leads", id).delete();
-  await deleteNotesFor(businessId, "lead_id", id);
+  await deleteNotesFor(businessId, "lead", id);
   return { ok: true, redirectTo: "/app/leads" };
 }
 
@@ -154,7 +162,7 @@ export async function linkLeadCustomer(id: string) {
   if (!lead.exists) return { ok: false, error: "Lead not found." };
   if (lead.get("customer_id")) return { ok: true, redirectTo: `/app/customers/${lead.get("customer_id")}` };
   const batch = db().batch();
-  const customer = await findOrCreateCustomer(t, batch, { name: lead.get("name"), phone: lead.get("phone"), email: lead.get("email"), address: lead.get("location") }, userId);
+  const customer = await findOrCreateCustomer(t, { name: lead.get("name"), phone: lead.get("phone"), email: lead.get("email"), address: lead.get("location") }, userId);
   batch.update(ref, { customer_id: customer.id, customer_name: customer.name, updated_at: now() });
   addActivity(batch, businessId, { actorId: userId, actorName: userName, entityType: "customer", entityId: customer.id, customerId: customer.id, leadId: id, action: "linked", summary: `Saved ${customer.name} as a customer` });
   await batch.commit();
@@ -216,7 +224,7 @@ export async function deleteCustomer(id: string) {
   projects.docs.forEach((p) => batch.update(p.ref, { customer_id: null, customer_name: null }));
   leads.docs.forEach((l) => batch.update(l.ref, { customer_id: null, customer_name: null }));
   await batch.commit();
-  await deleteNotesFor(businessId, "customer_id", id);
+  await deleteNotesFor(businessId, "customer", id);
   return { ok: true, redirectTo: "/app/customers" };
 }
 

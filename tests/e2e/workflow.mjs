@@ -115,7 +115,7 @@ await owner.selectOption("#status", "in_progress");
 await owner.selectOption("#responsibleId", { label: "Marcus Reid (Demo)" });
 await owner.locator("label", { hasText: "Ricardo Gayle (Demo)" }).click();
 await owner.click("button[type=submit]");
-await owner.waitForURL(/\/app\/jobs\/[A-Za-z0-9]{20}$/);
+await owner.waitForURL(/\/app\/jobs\/(from-)?[A-Za-z0-9]{20}$/);
 const jobUrl = owner.url();
 const jobName = `Mason for ${NAME}`;
 await main(owner).getByRole("heading", { name: jobName }).waitFor();

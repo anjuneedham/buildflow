@@ -5,7 +5,9 @@ import "server-only";
 // regions; the call sites stay the same. The database also enforces its own
 // limit on quote requests (see submit_quote_request).
 type Bucket = { count: number; resetAt: number };
-const buckets = new Map<string, Bucket>();
+// On globalThis so every route in one server process shares the same counters (module state is per bundle in Next).
+const g = globalThis as unknown as { __bfRateBuckets?: Map<string, Bucket> };
+const buckets = (g.__bfRateBuckets ??= new Map<string, Bucket>());
 
 export function rateLimit(key: string, limit: number, windowMs: number) {
   const now = Date.now();

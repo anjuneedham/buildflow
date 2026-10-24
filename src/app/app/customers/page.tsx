@@ -5,12 +5,13 @@ import { tenant } from "@/lib/data/tenant";
 import { requirePermission } from "@/lib/session";
 import { formatDate } from "@/lib/utils";
 import type { Customer } from "@/lib/types";
+import { firstParams } from "@/lib/params";
 
 export const metadata = { title: "Customers" };
 
 export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const s = await requirePermission("crm");
-  const { q } = await searchParams;
+  const { q } = firstParams(await searchParams);
   const t = tenant(s.business.id);
   const [all, projects] = await Promise.all([
     list<Customer>(t.col("customers").orderBy("created_at", "desc").limit(500)),

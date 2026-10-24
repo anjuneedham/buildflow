@@ -12,6 +12,7 @@ import { getTeam } from "@/lib/team";
 import { requireBusiness } from "@/lib/session";
 import { ACTIVE_PROJECT_STATUSES, OPEN_LEAD_STATUSES } from "@/lib/constants";
 import { cn, compactAmount, dateInDays, formatDate, relativeDay, timeAgo, whatsappLink } from "@/lib/utils";
+import { firstParams } from "@/lib/params";
 
 export const metadata = { title: "Today" };
 
@@ -29,7 +30,7 @@ const OPEN_TASK = ["todo", "in_progress"];
  */
 export default async function TodayPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const s = await requireBusiness();
-  const { welcome } = await searchParams;
+  const { welcome } = firstParams(await searchParams);
   if (!s.can("crm")) return <CrewToday businessId={s.business.id} userId={s.user.id} firstName={s.profile?.full_name?.split(" ")[0]} />;
   const t = tenant(s.business.id);
   // The cookie's flag can be stale after the user clicks the link; confirm only when it says "no".

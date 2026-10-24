@@ -39,3 +39,26 @@ test("excerpt keeps the first line and cuts at a word with an ellipsis", () => {
   assert.equal(excerpt("   "), null);
   assert.equal(excerpt(null), null);
 });
+
+test("safeNext only allows same-site paths, including after browsers strip control characters", async () => {
+  const { safeNext } = await import("../src/lib/utils.ts");
+  assert.equal(safeNext("/app/leads?x=1"), "/app/leads?x=1");
+  for (const bad of ["//evil.com", "/\\evil.com", "https://evil.com", "javascript:alert(1)", "/\t/evil.com", "/\n/evil.com", "/ /evil.com", "", null, undefined]) assert.equal(safeNext(bad as string), "/app", String(bad));
+});
+
+test("ids shaped like __x__ are rejected (Firestore refuses them)", async () => {
+  const { ID_RE } = await import("../src/lib/ids.ts");
+  for (const ok of ["abc", "demo-proj-1", "A1_b-2", "a".repeat(64)]) assert.ok(ID_RE.test(ok), ok);
+  for (const bad of ["__proto__", "__a__", "", "a/b", "..", ".", "a".repeat(65), "a b"]) assert.ok(!ID_RE.test(bad), bad);
+});
+
+test("isRealDay accepts only real calendar days", async () => {
+  const { isRealDay } = await import("../src/lib/dates.ts");
+  for (const ok of ["2026-02-28", "2028-02-29", "2026-12-31"]) assert.ok(isRealDay(ok), ok);
+  for (const bad of ["2026-13-45", "2026-02-31", "2026-00-10", "2027-02-29", "2026-1-5", "", "tomorrow", "2026-02-28T00:00"]) assert.ok(!isRealDay(bad), bad);
+});
+
+test("firstParams keeps the first value of a repeated query key", async () => {
+  const { firstParams } = await import("../src/lib/params.ts");
+  assert.deepEqual(firstParams({ q: ["a", "b"], tab: "work", x: undefined }), { q: "a", tab: "work", x: undefined });
+});

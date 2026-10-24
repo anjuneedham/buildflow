@@ -13,12 +13,13 @@ import { OPEN_LEAD_STATUSES } from "@/lib/constants";
 import { dateInDays, formatAmount, formatDate, relativeDay, whatsappLink } from "@/lib/utils";
 import type { ActivityRow, Customer, Lead, Project } from "@/lib/types";
 import { DeleteCustomer } from "./delete-customer";
+import { firstParams } from "@/lib/params";
 
 export const metadata = { title: "Customer" };
 
 export default async function CustomerPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ converted?: string }> }) {
   const { id } = await params;
-  const { converted } = await searchParams;
+  const { converted } = firstParams(await searchParams);
   const s = await requirePermission("crm");
   const t = tenant(s.business.id);
   const c = isId(id) ? fromDoc<Customer>(await t.doc("customers", id).get()) : null;

@@ -7,6 +7,7 @@ import { adminAuth, db } from "@/lib/firebase/admin";
 import { isFirebaseConfigured } from "@/lib/env";
 import { fromDoc } from "@/lib/data/db";
 import { can, normalizeRole, type Permission, type Role } from "@/server/policy";
+import { lastRevocationCheck, markRevocationChecked, REVOCATION_TTL_MS } from "@/server/revocation-cache";
 import type { Business, Profile } from "@/lib/types";
 
 export const SESSION_COOKIE = "__session";
@@ -24,19 +25,15 @@ const empty: Session = { user: null, profile: null, membership: null, isAdmin: f
 // admin request, and at most every 5 minutes per user for page reads
 // (ARCHITECTURE_V2.md §5.1). Removing a member or suspending a user revokes
 // their tokens, so access ends immediately for anything that changes data.
-const REVOCATION_TTL_MS = 5 * 60_000;
-const lastRevocationCheck = new Map<string, number>();
 
 async function verify(cookie: string): Promise<DecodedIdToken | null> {
   try {
     const h = await headers();
     const isMutation = h.has("next-action"); // set by Next on every server action call
     const decoded = await adminAuth().verifySessionCookie(cookie, false);
-    const last = lastRevocationCheck.get(decoded.uid) ?? 0;
-    if (isMutation || Date.now() - last > REVOCATION_TTL_MS) {
+    if (isMutation || Date.now() - lastRevocationCheck(decoded.uid) > REVOCATION_TTL_MS) {
       await adminAuth().verifySessionCookie(cookie, true);
-      lastRevocationCheck.set(decoded.uid, Date.now());
-      if (lastRevocationCheck.size > 10_000) lastRevocationCheck.clear();
+      markRevocationChecked(decoded.uid);
     }
     return decoded;
   } catch {

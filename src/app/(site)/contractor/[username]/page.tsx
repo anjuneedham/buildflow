@@ -15,6 +15,7 @@ import { getFeed, getPost, getPublicBusiness, getViewerState } from "@/lib/queri
 import { getSession } from "@/lib/session";
 import { env } from "@/lib/env";
 import { excerpt, formatDate, whatsappLink } from "@/lib/utils";
+import { firstParams } from "@/lib/params";
 
 type Props = { params: Promise<{ username: string }>; searchParams: Promise<{ request?: string; post?: string }> };
 
@@ -41,7 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  */
 export default async function ContractorProfilePage({ params, searchParams }: Props) {
   const { username } = await params;
-  const sp = await searchParams;
+  const sp = firstParams(await searchParams);
   const b = await getPublicBusiness(username);
   if (!b) notFound();
   const s = await getSession();

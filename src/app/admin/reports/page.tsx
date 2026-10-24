@@ -6,11 +6,12 @@ import { list } from "@/lib/data/db";
 import { REPORT_REASONS, optionFor } from "@/lib/constants";
 import { timeAgo } from "@/lib/utils";
 import { ReportActions } from "../admin-client";
+import { firstParams } from "@/lib/params";
 
 export const metadata = { title: "Reports" };
 
 export default async function AdminReports({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
-  const { status = "open" } = await searchParams;
+  const { status = "open" } = firstParams(await searchParams);
   const data = await list<{ id: string; target_type: string; target_id: string; target_path: string | null; reason: string; details: string | null; reporter_name: string | null; created_at: string }>(
     db().collection("reports").where("status", "==", ["open", "actioned", "dismissed"].includes(status) ? status : "open").orderBy("created_at", "desc").limit(100));
   const link = (t: string, id: string, path: string | null) => (t === "post" ? `/post/${id}` : t === "comment" && path ? `/post/${path.split("/")[1]}#comments` : null);

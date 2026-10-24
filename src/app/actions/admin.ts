@@ -8,6 +8,7 @@ import { adjustRating } from "@/lib/data/trust";
 import { recountPosts, syncBusinessToPosts } from "@/lib/data/business";
 import { inc } from "@/lib/data/tenant";
 import { requireAdmin } from "@/lib/session";
+import { forgetRevocationCheck } from "@/server/revocation-cache";
 
 // Every admin action re-checks is_platform_admin from the user's Firestore
 // profile (requireAdmin). The flag can only be set by an operator directly
@@ -17,7 +18,7 @@ export async function setUserSuspended(userId: string, suspended: boolean) {
   await requireAdmin();
   if (!isId(userId)) return { ok: false };
   await db().collection("users").doc(userId).set({ is_suspended: suspended }, { merge: true });
-  if (suspended) await adminAuth().revokeRefreshTokens(userId).catch(() => {});
+  if (suspended) { await adminAuth().revokeRefreshTokens(userId).catch(() => {}); forgetRevocationCheck(userId); }
   return { ok: true };
 }
 
@@ -32,6 +33,7 @@ export async function setBusinessFlag(businessId: string, flag: "is_suspended" |
 
 export async function resolveReport(reportId: string, action: "dismiss" | "hide") {
   const admin = await requireAdmin();
+  if (!isId(reportId)) return { ok: false, error: "Report not found" };
   const ref = db().collection("reports").doc(reportId);
   const report = await ref.get();
   if (!report.exists) return { ok: false, error: "Report not found" };
@@ -54,7 +56,8 @@ export async function resolveReport(reportId: string, action: "dismiss" | "hide"
     }
     if (type === "business") await setBusinessFlag(id, "is_suspended", true);
     // Hiding a review removes it from the profile and from the rating.
-    if (type === "review" && typeof path === "string" && /^businesses\/[\w-]+\/reviews\/[\w-]+$/.test(path)) {
+    // The path comes from the reporter's form, so it must point at the review the report names.
+    if (type === "review" && typeof path === "string" && /^businesses\/[\w-]+\/reviews\/[\w-]+$/.test(path) && path.endsWith(`/reviews/${id}`)) {
       const review = db().doc(path);
       const businessId = path.split("/")[1];
       await db().runTransaction(async (tx) => {

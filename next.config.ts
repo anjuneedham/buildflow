@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "firebasestorage.googleapis.com" },
@@ -9,6 +10,9 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: { bodySizeLimit: "50mb" },
+    // proxy.ts runs on every request and buffers the body, 10 MB by default; anything past that is cut off and a
+    // photo upload dies with "Unexpected end of form". Match the server action limit above.
+    proxyClientMaxBodySize: "50mb",
   },
   // firebase-admin uses Node APIs; keep it out of the bundler.
   serverExternalPackages: ["firebase-admin", "sharp"],
@@ -29,6 +33,8 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
+          // HTTPS only, for a year. Ignored over http (local development).
+          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
         ],
       },
     ];

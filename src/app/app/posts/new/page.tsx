@@ -4,12 +4,13 @@ import { tenant } from "@/lib/data/tenant";
 import { getServices } from "@/lib/queries";
 import { requirePermission } from "@/lib/session";
 import { PostForm } from "./post-form";
+import { firstParams } from "@/lib/params";
 
 export const metadata = { title: "Create post" };
 
 export default async function NewPostPage({ searchParams }: { searchParams: Promise<{ projectId?: string }> }) {
   const s = await requirePermission("profile.edit");
-  const { projectId } = await searchParams;
+  const { projectId } = firstParams(await searchParams);
   const [projects, services] = await Promise.all([
     list<{ id: string; name: string; status: string; location: string | null }>(tenant(s.business.id).col("projects").orderBy("created_at", "desc").select("name", "status", "location").limit(100)),
     getServices(),

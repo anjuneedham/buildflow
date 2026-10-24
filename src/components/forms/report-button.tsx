@@ -1,17 +1,18 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Flag } from "lucide-react";
 import { reportContent } from "@/app/actions/social";
 import { Modal } from "@/components/ui/modal";
 import { Field, FormError, FormSuccess, Select, Textarea } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { useFormAction } from "@/components/ui/use-form-action";
 import { REPORT_REASONS } from "@/lib/constants";
 import type { ActionState } from "@/lib/validation";
 
 export function ReportButton({ targetType, targetId, targetPath, label = "Report" }: { targetType: "post" | "comment" | "business" | "review"; targetId: string; targetPath?: string; label?: string }) {
   const [open, setOpen] = useState(false);
-  const [state, action] = useActionState(reportContent, {} as ActionState);
+  const [state, action] = useFormAction(reportContent, {} as ActionState, { refresh: false });
   return (
     <>
       <button onClick={() => setOpen(true)} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-ink-500 hover:bg-concrete-100 hover:text-ink">

@@ -20,7 +20,7 @@ export function SiteFooter() {
           <div key={c.title}>
             <h3 className="text-xs font-bold uppercase tracking-wider text-concrete-400">{c.title}</h3>
             <ul className="mt-3 space-y-2 text-sm">
-              {c.links.map(([label, href]) => <li key={href}><Link href={href} className="hover:text-white">{label}</Link></li>)}
+              {c.links.map(([label, href]) => <li key={href}><Link href={href} className="inline-block py-2 hover:text-white">{label}</Link></li>)}
             </ul>
           </div>
         ))}

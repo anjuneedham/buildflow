@@ -445,6 +445,20 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "stats",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "month",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "totals.quote_request",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [

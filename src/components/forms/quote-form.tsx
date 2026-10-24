@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
 import { CheckCircle2, Image as ImageIcon } from "lucide-react";
 import { submitQuoteRequest } from "@/app/actions/social";
 import { Field, FormError, Input, Select, Textarea } from "@/components/ui/input";
+import { useFormAction } from "@/components/ui/use-form-action";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { Service } from "@/lib/types";
 import type { ActionState } from "@/lib/validation";
@@ -20,7 +20,7 @@ export type QuoteReference = { id: string; caption: string | null; serviceId: st
 export function QuoteForm({ businessId, businessName, services, defaults, reference }: {
   businessId: string; businessName: string; services: Pick<Service, "id" | "name">[]; defaults?: { name?: string; email?: string }; reference?: QuoteReference | null;
 }) {
-  const [state, action] = useActionState(submitQuoteRequest, {} as ActionState);
+  const [state, action] = useFormAction(submitQuoteRequest, {} as ActionState, { refresh: false });
   if (state.ok) {
     return (
       <div className="flex flex-col items-center py-6 text-center" role="status">

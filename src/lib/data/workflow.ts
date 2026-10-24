@@ -1,5 +1,5 @@
 import "server-only";
-import type { WriteBatch } from "firebase-admin/firestore";
+import { createHash } from "node:crypto";
 import { now } from "./db";
 import type { tenant } from "./tenant";
 import { ACTIVE_PROJECT_STATUSES } from "@/lib/constants";
@@ -16,10 +16,15 @@ export type ContactInput = { name: string; phone?: string | null; email?: string
 
 /**
  * Finds the customer with the same phone number (any format) or email, or
- * queues a new "prospect" customer on `batch`. A person who asks twice, or
- * calls after a web request, stays one customer with one history.
+ * creates a new "prospect" customer. A person who asks twice, or calls after a
+ * web request, stays one customer with one history.
+ *
+ * Customers made here get an id derived from the phone or email, and are
+ * created with create(), which fails if the id exists. Two requests for the
+ * same person arriving together (a double tap, two tabs, a retry) therefore
+ * cannot both create one: the loser reads the winner's record.
  */
-export async function findOrCreateCustomer(t: Tenant, batch: WriteBatch, input: ContactInput, createdBy: string | null) {
+export async function findOrCreateCustomer(t: Tenant, input: ContactInput, createdBy: string | null) {
   const digits = phoneDigits(input.phone);
   const email = input.email?.trim().toLowerCase() || null;
   const match = digits
@@ -29,12 +34,19 @@ export async function findOrCreateCustomer(t: Tenant, batch: WriteBatch, input: 
     const doc = match.docs[0];
     return { id: doc.id, name: doc.get("name") as string, created: false };
   }
-  const ref = t.col("customers").doc();
+  const key = digits ? `ph-${digits}` : email ? `em-${createHash("sha1").update(email).digest("hex").slice(0, 24)}` : null;
+  const ref = key ? t.doc("customers", key) : t.col("customers").doc();
   const ts = now();
-  batch.set(ref, {
-    name: input.name, name_lower: input.name.toLowerCase(), phone: input.phone ?? null, phone_digits: digits, email: input.email ?? null, email_lower: email,
-    address: input.address ?? null, city: null, notes: null, status: "prospect", source_lead_id: null, created_by: createdBy, created_at: ts, updated_at: ts,
-  });
+  try {
+    await ref.create({
+      name: input.name, name_lower: input.name.toLowerCase(), phone: input.phone ?? null, phone_digits: digits, email: input.email ?? null, email_lower: email,
+      address: input.address ?? null, city: null, notes: null, status: "prospect", source_lead_id: null, created_by: createdBy, created_at: ts, updated_at: ts,
+    });
+  } catch (e) {
+    if ((e as { code?: number }).code !== 6) throw e; // ALREADY_EXISTS: someone just created this person
+    const existing = await ref.get();
+    return { id: ref.id, name: existing.get("name") as string, created: false };
+  }
   return { id: ref.id, name: input.name, created: true };
 }
 

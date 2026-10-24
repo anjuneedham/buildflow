@@ -17,7 +17,7 @@ export function PlanForm({ plan }: { plan: PlanRow }) {
       <Field label="Base price (USD)" htmlFor={`b-${plan.id}`}><Input id={`b-${plan.id}`} name="basePrice" inputMode="decimal" defaultValue={plan.base_price_cents / 100} /></Field>
       <Field label="Included users" htmlFor={`i-${plan.id}`}><Input id={`i-${plan.id}`} name="includedSeats" type="number" min={1} defaultValue={plan.included_seats} /></Field>
       <Field label="Per extra user (USD)" htmlFor={`s-${plan.id}`}><Input id={`s-${plan.id}`} name="seatPrice" inputMode="decimal" defaultValue={plan.additional_seat_price_cents / 100} /></Field>
-      <div className="sm:col-span-4"><SubmitButton>Save plan</SubmitButton>{state.error && <span className="ml-3 text-sm text-site-red">{state.error}</span>}</div>
+      <div className="sm:col-span-4"><SubmitButton>Save plan</SubmitButton>{state.error && <span role="alert" className="ml-3 text-sm text-site-red">{state.error}</span>}</div>
     </form>
   );
 }

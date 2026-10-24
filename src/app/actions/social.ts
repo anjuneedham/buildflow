@@ -87,8 +87,8 @@ export async function createPost(_: ActionState, fd: FormData): Promise<ActionSt
     business_id: s.business.id, author_id: s.user.id, type: d.type, caption: d.caption ?? null, project_id: d.projectId ?? null,
     service_id: service?.exists ? service.id : null, service: service?.exists ? { name: service.get("name"), slug: service.get("slug") } : null,
     location_text: d.locationText ?? null, media, is_public: true, is_hidden: false, visible: isVisible(b),
-    // Linked to a real job in BuildFlow: shown as "Verified job".
-    verified_job: Boolean(project?.exists), completed_on: (project?.get("completed_at") as string | null)?.slice(0, 10) ?? null,
+    // Linked to a job the business marked completed in BuildFlow: shown as "Verified job".
+    verified_job: project?.get("status") === "completed", completed_on: (project?.get("completed_at") as string | null)?.slice(0, 10) ?? null,
     // Flattened copy (FIRESTORE_SCHEMA_V2.md §3.18) so feed filters use plain indexes.
     region_id: b.region_id ?? null,
     business: postSnapshot(b, s.business.id),
@@ -196,7 +196,7 @@ export async function submitQuoteRequest(_: ActionState, fd: FormData): Promise<
   ].filter(Boolean).join("\n");
   const batch = db().batch();
   // Same person asking again (same phone or email) joins their existing customer record.
-  const customer = await findOrCreateCustomer(t, batch, { name: d.name, phone: d.phone, email: d.email, address: d.location }, null);
+  const customer = await findOrCreateCustomer(t, { name: d.name, phone: d.phone, email: d.email, address: d.location }, null);
   batch.set(qrRef, {
     requester_id: s.user?.id ?? null, name: d.name, email: d.email ?? null, phone: d.phone ?? null, service_id: service?.exists ? service.id : null,
     location: d.location ?? null, description: d.description, budget_range: d.budgetRange ?? null, timeline: d.timeline ?? null, kind: d.kind, lead_id: leadRef.id, created_at: ts,

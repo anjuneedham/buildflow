@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { HardHat, Home, Loader2 } from "lucide-react";
 import { FirebaseError } from "firebase/app";
 import {
@@ -25,6 +25,21 @@ function friendly(e: unknown) {
   if (code === "auth/network-request-failed") return "Network problem. Check your connection.";
   return "Something went wrong. Please try again.";
 }
+
+// A sign-up is two steps (create the Firebase account, then start the server
+// session). If the second fails (network drop, server error) the account
+// exists but has no profile. Remember what the person chose so a retry, or a
+// later log in, still finishes it as the right kind of account.
+const PENDING_SIGNUP_KEY = "bf_pending_signup";
+type PendingSignup = { email: string; fullName: string; accountType: "contractor" | "customer" };
+function readPendingSignup(email: string): PendingSignup | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(PENDING_SIGNUP_KEY) ?? "null") as PendingSignup | null;
+    return v && v.email.toLowerCase() === email.toLowerCase() ? v : null;
+  } catch { return null; }
+}
+const savePendingSignup = (v: PendingSignup) => { try { localStorage.setItem(PENDING_SIGNUP_KEY, JSON.stringify(v)); } catch { /* private mode: retry still works in this tab */ } };
+const clearPendingSignup = () => { try { localStorage.removeItem(PENDING_SIGNUP_KEY); } catch { /* ignore */ } };
 
 function Submit({ pending, children, pendingText }: { pending: boolean; children: React.ReactNode; pendingText: string }) {
   return <Button type="submit" block size="lg" disabled={pending} aria-busy={pending}>{pending && <Loader2 className="h-4 w-4 animate-spin" />}{pending ? pendingText : children}</Button>;
@@ -51,8 +66,11 @@ export function LoginForm({ next }: { next?: string }) {
     const fd = new FormData(e.currentTarget);
     setPending(true); setError(undefined);
     try {
-      const cred = await signInWithEmailAndPassword(clientAuth(), String(fd.get("email")).trim(), String(fd.get("password")));
-      const r = await startSession(cred.user, { next });
+      const email = String(fd.get("email")).trim();
+      const cred = await signInWithEmailAndPassword(clientAuth(), email, String(fd.get("password")));
+      const pendingSignup = readPendingSignup(email);
+      const r = await startSession(cred.user, { next, ...(pendingSignup ? { fullName: pendingSignup.fullName, accountType: pendingSignup.accountType } : {}) });
+      clearPendingSignup();
       router.replace(r.next);
       router.refresh();
     } catch (err) {
@@ -71,12 +89,13 @@ export function LoginForm({ next }: { next?: string }) {
   );
 }
 
-export function SignUpForm({ defaultType }: { defaultType: "contractor" | "customer" }) {
+export function SignUpForm({ defaultType, next }: { defaultType: "contractor" | "customer"; next?: string }) {
   const router = useRouter();
   const [type, setType] = useState(defaultType);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
   const [fe, setFe] = useState<Errors>({});
+  const created = useRef<User | null>(null); // account made in a previous attempt whose session didn't start
   const options = [
     { value: "contractor", label: "I run a construction business", sub: "Manage jobs & get discovered", icon: HardHat },
     { value: "customer", label: "I'm looking to hire", sub: "Free: browse & request quotes", icon: Home },
@@ -89,22 +108,30 @@ export function SignUpForm({ defaultType }: { defaultType: "contractor" | "custo
     const email = String(fd.get("email") ?? "").trim();
     const password = String(fd.get("password") ?? "");
     const errs: Errors = {
-      fullName: fullName ? undefined : "Name is required",
-      email: /^\S+@\S+\.\S+$/.test(email) ? undefined : "Enter a valid email",
+      fullName: !fullName ? "Name is required" : fullName.length > 120 ? "Use 120 characters or fewer" : undefined,
+      email: /^\S+@\S+\.\S+$/.test(email) && email.length <= 200 ? undefined : "Enter a valid email",
       password: password.length >= 8 ? undefined : "Use at least 8 characters",
     };
     setFe(errs);
     if (Object.values(errs).some(Boolean)) return;
     setPending(true); setError(undefined);
     try {
-      const cred = await createUserWithEmailAndPassword(clientAuth(), email, password);
-      await updateProfile(cred.user, { displayName: fullName });
-      await sendEmailVerification(cred.user).catch(() => {});
-      const r = await startSession(cred.user, { fullName, accountType: type });
+      let user = created.current && created.current.email?.toLowerCase() === email.toLowerCase() ? created.current : null;
+      if (!user) {
+        user = (await createUserWithEmailAndPassword(clientAuth(), email, password)).user;
+        created.current = user;
+        savePendingSignup({ email, fullName, accountType: type });
+        await updateProfile(user, { displayName: fullName });
+        await sendEmailVerification(user).catch(() => {});
+      }
+      const r = await startSession(user, { fullName, accountType: type, ...(next ? { next } : {}) });
+      clearPendingSignup();
+      created.current = null;
       router.replace(r.next);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error && !(err instanceof FirebaseError) ? err.message : friendly(err));
+      const message = err instanceof Error && !(err instanceof FirebaseError) ? err.message : friendly(err);
+      setError(created.current ? `Your account was created, but we couldn't finish signing you in (${message.replace(/\.$/, "")}). Tap the button to try again.` : message);
       setPending(false);
     }
   }
@@ -125,7 +152,7 @@ export function SignUpForm({ defaultType }: { defaultType: "contractor" | "custo
         </div>
       </fieldset>
       <FormError message={error} />
-      <Field label="Your name" htmlFor="fullName" error={fe.fullName}><Input id="fullName" name="fullName" autoComplete="name" required /></Field>
+      <Field label="Your name" htmlFor="fullName" error={fe.fullName}><Input id="fullName" name="fullName" autoComplete="name" maxLength={120} required /></Field>
       <Field label="Email" htmlFor="email" error={fe.email}><Input id="email" name="email" type="email" autoComplete="email" inputMode="email" required /></Field>
       <Field label="Password" htmlFor="password" hint="At least 8 characters" error={fe.password}><Input id="password" name="password" type="password" autoComplete="new-password" minLength={8} required /></Field>
       <Submit pending={pending} pendingText="Creating account…">{type === "contractor" ? "Create account & set up business" : "Create free account"}</Submit>

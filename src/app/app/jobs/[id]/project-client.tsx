@@ -106,7 +106,7 @@ export function TaskList({ projectId, tasks, team, canDelete, today }: { project
               <li key={t.id} className="flex items-start gap-3 p-3">
                 <button disabled={pending} aria-label={done ? "Mark not done" : "Mark done"}
                   onClick={() => run(() => setTaskStatus(t.id, done ? "todo" : "done"))}
-                  className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-2", done ? "border-site-green bg-site-green text-white" : "border-concrete-300 hover:border-ink-500")}>
+                  className={cn("relative mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-2 after:absolute after:-inset-2.5 after:content-['']", done ? "border-site-green bg-site-green text-white" : "border-concrete-300 hover:border-ink-500")}>
                   {done && <Check className="h-4 w-4" />}
                 </button>
                 <div className="min-w-0 flex-1">
@@ -186,7 +186,7 @@ export function UpdateComposer({ projectId }: { projectId: string }) {
         </label>
         <SubmitButton size="sm" className="ml-auto" pendingText="Posting…">Post update</SubmitButton>
       </div>
-      {state.ok === false && !state.fieldErrors && <p className="text-sm text-site-red">{state.error}</p>}
+      {state.ok === false && !state.fieldErrors && <p role="alert" className="text-sm text-site-red">{state.error}</p>}
     </form>
   );
 }
@@ -237,7 +237,7 @@ export function FilesSection({ projectId, files }: { projectId: string; files: (
           <input type="file" name="files" accept={UPLOAD.fileAccept} multiple className="sr-only" disabled={pending} onChange={(e) => setCount(e.target.files?.length ?? 0)} />
         </label>
         {count > 0 && <SubmitButton size="sm">Upload</SubmitButton>}
-        {state.ok === false && <p className="w-full text-sm text-site-red">{state.error}</p>}
+        {state.ok === false && <p role="alert" className="w-full text-sm text-site-red">{state.error}</p>}
       </form>
     </div>
   );

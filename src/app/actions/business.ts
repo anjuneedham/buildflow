@@ -81,7 +81,7 @@ export async function inviteMember(_: ActionState, fd: FormData): Promise<Action
 
 export async function revokeInvite(token: string) {
   const s = await requireBusiness();
-  if (!s.can("team.manage")) return { ok: false };
+  if (!s.can("team.manage") || !isId(token)) return { ok: false };
   const ref = db().collection("invitations").doc(token);
   const inv = await ref.get();
   if (inv.exists && inv.get("business_id") === s.business.id) await ref.delete();

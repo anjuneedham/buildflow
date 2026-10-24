@@ -18,7 +18,7 @@ export function LeadCard({ lead, assigneeName, today }: { lead: Lead; assigneeNa
         </Link>
         <StatusBadge kind="lead" value={lead.status} />
       </div>
-      {lead.description && <p className="mt-1 line-clamp-2 text-sm text-ink-600">{lead.description}</p>}
+      {lead.description && <p className="mt-1 line-clamp-2 break-words text-sm text-ink-600">{lead.description}</p>}
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500">
         <span className="font-bold text-ink">{formatAmount(lead.estimated_value)}</span>
         <Badge tone={lead.source === "buildflow" ? "orange" : "neutral"}>{optionFor(LEAD_SOURCES, lead.source)?.label}</Badge>

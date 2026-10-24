@@ -8,12 +8,13 @@ import { ACTIVE_PROJECT_STATUSES, PROJECT_STATUSES } from "@/lib/constants";
 import type { Project } from "@/lib/types";
 import { getTeam } from "@/lib/team";
 import { dateInDays } from "@/lib/utils";
+import { firstParams } from "@/lib/params";
 
 export const metadata = { title: "Jobs" };
 
 export default async function ProjectsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const s = await requireBusiness();
-  const { status = "active" } = await searchParams;
+  const { status = "active" } = firstParams(await searchParams);
   const col = tenant(s.business.id).col("projects");
   // Crew see only the jobs they're assigned to (the query itself is scoped).
   const scoped = s.can("projects.manage") ? col : col.where("member_ids", "array-contains", s.user.id);

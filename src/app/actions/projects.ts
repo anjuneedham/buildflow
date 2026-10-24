@@ -79,14 +79,19 @@ export async function createProject(_: ActionState, fd: FormData): Promise<Actio
   const d = parsed.data;
   const batch = db().batch();
   const ts = now();
-  const ref = t.col("projects").doc();
+  // One job per enquiry, enforced by the id: two simultaneous "Start job" calls for the same lead
+  // can't both create it (batch.create fails for the second).
+  const ref = d.leadId ? t.col("projects").doc(`from-${d.leadId}`) : t.col("projects").doc();
 
   const lead = d.leadId ? await t.doc("leads", d.leadId).get() : null;
   if (d.leadId && !lead?.exists) return { ok: false, error: "Lead not found." };
+  // A second tap, a second tab or a retry after a slow connection must not create a second job for the same enquiry.
+  const existingJob = lead?.get("project_id") ? await t.doc("projects", lead.get("project_id")).get() : null;
+  if (existingJob?.exists) return { ok: true, redirectTo: `/app/jobs/${existingJob.id}`, message: "This lead already has a job." };
   let customerId = d.customerId ?? (lead?.get("customer_id") as string | null) ?? null;
   let custName: string | null = null;
   if (!customerId && lead?.exists) {
-    const found = await findOrCreateCustomer(t, batch, { name: lead.get("name"), phone: lead.get("phone"), email: lead.get("email"), address: lead.get("location") }, userId);
+    const found = await findOrCreateCustomer(t, { name: lead.get("name"), phone: lead.get("phone"), email: lead.get("email"), address: lead.get("location") }, userId);
     customerId = found.id; custName = found.name;
     batch.update(lead.ref, { customer_id: found.id, customer_name: found.name });
   } else {
@@ -97,7 +102,7 @@ export async function createProject(_: ActionState, fd: FormData): Promise<Actio
 
   const responsible = d.responsibleId && (await memberIds(businessId, [d.responsibleId]))[0] || userId;
   const members = Array.from(new Set([responsible, ...(await memberIds(businessId, fd.getAll("memberIds").map(String)))]));
-  batch.set(ref, {
+  batch.create(ref, {
     ...projectFields(d), customer_id: customerId, customer_name: custName, lead_id: d.leadId ?? null, responsible_id: responsible, member_ids: members,
     task_total: 0, task_done: 0, next_task: null, last_update_at: null,
     completed_at: d.status === "completed" ? ts : null, created_by: userId, created_at: ts, updated_at: ts,
@@ -115,7 +120,12 @@ export async function createProject(_: ActionState, fd: FormData): Promise<Actio
     actorId: userId, actorName: userName, entityType: "project", entityId: ref.id, projectId: ref.id, customerId, leadId: d.leadId ?? null, action: "created",
     summary: lead?.exists ? `Started job ${d.name} from the lead` : `Created job ${d.name}`,
   });
-  await batch.commit();
+  try {
+    await batch.commit();
+  } catch (e) {
+    if ((e as { code?: number }).code === 6) return { ok: true, redirectTo: `/app/jobs/${ref.id}`, message: "This lead already has a job." }; // ALREADY_EXISTS
+    throw e;
+  }
   await refreshCustomerStatus(t, customerId);
   if (d.status === "completed") await refreshCompletedCount(businessId);
   return { ok: true, redirectTo: `/app/jobs/${ref.id}` };
@@ -180,24 +190,29 @@ export async function completeProject(id: string, closeOpenTasks: boolean) {
   if (!canManage) return FORBIDDEN;
   if (!isId(id)) return NOT_FOUND;
   const ref = t.doc("projects", id);
-  const prev = await ref.get();
-  if (!prev.exists) return NOT_FOUND;
-  if (prev.get("status") === "completed") return { ok: true };
   const open = await t.col("tasks").where("project_id", "==", id).where("status", "in", ["todo", "in_progress"]).limit(200).get();
   const ts = now();
-  const batch = db().batch();
-  if (closeOpenTasks) open.docs.forEach((d) => batch.update(d.ref, { status: "done", completed_at: ts, completed_by: userId, updated_at: ts }));
-  batch.update(ref, {
-    status: "completed", completed_at: ts, updated_at: ts,
-    ...(closeOpenTasks ? { task_done: prev.get("task_total") ?? 0, next_task: null } : {}),
+  // In a transaction so a double tap (or two tabs) completes the job once: one history entry, one counted completion.
+  let customerId: string | null = null;
+  const outcome = await db().runTransaction(async (tx) => {
+    const prev = await tx.get(ref);
+    if (!prev.exists) return "missing" as const;
+    if (prev.get("status") === "completed") return "already" as const;
+    customerId = (prev.get("customer_id") as string | null) ?? null;
+    if (closeOpenTasks) open.docs.forEach((d) => tx.update(d.ref, { status: "done", completed_at: ts, completed_by: userId, updated_at: ts }));
+    tx.update(ref, {
+      status: "completed", completed_at: ts, updated_at: ts,
+      ...(closeOpenTasks ? { task_done: prev.get("task_total") ?? 0, next_task: null } : {}),
+    });
+    addEvent(tx, businessId, "project_completed");
+    addActivity(tx, businessId, {
+      actorId: userId, actorName: userName, ...jobRefs(id, prev), action: "completed",
+      summary: `Job completed${closeOpenTasks && open.size ? ` (${open.size} open task${open.size === 1 ? "" : "s"} closed)` : ""}`,
+    });
+    return "done" as const;
   });
-  addEvent(batch, businessId, "project_completed");
-  addActivity(batch, businessId, {
-    actorId: userId, actorName: userName, ...jobRefs(id, prev), action: "completed",
-    summary: `Job completed${closeOpenTasks && open.size ? ` (${open.size} open task${open.size === 1 ? "" : "s"} closed)` : ""}`,
-  });
-  await batch.commit();
-  await Promise.all([refreshCustomerStatus(t, prev.get("customer_id")), refreshCompletedCount(businessId)]);
+  if (outcome === "missing") return NOT_FOUND;
+  if (outcome === "done") await Promise.all([refreshCustomerStatus(t, customerId), refreshCompletedCount(businessId)]);
   return { ok: true };
 }
 
@@ -207,20 +222,28 @@ export async function deleteProject(id: string) {
   if (!isId(id)) return NOT_FOUND;
   const project = await t.doc("projects", id).get();
   if (!project.exists) return { ok: true, redirectTo: "/app/jobs" };
-  const [tasks, media, notes, posts, leads] = await Promise.all([
-    t.col("tasks").where("project_id", "==", id).limit(400).get(),
-    t.col("media").where("project_id", "==", id).limit(400).get(),
-    t.col("activity").where("project_id", "==", id).limit(400).get(),
+  const [posts, leads] = await Promise.all([
     db().collection("posts").where("business_id", "==", businessId).where("project_id", "==", id).limit(50).get(),
     t.col("leads").where("project_id", "==", id).limit(10).get(),
   ]);
+  // A job can hold hundreds of tasks, photos and history entries; a write batch holds 500 operations.
+  // Children go first (in pages), the job itself last, so a failure part-way leaves a job that can be deleted again.
+  const mediaPaths: string[] = [];
+  for (const name of ["tasks", "media", "activity"] as const) {
+    for (;;) {
+      const page = await t.col(name).where("project_id", "==", id).limit(400).get();
+      if (page.empty) break;
+      const batch = db().batch();
+      page.docs.forEach((d) => { batch.delete(d.ref); if (name === "media" && d.get("path")) mediaPaths.push(d.get("path")); });
+      await batch.commit();
+    }
+  }
   const batch = db().batch();
   batch.delete(t.doc("projects", id));
-  [...tasks.docs, ...media.docs, ...notes.docs].forEach((d) => batch.delete(d.ref));
   posts.docs.forEach((p) => batch.update(p.ref, { project_id: null }));
   leads.docs.forEach((l) => batch.update(l.ref, { project_id: null }));
   await batch.commit();
-  await deleteObjects(media.docs.map((m) => m.get("path")));
+  await deleteObjects(mediaPaths);
   await Promise.all([refreshCompletedCount(businessId), refreshCustomerStatus(t, project.get("customer_id"))]);
   return { ok: true, redirectTo: "/app/jobs" };
 }

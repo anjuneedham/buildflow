@@ -4,11 +4,12 @@ import { list } from "@/lib/data/db";
 import type { Profile } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { SuspendUser } from "../admin-client";
+import { firstParams } from "@/lib/params";
 
 export const metadata = { title: "Users" };
 
 export default async function AdminUsers({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams;
+  const { q } = firstParams(await searchParams);
   const all = await list<Profile>(db().collection("users").orderBy("created_at", "desc").limit(500));
   const term = q?.toLowerCase().trim();
   const data = all.filter((u) => !term || u.full_name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));

@@ -10,17 +10,18 @@ import { resolveExploreFilters, type ExploreParams } from "@/lib/explore";
 import { getSession } from "@/lib/session";
 import { isFirebaseConfigured } from "@/lib/env";
 import { cn } from "@/lib/utils";
+import { firstParams } from "@/lib/params";
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<ExploreParams> }): Promise<Metadata> {
   if (!isFirebaseConfigured) return { title: "Explore contractors" };
-  const f = await resolveExploreFilters(await searchParams);
+  const f = await resolveExploreFilters(firstParams(await searchParams));
   const title = f.heading && (f.service || f.region) ? f.heading : "Explore contractors & construction work";
   return { title, description: `Browse ${title.toLowerCase()} on BuildFlow. See their completed projects and request a quote.`, alternates: { canonical: "/explore" } };
 }
 
 export default async function ExplorePage({ searchParams }: { searchParams: Promise<ExploreParams> }) {
   if (!isFirebaseConfigured) return <NotConfigured />;
-  const sp = await searchParams;
+  const sp = firstParams(await searchParams);
   const f = await resolveExploreFilters(sp);
   // A customer who searched for a service, place or name wants people to
   // contact first; with no filters, browsing finished work leads.

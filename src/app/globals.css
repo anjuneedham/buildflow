@@ -5,6 +5,10 @@
 @layer base {
   html { -webkit-tap-highlight-color: transparent; }
   body { @apply bg-concrete-50 text-ink antialiased; }
+  /* Names, notes and links people type can have no spaces; wrap them instead of pushing the page sideways. */
+  main { overflow-wrap: anywhere; }
+  /* Grid items default to min-width:auto, so one long unbroken name stretched the whole column past the screen. */
+  main .grid > * { min-width: 0; }
   ::selection { @apply bg-safety-100; }
   dialog::backdrop { background: rgba(20, 24, 28, 0.5); }
 }

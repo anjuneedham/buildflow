@@ -31,7 +31,7 @@ export function ProfileForm({ business: b, services, regions, selected }: { busi
         <div className="flex items-center gap-3 p-3">
           <Avatar src={logo} name={b.name} size="lg" square className="-mt-10 ring-4 ring-white" />
           <label className={buttonClasses({ size: "sm", variant: "outline", className: "cursor-pointer" })}>Change logo<input type="file" name="logo" accept={accept} className="sr-only" onChange={preview(setLogo)} /></label>
-          {(fe.logo || fe.cover) && <p className="text-sm text-site-red">{fe.logo?.[0] ?? fe.cover?.[0]}</p>}
+          {(fe.logo || fe.cover) && <p role="alert" className="text-sm text-site-red">{fe.logo?.[0] ?? fe.cover?.[0]}</p>}
         </div>
       </Card>
 

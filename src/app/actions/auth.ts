@@ -7,6 +7,7 @@ import { now } from "@/lib/data/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { AUTH_HINT_COOKIE, getSession, SESSION_COOKIE, SESSION_MAX_AGE_MS } from "@/lib/session";
 import { syncClaims } from "@/server/claims";
+import { forgetRevocationCheck } from "@/server/revocation-cache";
 import { isEmailVerified, sendVerificationEmail } from "@/server/email-verification";
 import { safeNext } from "@/lib/utils";
 
@@ -33,7 +34,9 @@ async function setSessionCookie(idToken: string) {
  * session cookie carries current claims (src/server/claims.ts).
  */
 export async function establishSession(input: { idToken: string; fullName?: string; accountType?: "contractor" | "customer"; next?: string }): Promise<{ ok: true; next: string } | { ok: false; refreshToken: true } | { ok: false; error: string }> {
-  if (!rateLimit(`session:${await clientIp()}`, 30, 15 * 60_000).ok) return { ok: false, error: "Too many attempts. Wait a few minutes and try again." };
+  // Passwords are guarded by Firebase Auth itself; this only stops token-replay spam. The per-address limit is generous
+  // because mobile carriers put thousands of phones behind one address; the per-account limit is the tight one.
+  if (!rateLimit(`session:${await clientIp()}`, 300, 15 * 60_000).ok) return { ok: false, error: "Too many attempts. Wait a few minutes and try again." };
   const parsed = z.object({
     idToken: z.string().min(10).max(5000),
     fullName: z.string().trim().max(120).optional(),
@@ -48,6 +51,7 @@ export async function establishSession(input: { idToken: string; fullName?: stri
   } catch {
     return { ok: false, error: "Your sign-in expired. Please try again." };
   }
+  if (!rateLimit(`session-uid:${decoded.uid}`, 30, 15 * 60_000).ok) return { ok: false, error: "Too many attempts. Wait a few minutes and try again." };
   const ref = db().collection("users").doc(decoded.uid);
   const existing = await ref.get();
   if (!existing.exists) {
@@ -73,7 +77,10 @@ export async function signOut() {
   const jar = await cookies();
   jar.delete(SESSION_COOKIE);
   jar.delete(AUTH_HINT_COOKIE);
-  if (s.user) await adminAuth().revokeRefreshTokens(s.user.id).catch(() => {});
+  if (s.user) {
+    await adminAuth().revokeRefreshTokens(s.user.id).catch(() => {});
+    forgetRevocationCheck(s.user.id); // a copied cookie stops working on this server immediately
+  }
   // The caller does a full page load afterwards so every client-side cache
   // (header state, router cache) starts clean.
 }
