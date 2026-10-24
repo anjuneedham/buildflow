@@ -70,7 +70,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       </div>
       {p.description && <Card className="p-4 text-sm text-ink-700"><p className="whitespace-pre-line">{p.description}</p></Card>}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px] [&>*]:min-w-0">
         <div className="space-y-4">
           <Card>
             <CardHeader title="Tasks" subtitle={allTasks.length ? `${done} of ${allTasks.length} done` : undefined} />

@@ -42,7 +42,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
         {c.email && <ButtonLink href={`mailto:${c.email}`} variant="outline"><Mail className="h-4 w-4" />Email</ButtonLink>}
         <ButtonLink href={`/app/jobs/new?customerId=${id}`} className="col-span-2 sm:col-auto"><Plus className="h-4 w-4" />New job</ButtonLink>
       </div>
-      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px] [&>*]:min-w-0">
         <div className="space-y-4">
           <section>
             <h2 className="mb-2 font-bold">Jobs <span className="font-normal text-ink-500">· {formatAmount(totalValue)} total</span></h2>

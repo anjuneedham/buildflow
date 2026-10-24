@@ -99,7 +99,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </Card>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2 [&>*]:min-w-0">
         <Card>
           <CardHeader title="Tasks due this week" action={<Link href="/app/jobs" className="text-sm font-semibold text-safety-700">Jobs</Link>} />
           {due.length === 0 ? <p className="p-4 text-sm text-ink-500">Nothing due in the next 7 days.</p> : (

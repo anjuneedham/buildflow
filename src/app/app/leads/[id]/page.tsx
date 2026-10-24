@@ -43,7 +43,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
 
       <Card><CardHeader title="Pipeline stage" /><CardBody><LeadStatus id={id} status={lead.status} /></CardBody></Card>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px] [&>*]:min-w-0">
         <div className="space-y-4">
           <Card>
             <CardHeader title="Details" />

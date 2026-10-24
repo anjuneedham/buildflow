@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
-import { ContractorBottomNav, ContractorSideNav, moreLinks, type NavAccess } from "@/components/nav/nav-sets";
+import { ContractorBottomNav, ContractorSideNav } from "@/components/nav/nav-sets";
+import { moreLinks, type NavAccess } from "@/components/nav/nav-config";
 import { UserMenu } from "@/components/nav/user-menu";
 import { Avatar } from "@/components/ui";
 import { unreadCount } from "@/lib/notifications";

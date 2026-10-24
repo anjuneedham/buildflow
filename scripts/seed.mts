@@ -125,8 +125,8 @@ async function demo() {
     primary: "roofer", services: ["roofer", "carpenter"], years: 15, verified: true, cover: `${U}photo-1632759145351-1d592919f522?w=1600&q=70` });
 
   // Team member
-  await kpb.ref.collection("members").doc("demo-crew-kpb").set({ role: "member", full_name: "Ricardo Gayle (Demo)", avatar_url: null, created_at: iso(10 * day) });
-  await db.collection("users").doc("demo-crew-kpb").set({ account_type: "contractor", business_id: "demo-kpb", business_role: "member" }, { merge: true });
+  await kpb.ref.collection("members").doc("demo-crew-kpb").set({ role: "field", full_name: "Ricardo Gayle (Demo)", avatar_url: null, created_at: iso(10 * day) });
+  await db.collection("users").doc("demo-crew-kpb").set({ account_type: "contractor", business_id: "demo-kpb", business_role: "field" }, { merge: true });
   await db.collection("subscriptions").doc("demo-kpb").update({ seats: 2 });
 
   // CRM for Kingston Pro Builders

@@ -1,16 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import {
-  BarChart3, Bookmark, Briefcase, Building2, ClipboardList, Compass, CreditCard, Flag, Home, Inbox, LayoutDashboard,
-  Megaphone, Plus, Settings, Store, User, Users, UsersRound, Tags, UserPlus, BriefcaseBusiness, type LucideIcon,
-} from "lucide-react";
+import { Bookmark, Briefcase, Building2, Compass, Flag, LayoutDashboard, Plus, User, Users, Tags } from "lucide-react";
 import Link from "next/link";
 import { Modal } from "@/components/ui/modal";
 import { BottomNavigation, SideNavigation, type NavItem } from "./bottom-navigation";
+import { createItems, moreLinks, primary, type CreateItem, type NavAccess } from "./nav-config";
 
-/** What the signed-in member may see; computed on the server from the policy. */
-export type NavAccess = { crm: boolean; manageJobs: boolean; editProfile: boolean; analytics: boolean; billing: boolean };
+export type { NavAccess };
 
 // ---------- Public (customers) ----------
 // UX_ARCHITECTURE_V2.md §1.4: Find (explore + search in one) · Saved · Account.
@@ -26,26 +23,6 @@ export function CustomerBottomNav({ signedIn, isContractor }: { signedIn: boolea
 }
 
 // ---------- Contractor app ----------
-// UX_ARCHITECTURE_V2.md §1.1: Today · Leads · [+] · Jobs · Inbox. Crew: Today · Jobs · Inbox.
-function primary(access: NavAccess, unread: number): NavItem[] {
-  return [
-    { href: "/app", label: "Today", icon: Home, exact: true },
-    ...(access.crm ? [{ href: "/app/leads", label: "Leads", icon: ClipboardList }] : []),
-    { href: "/app/jobs", label: "Jobs", icon: Briefcase },
-    { href: "/app/inbox", label: "Inbox", icon: Inbox, badge: unread },
-  ];
-}
-
-type CreateItem = { href: string; label: string; description: string; icon: LucideIcon };
-export function createItems(access: NavAccess): CreateItem[] {
-  return [
-    ...(access.crm ? [{ href: "/app/leads/new", label: "New lead", description: "Someone called or messaged about work", icon: ClipboardList }] : []),
-    ...(access.manageJobs ? [{ href: "/app/jobs/new", label: "New job", description: "Work that's agreed and ready to plan", icon: BriefcaseBusiness }] : []),
-    ...(access.crm ? [{ href: "/app/customers/new", label: "New customer", description: "Add a client's contact details", icon: UserPlus }] : []),
-    ...(access.editProfile ? [{ href: "/app/posts/new", label: "Showcase work", description: "Post photos of a finished job to your profile", icon: Megaphone }] : []),
-  ];
-}
-
 function CreateButton({ items }: { items: CreateItem[] }) {
   const [open, setOpen] = useState(false);
   return (
@@ -73,19 +50,6 @@ function CreateButton({ items }: { items: CreateItem[] }) {
 export function ContractorBottomNav({ access, unread }: { access: NavAccess; unread: number }) {
   const items = createItems(access);
   return <BottomNavigation items={primary(access, unread)} center={items.length ? <CreateButton items={items} /> : undefined} />;
-}
-
-/** "More" (avatar menu) links, also the sidebar's Business group. */
-export function moreLinks(access: NavAccess, slug: string): NavItem[] {
-  return [
-    ...(access.crm ? [{ href: "/app/customers", label: "Customers", icon: Users }] : []),
-    ...(access.analytics ? [{ href: "/app/analytics", label: "Insights", icon: BarChart3 }] : []),
-    ...(access.editProfile ? [{ href: "/app/profile", label: "Business profile", icon: Settings }] : []),
-    { href: "/app/team", label: "Team", icon: UsersRound },
-    ...(access.billing ? [{ href: "/app/billing", label: "Billing", icon: CreditCard }] : []),
-    { href: `/contractor/${slug}`, label: "View public profile", icon: Store },
-    { href: "/explore", label: "Explore", icon: Compass },
-  ];
 }
 
 export function ContractorSideNav({ access, unread, slug }: { access: NavAccess; unread: number; slug: string }) {
