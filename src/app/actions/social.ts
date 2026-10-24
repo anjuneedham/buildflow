@@ -7,6 +7,8 @@ import { isVisible, recountPosts } from "@/lib/data/business";
 import { addActivity, addEvent, addNotification, inc, ownerIds, tenant } from "@/lib/data/tenant";
 import { getSession, requireBusiness } from "@/lib/session";
 import { isEmailVerified, VERIFY_EMAIL_MESSAGE } from "@/server/email-verification";
+import { findOrCreateCustomer } from "@/lib/data/workflow";
+import { phoneDigits } from "@/lib/utils";
 import { rateLimit } from "@/lib/rate-limit";
 import { deleteObjects, pathFromPublicUrl, uploadImage, validImage } from "@/lib/storage";
 import { UPLOAD } from "@/lib/constants";
@@ -206,6 +208,8 @@ export async function submitQuoteRequest(_: ActionState, fd: FormData): Promise<
   const ts = now();
   const description = [d.description, d.budgetRange && `Budget: ${d.budgetRange}`, d.timeline && `Timeline: ${d.timeline}`].filter(Boolean).join("\n");
   const batch = db().batch();
+  // Same person asking again (same phone or email) joins their existing customer record.
+  const customer = await findOrCreateCustomer(t, batch, { name: d.name, phone: d.phone, email: d.email, address: d.location }, null);
   batch.set(qrRef, {
     requester_id: s.user?.id ?? null, name: d.name, email: d.email ?? null, phone: d.phone ?? null, service_id: service?.exists ? service.id : null,
     location: d.location ?? null, description: d.description, budget_range: d.budgetRange ?? null, timeline: d.timeline ?? null, kind: d.kind, lead_id: leadRef.id, created_at: ts,
@@ -213,7 +217,8 @@ export async function submitQuoteRequest(_: ActionState, fd: FormData): Promise<
   batch.set(leadRef, {
     name: d.name, name_lower: d.name.toLowerCase(), phone: d.phone ?? null, email: d.email ?? null, location: d.location ?? null, description,
     service_id: service?.exists ? service.id : null, service_name: service?.exists ? service.get("name") : null, status: "new", source: "buildflow",
-    estimated_value: null, assigned_to: null, customer_id: null, quote_request_id: qrRef.id, quote: { budget_range: d.budgetRange ?? null, timeline: d.timeline ?? null },
+    estimated_value: null, assigned_to: null, customer_id: customer.id, customer_name: customer.name, project_id: null, next_follow_up: null, phone_digits: phoneDigits(d.phone),
+    quote_request_id: qrRef.id, quote: { budget_range: d.budgetRange ?? null, timeline: d.timeline ?? null },
     created_by: null, status_changed_at: ts, created_at: ts, updated_at: ts,
   });
   if (s.user) {
@@ -226,7 +231,7 @@ export async function submitQuoteRequest(_: ActionState, fd: FormData): Promise<
   for (const o of await ownerIds(d.businessId)) {
     addNotification(batch, o, { businessId: d.businessId, type: "quote_request", title: `${d.kind === "quote" ? "New quote request from" : "New message from"} ${d.name.slice(0, 80)}`, body: d.description.slice(0, 140), link: `/app/leads/${leadRef.id}` });
   }
-  addActivity(batch, d.businessId, { actorId: s.user?.id ?? null, entityType: "lead", entityId: leadRef.id, action: "created", summary: `${d.kind === "quote" ? "Quote request received from" : "Contact request from"} ${d.name.slice(0, 80)}` });
+  addActivity(batch, d.businessId, { actorId: s.user?.id ?? null, actorName: d.name.slice(0, 80), entityType: "lead", entityId: leadRef.id, leadId: leadRef.id, customerId: customer.id, action: "created", summary: `${d.kind === "quote" ? "Quote request received from" : "Contact request from"} ${d.name.slice(0, 80)}` });
   await batch.commit();
   return { ok: true, message: d.kind === "quote" ? "Quote request sent! The contractor will contact you soon." : "Message sent! The contractor will get back to you." };
 }

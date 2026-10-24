@@ -605,7 +605,27 @@ Signed URLs are authorised by IAM, not by these rules. The public bucket grants 
 
 ---
 
-## 10. Open schema questions
+## 10. As implemented (core contractor workflow)
+
+Where the shipped code differs from the plan above, the code is the source of truth and this table records why.
+
+| Planned | Implemented | Why |
+|---|---|---|
+| `leads.next_follow_up_at` (Timestamp) | `leads.next_follow_up` (`YYYY-MM-DD`, business timezone) | A follow-up is a calendar day, not an instant; matches task due dates and the Today schedule. Set to `null` when a lead closes |
+| Lead status `quoted` | `quote_sent` (label "Quoted") | Keeps V1 values; quotes are not built yet |
+| `leads.customer` snapshot map | `leads.customer_id` + `customer_name` | V1 field names; synced by `updateCustomer` |
+| Customer `stage` | `customers.status`: `prospect` → `active` → `past` (+ manual `inactive`) | Set automatically by `refreshCustomerStatus` (lib/data/workflow.ts) when jobs start, finish or are deleted |
+| — | `customers.phone_digits`, `email_lower`; `leads.phone_digits` | Find-or-create matching: the same person asking twice (any phone format) stays one customer |
+| `updates` collection | `activity` entries with `action: "update"`, `body`, `media[]` | One timeline query per record; photos also registered in `media` with `update_id` = the activity id |
+| `media.variants`, processing Function | Single re-encoded WebP per photo (sharp, in the action); PDFs stored as-is | Functions not deployed yet; metadata is still stripped |
+| `projects.member_ids` only | + `projects.responsible_id` (always in `member_ids`) and `projects.next_task` copy | Answers "who's responsible" and "what's next" on lists without extra reads; `next_task` owner: `refreshNextTask` |
+| `activity.actor` map | `actor_id`, `actor_name` (+ `customer_id`, `lead_id`, `project_id`, `body`, `media`) | V1 field names; every entry carries all records it belongs to |
+| `notes` collection (V1) | Removed; notes are `activity` entries with `action: "note"` | Single history |
+| `photos` collection (V1) | Removed; `media` with `kind: "image" | "file"` | Photos and documents in one registry |
+
+New indexes for this: activity by `lead_id`/`customer_id`/`project_id` + `created_at desc`, activity by record + `action` (note clean-up), `media (project_id, created_at desc)`, `leads (status, created_at desc)`, `tasks (project_id, status)`.
+
+## 11. Open schema questions
 
 1. **Tax rules:** is GCT applied per line or per quote in practice, and are there exempt items? The schema supports per-line rates; the UI can default to one rate.
 2. **Quote acceptance evidence:** is "typed name + timestamp + IP hash" sufficient for contractors in Jamaica, or is an email/SMS one-time code needed? (Legal review.)

@@ -6,9 +6,14 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 /** Horizontal pill picker for pipeline/project/task status. Optimistic. */
-export function StatusChanger({ value, options, onChange, label }: {
+/**
+ * `intercept` lets the caller handle some values itself (e.g. open a dialog
+ * for "Lost" or "Completed") instead of saving straight away.
+ */
+export function StatusChanger({ value, options, onChange, label, intercept }: {
   value: string; options: readonly { value: string; label: string }[]; label: string;
   onChange: (value: string) => Promise<{ ok?: boolean; error?: string }>;
+  intercept?: { values: string[]; onSelect: (value: string) => void };
 }) {
   const [current, setCurrent] = useOptimistic(value);
   const [pending, start] = useTransition();
@@ -20,12 +25,12 @@ export function StatusChanger({ value, options, onChange, label }: {
         const on = o.value === current;
         return (
           <button key={o.value} role="radio" aria-checked={on} disabled={pending && !on}
-            onClick={() => !on && start(async () => {
+            onClick={() => !on && (intercept?.values.includes(o.value) ? intercept.onSelect(o.value) : start(async () => {
               setCurrent(o.value);
               const r = await onChange(o.value);
               if (r.ok === false) toast(r.error ?? "Couldn't update", "error");
               else { toast(`Moved to ${o.label}`); router.refresh(); }
-            })}
+            }))}
             className={cn("min-h-10 shrink-0 rounded-lg border px-3 text-sm font-semibold transition-colors", on ? "border-ink bg-ink text-white" : "border-concrete-300 bg-white text-ink-600 hover:border-ink-500")}>
             {o.label}
           </button>

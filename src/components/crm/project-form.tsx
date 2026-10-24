@@ -9,7 +9,7 @@ import type { ActionState } from "@/lib/validation";
 
 export function ProjectForm({ action: serverAction, project, customers, team, members = [], defaults = {}, submitLabel }: {
   action: (s: ActionState, fd: FormData) => Promise<ActionState>; project?: Project; customers: { id: string; name: string }[];
-  team: TeamMember[]; members?: string[]; defaults?: { customerId?: string; leadId?: string; name?: string; location?: string; budget?: number | null; description?: string | null }; submitLabel: string;
+  team: TeamMember[]; members?: string[]; defaults?: { customerId?: string; leadId?: string; name?: string; location?: string; budget?: number | null; description?: string | null; responsibleId?: string }; submitLabel: string;
 }) {
   const [state, action] = useFormAction(serverAction);
   const fe = state.fieldErrors ?? {};
@@ -32,8 +32,13 @@ export function ProjectForm({ action: serverAction, project, customers, team, me
         <Field label="Budget" htmlFor="budget" error={fe.budget} optional><Input id="budget" name="budget" inputMode="decimal" defaultValue={project?.budget ?? defaults.budget ?? ""} placeholder="0" /></Field>
       </div>
       {team.length > 1 && (
+        <Field label="Responsible" htmlFor="responsibleId" hint="The person who answers for this job">
+          <Select id="responsibleId" name="responsibleId" defaultValue={project?.responsible_id ?? defaults.responsibleId ?? ""} options={team.map((m) => ({ value: m.user_id, label: m.full_name || "Team member" }))} />
+        </Field>
+      )}
+      {team.length > 1 && (
         <fieldset>
-          <legend className="mb-2 text-sm font-semibold">Assigned team</legend>
+          <legend className="mb-2 text-sm font-semibold">Crew on this job</legend>
           <div className="flex flex-wrap gap-2">
             {team.map((m) => (
               <label key={m.user_id} className="flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-concrete-300 bg-white px-3 text-sm has-[:checked]:border-ink has-[:checked]:bg-concrete-100">

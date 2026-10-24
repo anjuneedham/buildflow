@@ -27,7 +27,11 @@ const auth = getAuth();
 
 const iso = (msAgo = 0) => new Date(Date.now() - msAgo).toISOString();
 const day = 864e5;
-const date = (days: number) => new Date(Date.now() + days * day).toISOString().slice(0, 10);
+// Calendar dates in Jamaica time, like the app (src/lib/utils.ts dateInDays).
+const date = (days: number) => {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Jamaica", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  return new Date(Date.parse(today + "T00:00:00Z") + days * day).toISOString().slice(0, 10);
+};
 
 const SERVICES = [
   ["general-contractor", "General Contractor", "General Contractors"], ["electrician", "Electrician", "Electricians"],
@@ -135,7 +139,13 @@ async function demo() {
   await db.collection("users").doc("demo-crew-kpb").set({ account_type: "contractor", business_id: "demo-kpb", business_role: "field" }, { merge: true });
   await db.collection("subscriptions").doc("demo-kpb").update({ seats: 2 });
 
-  // CRM for Kingston Pro Builders
+  // CRM for Kingston Pro Builders: every lead belongs to a customer, jobs
+  // know their responsible person and next task, and the history (activity)
+  // links each entry to its lead, customer and job.
+  const digits = (p: string | null) => { const d = (p ?? "").replace(/\D/g, ""); return d.length < 7 ? null : d.length === 10 && d.startsWith("876") ? "1" + d : d; };
+  const act = (e: Record<string, unknown>) => kpb.ref.collection("activity").add({
+    actor_id: "demo-owner-kpb", actor_name: "Marcus Reid (Demo)", body: null, media: [], customer_id: null, lead_id: null, project_id: null, ...e,
+  });
   const c = kpb.ref.collection("customers");
   const customers = [
     ["demo-cust-1", "Tamara Williams (Demo)", "+1 876 555 1001", "tamara@example.com", "12 Hope Road", "Kingston", "Prefers WhatsApp in the evenings.", "active"],
@@ -143,47 +153,64 @@ async function demo() {
     ["demo-cust-3", "Paul Henry (Demo)", "+1 876 555 1003", null, "Portmore", "St Catherine", null, "past"],
   ] as const;
   for (const [id, name, phone, email, address, city, notes, status] of customers) {
-    await c.doc(id).set({ name, name_lower: name.toLowerCase(), phone, email, address, city, notes, status, source_lead_id: null, created_by: "demo-owner-kpb", created_at: iso(20 * day), updated_at: iso(20 * day) });
+    await c.doc(id).set({ name, name_lower: name.toLowerCase(), phone, phone_digits: digits(phone), email, email_lower: email?.toLowerCase() ?? null, address, city, notes, status, source_lead_id: null, created_by: "demo-owner-kpb", created_at: iso(40 * day), updated_at: iso(20 * day) });
+    await act({ entity_type: "customer", entity_id: id, customer_id: id, action: "created", summary: `Added customer ${name}`, created_at: iso(40 * day) });
   }
+  // [name, description, service, status, source, value, responsible, follow-up in days | null]
   const leads = [
-    ["Kerry-Ann Douglas (Demo)", "Two-bedroom extension on existing house.", "general-contractor", "new", "buildflow", 4200000, null],
-    ["Garfield Morris (Demo)", "Perimeter wall, about 60 ft.", "mason", "contacted", "referral", 650000, "demo-crew-kpb"],
-    ["Nadine Scott (Demo)", "Kitchen remodel with new cabinets.", "renovation", "quote_sent", "social_media", 1800000, null],
-    ["Ocean View Apartments (Demo)", "Repaint and repair 12 units.", "painter", "quote_sent", "website", 3100000, null],
-    ["Dwayne Clarke (Demo)", "Garage conversion.", null, "lost", "phone", 900000, null],
+    ["Garfield Morris (Demo)", "Perimeter wall, about 60 ft.", "mason", "contacted", "referral", 650000, "demo-owner-kpb", 0],
+    ["Nadine Scott (Demo)", "Kitchen remodel with new cabinets.", "renovation", "quote_sent", "social_media", 1800000, "demo-owner-kpb", -2],
+    ["Ocean View Apartments (Demo)", "Repaint and repair 12 units.", "painter", "quote_sent", "website", 3100000, null, 3],
+    ["Dwayne Clarke (Demo)", "Garage conversion.", null, "lost", "phone", 900000, null, null],
   ] as const;
-  for (const [i, [name, description, service, status, source, value, assigned]] of leads.entries()) {
-    await kpb.ref.collection("leads").add({
-      name, name_lower: name.toLowerCase(), phone: `+1 876 555 20${i}0`, email: null, location: "Kingston", description, service_id: service, service_name: service ? svc(service).name : null,
-      status, source, estimated_value: value, assigned_to: assigned, customer_id: null, quote_request_id: null, created_by: "demo-owner-kpb",
+  for (const [i, [name, description, service, status, source, value, assigned, follow]] of leads.entries()) {
+    const phone = `+1 876 555 20${i}0`;
+    const cust = c.doc(`demo-cust-l${i}`);
+    await cust.set({ name, name_lower: name.toLowerCase(), phone, phone_digits: digits(phone), email: null, email_lower: null, address: "Kingston", city: null, notes: null, status: "prospect", source_lead_id: null, created_by: "demo-owner-kpb", created_at: iso((i + 1) * day), updated_at: iso((i + 1) * day) });
+    const lead = await kpb.ref.collection("leads").add({
+      name, name_lower: name.toLowerCase(), phone, phone_digits: digits(phone), email: null, location: "Kingston", description, service_id: service, service_name: service ? svc(service).name : null,
+      status, source, estimated_value: value, assigned_to: assigned, customer_id: cust.id, customer_name: name, project_id: null, quote_request_id: null, created_by: "demo-owner-kpb",
+      next_follow_up: follow === null ? null : date(follow), lost_reason: status === "lost" ? "Too expensive" : null,
       status_changed_at: iso(i * day), created_at: iso((i + 1) * day), updated_at: iso(i * day),
     });
+    await act({ entity_type: "lead", entity_id: lead.id, lead_id: lead.id, customer_id: cust.id, action: "created", summary: `Added lead ${name}`, created_at: iso((i + 1) * day) });
+    if (status !== "lost") await act({ entity_type: "lead", entity_id: lead.id, lead_id: lead.id, customer_id: cust.id, action: "note", summary: "Added a note", body: "Called, they want a site visit before a price.", created_at: iso(i * day + 3600e3) });
     await stat(kpb.ref, "lead_created", iso((i + 1) * day));
   }
   const projects = [
-    ["demo-proj-1", "Williams Home Extension (Demo)", "demo-cust-1", "Tamara Williams (Demo)", "in_progress", -30, 45, 5500000],
-    ["demo-proj-2", "Cafe Fit-out (Demo)", "demo-cust-2", "Blue Mountain Cafe Ltd (Demo)", "upcoming", 10, 40, 2400000],
-    ["demo-proj-3", "Henry Patio & Driveway (Demo)", "demo-cust-3", "Paul Henry (Demo)", "completed", -90, -40, 1200000],
+    ["demo-proj-1", "Williams Home Extension (Demo)", "demo-cust-1", "Tamara Williams (Demo)", "in_progress", -30, 45, 5500000, ["demo-owner-kpb", "demo-crew-kpb"]],
+    ["demo-proj-2", "Cafe Fit-out (Demo)", "demo-cust-2", "Blue Mountain Cafe Ltd (Demo)", "upcoming", 3, 40, 2400000, ["demo-owner-kpb"]],
+    ["demo-proj-3", "Henry Patio & Driveway (Demo)", "demo-cust-3", "Paul Henry (Demo)", "completed", -90, -40, 1200000, ["demo-owner-kpb"]],
   ] as const;
-  for (const [id, name, cid, cname, status, start, end, budget] of projects) {
+  for (const [id, name, cid, cname, status, start, end, budget, members] of projects) {
     await kpb.ref.collection("projects").doc(id).set({
       name, customer_id: cid, customer_name: cname, lead_id: null, description: null, location: "Kingston", start_date: date(start), expected_end_date: date(end),
-      status, budget, completed_at: status === "completed" ? iso(40 * day) : null, member_ids: id === "demo-proj-1" ? ["demo-owner-kpb", "demo-crew-kpb"] : ["demo-owner-kpb"],
-      task_total: 0, task_done: 0, created_by: "demo-owner-kpb", created_at: iso(35 * day), updated_at: iso(2 * day),
+      status, budget, completed_at: status === "completed" ? iso(40 * day) : null, member_ids: members, responsible_id: "demo-owner-kpb",
+      task_total: 0, task_done: 0, next_task: null, last_update_at: null, created_by: "demo-owner-kpb", created_at: iso(35 * day), updated_at: iso(2 * day),
     });
+    await act({ entity_type: "project", entity_id: id, project_id: id, customer_id: cid, action: "created", summary: `Created job ${name}`, created_at: iso(35 * day) });
   }
   const tasks = [
-    ["demo-proj-1", "Pour foundation", "high", "done", -20, "demo-crew-kpb"], ["demo-proj-1", "Block work to belt course", "high", "in_progress", 3, "demo-crew-kpb"],
-    ["demo-proj-1", "Order roofing materials", "medium", "todo", 5, "demo-owner-kpb"], ["demo-proj-1", "Confirm tile selection with client", "low", "todo", 12, null],
-    ["demo-proj-2", "Site measurement", "medium", "todo", 7, null],
+    ["demo-proj-1", "Pour foundation", "high", "done", -20, "demo-crew-kpb"], ["demo-proj-1", "Block work to belt course", "high", "in_progress", -1, "demo-crew-kpb"],
+    ["demo-proj-1", "Order roofing materials", "medium", "todo", 2, "demo-owner-kpb"], ["demo-proj-1", "Confirm tile selection with client", "low", "todo", 12, null],
+    ["demo-proj-2", "Site measurement", "medium", "todo", 1, null],
   ] as const;
   for (const [pid, title, priority, status, due, assignee] of tasks) {
     await kpb.ref.collection("tasks").add({ project_id: pid, project_name: projects.find((p) => p[0] === pid)![1], title, description: null, assigned_to: assignee, due_date: date(due), priority, status, completed_at: status === "done" ? iso(20 * day) : null, created_by: "demo-owner-kpb", created_at: iso(25 * day), updated_at: iso(2 * day) });
     await kpb.ref.collection("projects").doc(pid).update({ task_total: FieldValue.increment(1), ...(status === "done" ? { task_done: FieldValue.increment(1) } : {}) });
   }
+  // Next task = open task due soonest (same rule as refreshNextTask in the app).
+  for (const [pid] of projects) {
+    const open = tasks.filter((x) => x[0] === pid && x[3] !== "done").sort((a, b) => a[4] - b[4]);
+    const n = open[0];
+    if (!n) continue;
+    const snap = await kpb.ref.collection("tasks").where("project_id", "==", pid).where("title", "==", n[1]).limit(1).get();
+    await kpb.ref.collection("projects").doc(pid).update({ next_task: { id: snap.docs[0].id, title: n[1], due_date: date(n[4]), assigned_to: n[5] } });
+  }
   await kpb.ref.update({ completed_project_count: 1 });
-  await kpb.ref.collection("notes").add({ entity_type: "project", entity_id: "demo-proj-1", body: "Client approved the revised window layout.", author_id: "demo-owner-kpb", author_name: "Marcus Reid (Demo)", created_at: iso(3 * day) });
-  await kpb.ref.collection("activity").add({ actor_id: "demo-owner-kpb", actor_name: "Marcus Reid (Demo)", entity_type: "project", entity_id: "demo-proj-1", action: "status_changed", summary: "Williams Home Extension (Demo) is now In progress", created_at: iso(2 * day) });
+  await act({ entity_type: "project", entity_id: "demo-proj-1", project_id: "demo-proj-1", customer_id: "demo-cust-1", action: "note", summary: "Added a note", body: "Client approved the revised window layout.", created_at: iso(3 * day) });
+  await act({ entity_type: "project", entity_id: "demo-proj-1", project_id: "demo-proj-1", customer_id: "demo-cust-1", action: "status_changed", summary: "Job is now In progress", created_at: iso(2 * day) });
+  await act({ entity_type: "project", entity_id: "demo-proj-3", project_id: "demo-proj-3", customer_id: "demo-cust-3", action: "completed", summary: "Job completed", created_at: iso(40 * day) });
 
   // Other businesses get a little private data so isolation is testable.
   for (const [bid, name] of [["demo-ies", "Liguanea Plaza Mgmt (Demo)"], ["demo-ptr", "Sandra Bailey (Demo)"], ["demo-crs", "Hillside Villas (Demo)"]]) {
@@ -231,9 +258,11 @@ async function demo() {
   const qr = kpb.ref.collection("quote_requests").doc("demo-qr-1");
   const lead = kpb.ref.collection("leads").doc("demo-lead-qr");
   await qr.set({ requester_id: "demo-customer", name: "Jordan Lewis (Demo)", email: "customer@buildflow.demo", phone: null, service_id: "renovation", location: "Liguanea", description: "Looking to renovate a small bathroom and add a walk-in shower.", budget_range: "500k – 1M", timeline: "1 – 3 months", kind: "quote", lead_id: lead.id, created_at: iso(6 * 3600e3) });
-  await lead.set({ name: "Jordan Lewis (Demo)", name_lower: "jordan lewis (demo)", phone: null, email: "customer@buildflow.demo", location: "Liguanea", description: "Looking to renovate a small bathroom and add a walk-in shower.\nBudget: 500k – 1M\nTimeline: 1 – 3 months", service_id: "renovation", service_name: "Home Renovation", status: "new", source: "buildflow", estimated_value: null, assigned_to: null, customer_id: null, quote_request_id: qr.id, quote: { budget_range: "500k – 1M", timeline: "1 – 3 months" }, created_by: null, status_changed_at: iso(6 * 3600e3), created_at: iso(6 * 3600e3), updated_at: iso(6 * 3600e3) });
+  await lead.set({ name: "Jordan Lewis (Demo)", name_lower: "jordan lewis (demo)", phone: null, email: "customer@buildflow.demo", location: "Liguanea", description: "Looking to renovate a small bathroom and add a walk-in shower.\nBudget: 500k – 1M\nTimeline: 1 – 3 months", service_id: "renovation", service_name: "Home Renovation", status: "new", source: "buildflow", estimated_value: null, assigned_to: null, customer_id: "demo-cust-qr", customer_name: "Jordan Lewis (Demo)", project_id: null, next_follow_up: null, phone_digits: null, quote_request_id: qr.id, quote: { budget_range: "500k – 1M", timeline: "1 – 3 months" }, created_by: null, status_changed_at: iso(6 * 3600e3), created_at: iso(6 * 3600e3), updated_at: iso(6 * 3600e3) });
   await me.collection("quote_requests").doc(qr.id).set({ business_id: "demo-kpb", business_name: "Kingston Pro Builders", business_slug: kpb.slug, kind: "quote", description: "Looking to renovate a small bathroom and add a walk-in shower.", created_at: iso(6 * 3600e3) });
   await stat(kpb.ref, "quote_request", iso(6 * 3600e3));
+  await kpb.ref.collection("customers").doc("demo-cust-qr").set({ name: "Jordan Lewis (Demo)", name_lower: "jordan lewis (demo)", phone: null, phone_digits: null, email: "customer@buildflow.demo", email_lower: "customer@buildflow.demo", address: "Liguanea", city: null, notes: null, status: "prospect", source_lead_id: null, created_by: null, created_at: iso(6 * 3600e3), updated_at: iso(6 * 3600e3) });
+  await kpb.ref.collection("activity").add({ actor_id: "demo-customer", actor_name: "Jordan Lewis (Demo)", entity_type: "lead", entity_id: lead.id, lead_id: lead.id, customer_id: "demo-cust-qr", project_id: null, action: "created", summary: "Quote request received from Jordan Lewis (Demo)", body: null, media: [], created_at: iso(6 * 3600e3) });
   await db.collection("users").doc("demo-owner-kpb").collection("notifications").add({ business_id: "demo-kpb", type: "quote_request", title: "New quote request from Jordan Lewis (Demo)", body: "Looking to renovate a small bathroom…", link: `/app/leads/${lead.id}`, read_at: null, created_at: iso(6 * 3600e3) });
   for (let h = 1; h <= 48; h++) await stat(kpb.ref, "profile_view", iso(h * 3600e3));
   console.log("✓ demo data (password for all demo accounts: demo-password-123)");

@@ -124,14 +124,14 @@ await page.getByText("Called, site visit Friday.").waitFor();
 await shot(page, "10-lead-detail");
 step("lead moved to Contacted + note added");
 
-// 10. Convert to customer
-await page.click("text=Convert to customer");
-await page.waitForURL("**/app/customers/**converted=1");
-step("lead converted to customer");
+// 10. The quote request already created a customer record for Keisha
+const customerHref = await page.locator("main a[href^='/app/customers/']").first().getAttribute("href");
+if (!customerHref) throw new Error("lead has no linked customer");
+step("quote request created a linked customer record");
 
-// 11. Create job
-await page.click("main a[href^='/app/jobs/new?customerId']");
-await page.waitForURL("**/app/jobs/new**");
+// 11. Start the job from the lead
+await page.click("main a:has-text('Start job')");
+await page.waitForURL("**/app/jobs/new?leadId=**");
 await page.fill("#name", "Keisha retaining wall");
 await page.fill("#budget", "450000");
 await page.selectOption("#status", "in_progress");
@@ -142,10 +142,10 @@ step("project created");
 
 // 12. Tasks
 for (const t of ["Excavate footing", "Lay blocks"]) {
-  await page.fill("#title", t);
-  await page.click("button:has-text('Add task')");
-  await page.getByText(t, { exact: true }).waitFor({ timeout: 20000 }).catch(async () => { console.log("  (task UI slow to refresh; reloading)"); await page.reload(); await page.getByText(t, { exact: true }).waitFor(); });
-  if (await page.locator("#title").count() === 0) await page.click("text=Add task");
+  if (await page.locator("#t-new-title").count() === 0) await page.click("main button:has-text('Add task')");
+  await page.fill("#t-new-title", t);
+  await page.click("main form button:has-text('Add task')");
+  await page.locator("main li").getByText(t, { exact: true }).waitFor({ timeout: 20000 });
 }
 step("tasks added");
 for (let i = 0; i < 2; i++) { const n = await page.getByRole("button", { name: "Mark not done" }).count(); await page.getByRole("button", { name: "Mark done" }).first().click(); await page.waitForFunction((k) => document.querySelectorAll("button[aria-label='Mark not done']").length > k, n, { timeout: 15000 }); }
@@ -155,13 +155,14 @@ await page.getByText("2 of 2 done").waitFor();
 step("tasks completed");
 // 13. Upload site photo
 await page.setInputFiles("input[name=photos]", `${FIX}wall.png`);
-await page.click("button:has-text('Upload')");
+await page.click("button:has-text('Post update')");
 await page.locator("img[alt=\"Site photo\"]").first().waitFor();
 step("site photo uploaded");
 
 // 14. Complete project
 await page.getByRole("radio", { name: "Completed" }).click();
-await page.getByText("Moved to Completed").waitFor();
+await page.locator("dialog[open]").getByRole("button", { name: "Complete job" }).click();
+await page.getByText("Job completed").first().waitFor();
 await page.reload();
 await shot(page, "11-project-completed");
 step("project completed");

@@ -20,10 +20,10 @@ export default async function NewProjectPage({ searchParams }: { searchParams: P
   ]);
   return (
     <div className="mx-auto max-w-2xl">
-      <PageHeader title="New job" back={{ href: "/app/jobs", label: "Jobs" }} subtitle={lead ? `From lead: ${lead.name}` : undefined} />
+      <PageHeader title="New job" back={{ href: "/app/jobs", label: "Jobs" }} subtitle={lead ? `Starting a job for ${lead.name}. The enquiry will be marked won.` : undefined} />
       <Card className="p-4">
         <ProjectForm action={createProject} customers={customers} team={team} members={[s.user.id]} submitLabel="Create job"
-          defaults={{ customerId: sp.customerId ?? lead?.customer_id ?? undefined, leadId: lead?.id, name: lead ? `${lead.name} job` : undefined, location: lead?.location ?? undefined, budget: lead?.estimated_value, description: lead?.description }} />
+          defaults={{ responsibleId: lead?.assigned_to ?? s.user.id, customerId: sp.customerId ?? lead?.customer_id ?? undefined, leadId: lead?.id, name: lead ? `${lead.service_name ?? "Job"} for ${lead.name}` : undefined, location: lead?.location ?? undefined, budget: lead?.estimated_value, description: lead?.description }} />
       </Card>
     </div>
   );

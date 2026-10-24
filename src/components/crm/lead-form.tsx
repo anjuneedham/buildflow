@@ -30,8 +30,9 @@ export function LeadForm({ action: serverAction, lead, services, team, submitLab
         <Field label="Source" htmlFor="source"><Select id="source" name="source" defaultValue={lead?.source ?? "phone"} options={LEAD_SOURCES} /></Field>
         <Field label="Status" htmlFor="status"><Select id="status" name="status" defaultValue={lead?.status ?? "new"} options={LEAD_STATUSES} /></Field>
       </div>
+      <Field label="Follow up on" htmlFor="nextFollowUp" optional hint="You'll see it on Today when it's due"><Input id="nextFollowUp" name="nextFollowUp" type="date" defaultValue={lead?.next_follow_up ?? ""} /></Field>
       {team.length > 1 && (
-        <Field label="Assigned to" htmlFor="assignedTo" optional><Select id="assignedTo" name="assignedTo" defaultValue={lead?.assigned_to ?? ""} placeholder="Unassigned" options={team.map((m) => ({ value: m.user_id, label: m.full_name || "Team member" }))} /></Field>
+        <Field label="Responsible" htmlFor="assignedTo" optional hint="Who follows up with this person"><Select id="assignedTo" name="assignedTo" defaultValue={lead?.assigned_to ?? ""} placeholder="Nobody yet" options={team.map((m) => ({ value: m.user_id, label: m.full_name || "Team member" }))} /></Field>
       )}
       <SubmitButton size="lg" block pendingText="Saving…">{submitLabel}</SubmitButton>
     </form>

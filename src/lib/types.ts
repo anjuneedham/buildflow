@@ -44,6 +44,10 @@ export interface Project {
   location: string | null; start_date: string | null; expected_end_date: string | null; completed_at: string | null;
   status: ProjectStatus; budget: number | null; created_at: string;
   customer_name: string | null; member_ids: string[]; task_total: number; task_done: number; last_update_at?: string | null;
+  /** Team member who answers for this job. */
+  responsible_id?: string | null;
+  /** Copy of the open task due soonest (owner: refreshNextTask in lib/data/workflow.ts). */
+  next_task?: { id: string; title: string; due_date: string | null; assigned_to: string | null } | null;
 }
 
 export interface Task {
@@ -63,7 +67,6 @@ export interface FeedPost {
 
 export interface TeamMember { user_id: string; full_name: string; avatar_url: string | null; role: "owner" | "admin" | "field" | "member" }
 
-export interface NoteRow { id: string; body: string; created_at: string; author_id: string | null; author_name: string | null }
 export interface MediaRef { id: string; path: string; name?: string | null }
 export interface Media {
   id: string; project_id: string; kind: "image" | "file"; path: string; name: string | null; content_type: string; bytes: number;

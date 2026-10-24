@@ -74,6 +74,7 @@ export const leadSchema = z.object({
   source: z.enum(values(LEAD_SOURCES)).default("other"),
   estimatedValue: optMoney,
   assignedTo: optUuid,
+  nextFollowUp: optDate,
 });
 
 export const customerSchema = z.object({
@@ -96,6 +97,7 @@ export const projectSchema = z.object({
   expectedEndDate: optDate,
   status: z.enum(values(PROJECT_STATUSES)).default("planning"),
   budget: optMoney,
+  responsibleId: optUuid,
 }).refine((d) => !d.startDate || !d.expectedEndDate || d.expectedEndDate >= d.startDate, {
   message: "Completion date must be after the start date",
   path: ["expectedEndDate"],
@@ -109,6 +111,8 @@ export const taskSchema = z.object({
   priority: z.enum(values(TASK_PRIORITIES)).default("medium"),
   status: z.enum(values(TASK_STATUSES)).default("todo"),
 });
+
+export const updateSchema = z.object({ body: optText(4000) });
 
 export const noteSchema = z.object({
   entityType: z.enum(["lead", "customer", "project"]),

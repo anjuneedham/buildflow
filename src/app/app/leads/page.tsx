@@ -6,7 +6,7 @@ import { tenant } from "@/lib/data/tenant";
 import { requirePermission } from "@/lib/session";
 import { getTeam } from "@/lib/team";
 import { LEAD_STATUSES, OPEN_LEAD_STATUSES } from "@/lib/constants";
-import { compactAmount } from "@/lib/utils";
+import { compactAmount, dateInDays } from "@/lib/utils";
 import type { Lead } from "@/lib/types";
 
 export const metadata = { title: "Leads" };
@@ -25,6 +25,9 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
     .filter((l) => !term || [l.name, l.phone, l.email, l.description, l.location].some((v) => v?.toLowerCase().includes(term)));
   const counts = Object.fromEntries(LEAD_STATUSES.map((x) => [x.value, leads.filter((l) => l.status === x.value).length]));
   const openValue = leads.filter((l) => OPEN_LEAD_STATUSES.includes(l.status)).reduce((n, l) => n + Number(l.estimated_value ?? 0), 0);
+  const today = dateInDays(0);
+  // Follow-ups that are due float to the top of open leads.
+  if (status === "open") visible.sort((a, b) => Number(Boolean(b.next_follow_up && b.next_follow_up <= today)) - Number(Boolean(a.next_follow_up && a.next_follow_up <= today)));
   const href = (st: string) => `/app/leads?status=${st}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
 
   return (
@@ -51,7 +54,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
               </div>
             ) : undefined} />
         ) : (
-          <div className="grid gap-3 md:grid-cols-2">{visible.map((l) => <LeadCard key={l.id} lead={l} assigneeName={l.assigned_to ? names.get(l.assigned_to) : undefined} />)}</div>
+          <div className="grid gap-3 md:grid-cols-2">{visible.map((l) => <LeadCard key={l.id} lead={l} assigneeName={l.assigned_to ? names.get(l.assigned_to) : undefined} today={today} />)}</div>
         )}
       </div>
     </>

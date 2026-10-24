@@ -10,7 +10,7 @@ import { localDate } from "@/lib/utils";
 // document id from the client can therefore only ever address a document
 // inside the caller's own business.
 export type TenantCollection =
-  | "customers" | "leads" | "projects" | "tasks" | "notes" | "activity" | "photos" | "media"
+  | "customers" | "leads" | "projects" | "tasks" | "activity" | "media"
   | "quote_requests" | "stats" | "members" | "invitations";
 
 export function tenant(businessId: string) {
