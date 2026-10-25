@@ -19,6 +19,7 @@ Legend: [x] done and verified · [ ] to do · (L) needs access to the live proje
 - [ ] (L) `firebase deploy --only firestore:rules,firestore:indexes,storage --project build-6fa95` (**needs your approval**)
 - [ ] (L) Confirm in the console that indexes are "Enabled"
 - [ ] (L) Turn on daily backups / PITR for Firestore
+- [x] (L) **Seed the reference data on every new project, before anyone signs up:** `npm run seed -- --reference` (14 trades, Jamaica and its parishes, the Basic plan; additive and safe to re-run). Without it onboarding step 3 shows no services and new contractors cannot continue. Done on `build-6fa95` on 25 Oct 2026; **repeat for `buildflow-prod`**.
 
 ## Vercel env (Production)
 - [ ] `NEXT_PUBLIC_FIREBASE_*` (5 values from the web app config)
