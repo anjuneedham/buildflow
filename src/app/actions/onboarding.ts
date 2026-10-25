@@ -63,7 +63,8 @@ export async function createBusiness(_: ActionState, fd: FormData): Promise<Acti
           phone: d.phone ?? null, email: d.email ?? s.user.email ?? null, website: null, social_links: {}, years_in_business: null,
           logo_url: null, cover_url: null, country_code: d.countryCode, region_id: region?.id ?? null, region, city: d.city ?? null,
           service_area: null, primary_service_id: null, primary_service: null, service_ids: [], services: [],
-          is_public: true, is_verified: false, is_suspended: false, is_demo: false, onboarding_step: 3, onboarding_completed_at: null,
+          // Hidden until setup is first finished (finishOnboarding), so a half-built profile never reaches customers.
+          is_public: false, is_verified: false, is_suspended: false, is_demo: false, onboarding_step: 3, onboarding_completed_at: null,
           follower_count: 0, post_count: 0, completed_project_count: 0, created_at: ts, updated_at: ts,
         });
         tx.set(bizRef.collection("members").doc(s.user.id), { role: "owner", full_name: ownerName, avatar_url: s.profile?.avatar_url ?? null, created_at: ts });
@@ -183,6 +184,7 @@ export async function skipStep(fd: FormData) {
 
 export async function finishOnboarding() {
   const { business } = await owner();
-  await tenant(business.id).root.update({ onboarding_step: 7, onboarding_completed_at: now(), updated_at: now() });
+  // The first finish publishes the profile; finishing again later must not undo a deliberate "private" choice.
+  await tenant(business.id).root.update({ onboarding_step: 7, onboarding_completed_at: now(), updated_at: now(), ...(business.onboarding_completed_at ? {} : { is_public: true }) });
   redirect("/app?welcome=1");
 }

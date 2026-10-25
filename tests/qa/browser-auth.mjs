@@ -221,7 +221,10 @@ await check("onboarding: emoji-only business name still gets a working public UR
   const { page: p } = await newPage(phone, "emoji"); const e = `emoji${run}@test.dev`;
   await p.goto(`${BASE}/signup?type=contractor`); await p.fill("#fullName", "Emoji Owner"); await p.fill("#email", e); await p.fill("#password", pw); await p.click("button[type=submit]");
   await p.waitForURL("**/onboarding**", { timeout: 20000 }); await p.fill("#name", "🏗️🏗️"); await p.click("button[type=submit]"); await p.waitForURL("**step=3", { timeout: 20000 });
-  const uid = (await adminAuth.getUserByEmail(e)).uid; const slug = (await fs.collection("businesses").where("owner_id", "==", uid).get()).docs[0].get("slug");
+  const uid = (await adminAuth.getUserByEmail(e)).uid; const doc = (await fs.collection("businesses").where("owner_id", "==", uid).get()).docs[0]; const slug = doc.get("slug");
+  // A half-built profile is hidden until the owner first finishes setup; once published the generated URL must work.
+  const hidden = await fetch(`${BASE}/contractor/${slug}`); if (hidden.status !== 404) return { status: "FAIL", detail: `unfinished profile "${slug}" is public (${hidden.status})` };
+  await doc.ref.update({ is_public: true });
   const r = await fetch(`${BASE}/contractor/${slug}`); return r.status === 200 ? true : { status: "FAIL", detail: `slug "${slug}" -> ${r.status}` };
 });
 await check("onboarding: two contractors with the same business name get distinct slugs", async () => {
